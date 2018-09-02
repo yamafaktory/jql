@@ -24,30 +24,32 @@ fn get_selection(json: &Value, selector: Option<&str>) -> Option<Selection> {
             .iter()
             .enumerate()
             .map(|(i, s)| -> Result<Value, String> {
-                // let iter_index = i.to_string();
-                if let Ok(index) = s.parse::<usize>() {
-                    println!("wfwef{}", (index as isize).is_negative());
-                    if (index as isize).is_negative() {
-                        Err("Negative index".to_string())
+                if let Ok(index) = s.parse::<isize>() {
+                    if (index).is_negative() {
+                        Err("Invalid negative array index".to_string())
                     } else {
-                        if inner_json[index] == Value::Null {
+                        if inner_json[index as usize] == Value::Null {
                             Err(throw(s, &selector, i))
                         } else {
-                            inner_json = &inner_json[index];
+                            inner_json = &inner_json[index as usize];
                             Ok(inner_json.clone())
                         }
                     }
                 } else {
-                    if inner_json[s] == Value::Null {
-                        if i == 0 {
-                            Err(["Node (", s, ") is not the root element"]
-                                .join(" "))
-                        } else {
-                            Err(throw(s, &selector, i))
-                        }
+                    if s.is_empty() {
+                        Err("Unterminated selector found".to_string())
                     } else {
-                        inner_json = &inner_json[s];
-                        Ok(inner_json.clone())
+                        if inner_json[s] == Value::Null {
+                            if i == 0 {
+                                Err(["Node (", s, ") is not the root element"]
+                                    .join(" "))
+                            } else {
+                                Err(throw(s, &selector, i))
+                            }
+                        } else {
+                            inner_json = &inner_json[s];
+                            Ok(inner_json.clone())
+                        }
                     }
                 }
             }).collect();
@@ -89,31 +91,28 @@ fn main() {
         };
         let mut contents = String::new();
         match file.read_to_string(&mut contents) {
-            Ok(_) => {
-                match serde_json::from_str(&contents) {
-                    Ok(valid_json) => {
-                        if cli.is_present("pretty-print") {
-                            println!(
-                                "{}",
-                                serde_json::to_string_pretty(&json).unwrap()
-                            );
-                        }
-                        match get_selection(&valid_json, selector) {
-                            Some(items) => match items {
-                                Ok(results) => println!(
-                                    "{}",
-                                    serde_json::to_string_pretty(
-                                        &results.last()
-                                    ).unwrap()
-                                ),
-                                Err(error) => println!("{}", error),
-                            },
-                            None => println!("has no value"),
-                        }
+            Ok(_) => match serde_json::from_str(&contents) {
+                Ok(valid_json) => {
+                    if cli.is_present("pretty-print") {
+                        println!(
+                            "{}",
+                            serde_json::to_string_pretty(&json).unwrap()
+                        );
                     }
-                    Err(_) => println!("Invalid JSON file!"),
+                    match get_selection(&valid_json, selector) {
+                        Some(items) => match items {
+                            Ok(results) => println!(
+                                "{}",
+                                serde_json::to_string_pretty(&results.last())
+                                    .unwrap()
+                            ),
+                            Err(error) => println!("{}", error),
+                        },
+                        None => println!("has no value"),
+                    }
                 }
-            }
+                Err(_) => println!("Invalid JSON file"),
+            },
             Err(error) => panic!(
                 "Couldn't read {}: {}",
                 path.display(),
