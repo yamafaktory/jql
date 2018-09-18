@@ -1,8 +1,13 @@
 [package]
+authors = ["Davy Duperron <yamafaktory@gmail.com>"]
 name = "jql"
 version = "0.1.0"
-authors = ["Davy Duperron <yamafaktory@gmail.com>"]
 
 [dependencies]
 clap = "2.32.0"
-serde_json = "1.0.26"
+serde_json = "1.0.27"
+
+[[bin]]
+bench = false
+name = "jql"
+path = "src/main.rs"
