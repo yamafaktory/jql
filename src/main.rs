@@ -2,7 +2,7 @@ extern crate clap;
 extern crate serde_json;
 
 mod cli;
-mod core;
+pub mod core;
 mod types;
 
 use cli::get_matches;
@@ -12,7 +12,7 @@ use std::fs::File;
 use std::io::prelude::*;
 use std::path::Path;
 
-fn main() {
+pub fn main() {
     let cli = get_matches();
     if let Some(json) = cli.value_of("JSON") {
         let selector = cli.value_of("selector");
