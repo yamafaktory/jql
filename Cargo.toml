@@ -1,12 +1,11 @@
 [package]
 authors = ["Davy Duperron <yamafaktory@gmail.com>"]
+license = "MIT"
 name = "jql"
+repository = "https://github.com/yamafaktory/jql"
 version = "0.1.0"
 
 [dependencies]
 clap = "2.32.0"
-serde_json = "1.0.31"
-
-[lib]
-name = "jql"
-path = "src/main.rs"
+serde_json = "1.0.32"
+toml = "0.4.8"

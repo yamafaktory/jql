@@ -1,8 +1,9 @@
 use clap::{App, Arg, ArgMatches};
+use utils::get_cargo_version;
 
 pub fn get_matches<'a>() -> ArgMatches<'a> {
     App::new("jql")
-        .version("1.0")
+        .version(get_cargo_version().as_str())
         .author("Davy Duperron <yamafaktory@gmail.com>")
         .about("JSON query language")
         .arg(

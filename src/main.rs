@@ -1,9 +1,11 @@
 extern crate clap;
 extern crate serde_json;
+extern crate toml;
 
 mod cli;
-pub mod core;
+mod core;
 mod types;
+mod utils;
 
 use cli::get_matches;
 use core::walker;
@@ -12,8 +14,9 @@ use std::fs::File;
 use std::io::prelude::*;
 use std::path::Path;
 
-pub fn main() {
+fn main() {
     let cli = get_matches();
+
     if let Some(json) = cli.value_of("JSON") {
         let selector = cli.value_of("selector");
         let path = Path::new(json);
@@ -25,6 +28,7 @@ pub fn main() {
             Ok(file) => file,
         };
         let mut contents = String::new();
+
         match file.read_to_string(&mut contents) {
             Ok(_) => match serde_json::from_str(&contents) {
                 Ok(valid_json) => {
@@ -34,6 +38,7 @@ pub fn main() {
                             serde_json::to_string_pretty(&json).unwrap()
                         );
                     }
+
                     match walker(&valid_json, selector) {
                         Some(items) => match items {
                             Ok(results) => println!(
