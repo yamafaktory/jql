@@ -1,9 +1,16 @@
 [package]
 authors = ["Davy Duperron <yamafaktory@gmail.com>"]
+categories = ["command-line-utilities"]
+description = "A JSON query language CLI tool"
+keywords = ["CLI", "JSON", "tool"]
 license = "MIT"
 name = "jql"
+readme = "README.md"
 repository = "https://github.com/yamafaktory/jql"
 version = "0.1.0"
+
+[badges]
+travis-ci = { repository = "yamafaktory/jql" }
 
 [dependencies]
 clap = "2.32.0"

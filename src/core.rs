@@ -12,10 +12,17 @@ pub fn walker(json: &Value, selector: Option<&str>) -> Option<Selection> {
             .iter()
             .enumerate()
             .map(|(i, s)| -> Result<Value, String> {
+                // Array case.
                 if let Ok(index) = s.parse::<isize>() {
+                    // A Negative index has been provided.
                     if (index).is_negative() {
-                        Err(String::from("Invalid negative array index"))
-                    } else if inner_json[index as usize] == Value::Null {
+                        return Err(String::from(
+                            "Invalid negative array index",
+                        ));
+                    }
+
+                    // A JSON null value has been found (array).
+                    if inner_json[index as usize] == Value::Null {
                         let error_message = match inner_json.as_array() {
                             Some(array) => [
                                 "Index (",
@@ -33,15 +40,21 @@ pub fn walker(json: &Value, selector: Option<&str>) -> Option<Selection> {
                                     .join(" ")
                             }
                         };
-                        println!("# {:?} #", inner_json.as_array());
-                        Err(error_message)
-                    } else {
-                        inner_json = &inner_json[index as usize];
-                        Ok(inner_json.clone())
+                        return Err(error_message);
                     }
-                } else if s.is_empty() {
-                    Err(String::from("Unterminated selector found"))
-                } else if inner_json[s] == Value::Null {
+
+                    // Match found.
+                    inner_json = &inner_json[index as usize];
+                    return Ok(inner_json.clone());
+                }
+
+                // An unterminated selector has been provided.
+                if s.is_empty() {
+                    return Err(String::from("Unterminated selector found"));
+                }
+
+                // A JSON null value has been found (non array).
+                if inner_json[s] == Value::Null {
                     if i == 0 {
                         Err(["Node (", s, ") is not the root element"]
                             .join(" "))

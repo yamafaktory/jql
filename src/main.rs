@@ -11,7 +11,8 @@ use cli::get_matches;
 use core::walker;
 use std::error::Error;
 use std::fs::File;
-use std::io::prelude::*;
+use std::io::prelude::Read;
+use std::io::BufReader;
 use std::path::Path;
 
 fn main() {
@@ -27,9 +28,10 @@ fn main() {
             }
             Ok(file) => file,
         };
+        let mut buffer_reader = BufReader::new(file);
         let mut contents = String::new();
 
-        match file.read_to_string(&mut contents) {
+        match buffer_reader.read_to_string(&mut contents) {
             Ok(_) => match serde_json::from_str(&contents) {
                 Ok(valid_json) => {
                     if cli.is_present("pretty-print") {
@@ -39,6 +41,7 @@ fn main() {
                         );
                     }
 
+                    // Walk through the JSON content with the provided selector.
                     match walker(&valid_json, selector) {
                         Some(items) => match items {
                             Ok(results) => println!(
