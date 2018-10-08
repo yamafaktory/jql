@@ -36,10 +36,19 @@ pub fn walker(json: &Value, selector: Option<&str>) -> Option<Selection> {
                             // Trying to access an index on a node which is not
                             // an array.
                             None => {
-                                ["Node (", selector[i - 1], ") is not an array"]
-                                    .join(" ")
+                                if selector.len() == 1 {
+                                    ["Root element is not an array"].join(" ")
+                                } else {
+                                    [
+                                        "Node (",
+                                        selector[i - 1],
+                                        ") is not an array",
+                                    ]
+                                        .join(" ")
+                                }
                             }
                         };
+
                         return Err(error_message);
                     }
 
@@ -160,9 +169,14 @@ mod tests {
     fn get_index_in_non_array() {
         let json: Value = serde_json::from_str(DATA).unwrap();
         let selector: Option<&str> = Some("text.1");
+        let root_selector: Option<&str> = Some("1");
         assert_eq!(
             Some(Err(String::from("Node ( text ) is not an array"))),
             walker(&json, selector)
+        );
+        assert_eq!(
+            Some(Err(String::from("Root element is not an array"))),
+            walker(&json, root_selector)
         );
     }
 
