@@ -24,15 +24,30 @@ pub fn walker(json: &Value, selector: Option<&str>) -> Option<Selection> {
                     // A JSON null value has been found (array).
                     if inner_json[index as usize] == Value::Null {
                         let error_message = match inner_json.as_array() {
-                            Some(array) => [
-                                "Index (",
-                                s,
-                                ") is out of bound, node (",
-                                selector[i - 1],
-                                ") has a length of",
-                                &(array.len()).to_string(),
-                            ]
-                                .join(" "),
+                            // Trying to access an out of bound index on a node
+                            // or on the root element.
+                            Some(array) => {
+                                if selector.len() == 1 {
+                                    [
+                                        "Index (",
+                                        s,
+                                        ") is out of bound, root element has \
+                                         a length of",
+                                        &(array.len()).to_string(),
+                                    ]
+                                        .join(" ")
+                                } else {
+                                    [
+                                        "Index (",
+                                        s,
+                                        ") is out of bound, node (",
+                                        selector[i - 1],
+                                        ") has a length of",
+                                        &(array.len()).to_string(),
+                                    ]
+                                        .join(" ")
+                                }
+                            }
                             // Trying to access an index on a node which is not
                             // an array.
                             None => {
@@ -92,8 +107,10 @@ pub fn walker(json: &Value, selector: Option<&str>) -> Option<Selection> {
 mod tests {
     use super::*;
 
+    const ARRAY_DATA: &str = r#"[1, 2, 3]"#;
+
     const DATA: &str = r#"{
-        "array": [1,2,3],
+        "array": [1, 2, 3],
         "nested": {
             "a": "one",
             "b": "two",
@@ -156,12 +173,34 @@ mod tests {
     }
 
     #[test]
+    fn get_out_of_bound_item_in_root_array() {
+        let json_array: Value = serde_json::from_str(ARRAY_DATA).unwrap();
+        let array_selector: Option<&str> = Some("3");
+        assert_eq!(
+            Some(Err(String::from(
+                "Index ( 3 ) is out of bound, root element has a length of 3"
+            ))),
+            walker(&json_array, array_selector)
+        );
+    }
+
+    #[test]
     fn get_negative_index_in_array() {
         let json: Value = serde_json::from_str(DATA).unwrap();
         let selector: Option<&str> = Some("array.-1");
         assert_eq!(
             Some(Err(String::from("Invalid negative array index"))),
             walker(&json, selector)
+        );
+    }
+
+    #[test]
+    fn get_negative_index_in_root_array() {
+        let json_array: Value = serde_json::from_str(ARRAY_DATA).unwrap();
+        let array_selector: Option<&str> = Some("-1");
+        assert_eq!(
+            Some(Err(String::from("Invalid negative array index"))),
+            walker(&json_array, array_selector)
         );
     }
 
