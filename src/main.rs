@@ -1,4 +1,5 @@
 extern crate clap;
+extern crate regex;
 extern crate serde_json;
 extern crate toml;
 
