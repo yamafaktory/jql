@@ -1,10 +1,13 @@
+extern crate regex;
+extern crate serde_json;
+
 use regex::Regex;
 use serde_json::Value;
 use types::Selection;
 
 /// Get the trimmed text of the match with a default of an empty
 /// string if the group didn't participate in the match.
-fn get_selector(capture: regex::Captures<'_>) -> String {
+fn get_selector(capture: &regex::Captures<'_>) -> String {
     let cap = capture.get(0).map_or("", |m| m.as_str()).trim();
     if cap.starts_with('\"') {
         let cap_string = String::from(cap);
@@ -16,14 +19,17 @@ fn get_selector(capture: regex::Captures<'_>) -> String {
     }
 }
 
+/// Given some selector walk over the JSON file.
 pub fn walker(json: &Value, selector: Option<&str>) -> Option<Selection> {
     let mut inner_json = json;
     if let Some(selector) = selector {
         // Capture groups of double quoted selectors and simple ones surrounded
         // by dots.
         let re = Regex::new(r#"("[^"]+")|([^.]+)"#).unwrap();
-        let selector: Vec<String> =
-            re.captures_iter(selector).map(get_selector).collect();
+        let selector: Vec<String> = re
+            .captures_iter(selector)
+            .map(|capture| get_selector(&capture))
+            .collect();
 
         // Returns a Result of values or an Err early on, stopping the iteration
         // as soon as the latter is encountered.
@@ -110,8 +116,7 @@ pub fn walker(json: &Value, selector: Option<&str>) -> Option<Selection> {
                     inner_json = &inner_json[s];
                     Ok(inner_json.clone())
                 }
-            })
-            .collect();
+            }).collect();
 
         // Final check for empty selection, in this case we assume that the user
         // expects to get back the complete raw JSON back.

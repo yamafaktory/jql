@@ -1,6 +1,8 @@
 use clap::{App, Arg, ArgMatches};
 use utils::get_cargo_version;
 
+
+/// Get the CLI matches.
 pub fn get_matches<'a>() -> ArgMatches<'a> {
     App::new("jql")
         .version(get_cargo_version().as_str())
