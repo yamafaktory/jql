@@ -1,13 +1,32 @@
-extern crate serde_json;
-
+use regex::Regex;
 use serde_json::Value;
 use types::Selection;
+
+/// Get the trimmed text of the match with a default of an empty
+/// string if the group didn't participate in the match.
+fn get_selector(capture: regex::Captures<'_>) -> String {
+    let cap = capture.get(0).map_or("", |m| m.as_str()).trim();
+    if cap.starts_with('\"') {
+        let cap_string = String::from(cap);
+        // Drop the enclosing double quotes in this case.
+        let inner_cap = &cap_string[1..cap_string.len() - 1];
+        String::from(inner_cap)
+    } else {
+        String::from(cap)
+    }
+}
 
 pub fn walker(json: &Value, selector: Option<&str>) -> Option<Selection> {
     let mut inner_json = json;
     if let Some(selector) = selector {
-        let selector: Vec<&str> = selector.split('.').collect();
-        // Returns Result of values or Err early on, stopping the iteration.
+        // Capture groups of double quoted selectors and simple ones surrounded
+        // by dots.
+        let re = Regex::new(r#"("[^"]+")|([^.]+)"#).unwrap();
+        let selector: Vec<String> =
+            re.captures_iter(selector).map(get_selector).collect();
+
+        // Returns a Result of values or an Err early on, stopping the iteration
+        // as soon as the latter is encountered.
         let items: Selection = selector
             .iter()
             .enumerate()
@@ -41,7 +60,7 @@ pub fn walker(json: &Value, selector: Option<&str>) -> Option<Selection> {
                                         "Index (",
                                         s,
                                         ") is out of bound, node (",
-                                        selector[i - 1],
+                                        selector[i - 1].as_str(),
                                         ") has a length of",
                                         &(array.len()).to_string(),
                                     ]
@@ -56,7 +75,7 @@ pub fn walker(json: &Value, selector: Option<&str>) -> Option<Selection> {
                                 } else {
                                     [
                                         "Node (",
-                                        selector[i - 1],
+                                        selector[i - 1].as_str(),
                                         ") is not an array",
                                     ]
                                         .join(" ")
@@ -72,11 +91,6 @@ pub fn walker(json: &Value, selector: Option<&str>) -> Option<Selection> {
                     return Ok(inner_json.clone());
                 }
 
-                // An unterminated selector has been provided.
-                if s.is_empty() {
-                    return Err(String::from("Unterminated selector found"));
-                }
-
                 // A JSON null value has been found (non array).
                 if inner_json[s] == Value::Null {
                     if i == 0 {
@@ -87,7 +101,7 @@ pub fn walker(json: &Value, selector: Option<&str>) -> Option<Selection> {
                             "Node (",
                             s,
                             ") not found on parent (",
-                            selector[i - 1],
+                            selector[i - 1].as_str(),
                             ")",
                         ]
                             .join(" "))
@@ -96,8 +110,21 @@ pub fn walker(json: &Value, selector: Option<&str>) -> Option<Selection> {
                     inner_json = &inner_json[s];
                     Ok(inner_json.clone())
                 }
-            }).collect();
-        Some(items)
+            })
+            .collect();
+
+        // Final check for empty selection, in this case we assume that the user
+        // expects to get back the complete raw JSON back.
+        Some(match items {
+            Ok(items) => {
+                if items.is_empty() {
+                    Ok(vec![json.clone()])
+                } else {
+                    Ok(items)
+                }
+            }
+            Err(items) => Err(items),
+        })
     } else {
         None
     }
@@ -106,6 +133,11 @@ pub fn walker(json: &Value, selector: Option<&str>) -> Option<Selection> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    // The following constants are all valid JSON.
+    // https://tools.ietf.org/html/rfc8259#section-13
+
+    const SINGLE_VALUE_DATA: &str = r#"1337"#;
 
     const ARRAY_DATA: &str = r#"[1, 2, 3]"#;
 
@@ -117,7 +149,9 @@ mod tests {
             "c": "three"
         },
         "number": 1337,
-        "text": "some text"
+        "text": "some text",
+        ".property..": "This is valid JSON!",
+        "\"": "This is valid JSON as well"
     }"#;
 
     #[test]
@@ -255,12 +289,35 @@ mod tests {
     }
 
     #[test]
-    fn get_unterminated_selector() {
-        let json: Value = serde_json::from_str(DATA).unwrap();
-        let selector: Option<&str> = Some("nested.");
+    fn get_single_value() {
+        let json_single_value: Value =
+            serde_json::from_str(SINGLE_VALUE_DATA).unwrap();
+        let selector: Option<&str> = Some(".");
         assert_eq!(
-            Some(Err(String::from("Unterminated selector found"))),
-            walker(&json, selector)
+            Some(Ok(vec![json_single_value.clone()])),
+            walker(&json_single_value, selector)
+        );
+    }
+
+    #[test]
+    fn get_raw_json() {
+        let json: Value = serde_json::from_str(DATA).unwrap();
+        let selector: Option<&str> = Some("");
+        assert_eq!(Some(Ok(vec![json.clone()])), walker(&json, selector));
+    }
+
+    #[test]
+    fn get_weird_json() {
+        let json: Value = serde_json::from_str(DATA).unwrap();
+        let dot_selector: Option<&str> = Some(r#"".property..""#);
+        let quote_selector: Option<&str> = Some(r#"""""#);
+        assert_eq!(
+            Some(Ok(vec![json[".property.."].clone()])),
+            walker(&json, dot_selector)
+        );
+        assert_eq!(
+            Some(Ok(vec![json[r#"""#].clone()])),
+            walker(&json, quote_selector)
         );
     }
 }
