@@ -3,19 +3,39 @@ extern crate serde_json;
 
 use regex::Regex;
 use serde_json::Value;
-use types::Selection;
+use types::{Selection, Selector};
 
 /// Get the trimmed text of the match with a default of an empty
 /// string if the group didn't participate in the match.
-fn get_selector(capture: &regex::Captures<'_>) -> String {
+fn get_selector(capture: &regex::Captures<'_>) -> Selector {
     let cap = capture.get(0).map_or("", |m| m.as_str()).trim();
     if cap.starts_with('\"') {
-        let cap_string = String::from(cap);
+        // let cap_string = String::from(cap);
         // Drop the enclosing double quotes in this case.
-        let inner_cap = &cap_string[1..cap_string.len() - 1];
-        String::from(inner_cap)
+        // let inner_cap = cap_string[1..cap_string.len() - 1];
+        Selector::Default(String::from(&cap[1..cap.len() - 1]))
     } else {
-        String::from(cap)
+        // Array range, e.g. 0:3.
+        let range_regex = Regex::new(r"(\d+):(\d+)").unwrap();
+        let ranges: Vec<(&str, &str)> = range_regex
+            .captures_iter(cap)
+            .map(|capture| {
+                (
+                    capture.get(1).map_or("", |m| m.as_str()),
+                    capture.get(2).map_or("", |m| m.as_str()),
+                )
+            }).collect();
+        if ranges.is_empty() {
+            // Returns the initial captured value.
+            Selector::Default(String::from(cap))
+        } else {
+            // Returns the range as a tuple of the form (start,end).
+            let (start, end) = *ranges.get(0).unwrap();
+            Selector::Range((
+                usize::from_str_radix(start, 10).unwrap(),
+                usize::from_str_radix(end, 10).unwrap(),
+            ))
+        }
     }
 }
 
@@ -26,7 +46,7 @@ pub fn walker(json: &Value, selector: Option<&str>) -> Option<Selection> {
         // Capture groups of double quoted selectors and simple ones surrounded
         // by dots.
         let re = Regex::new(r#"("[^"]+")|([^.]+)"#).unwrap();
-        let selector: Vec<String> = re
+        let selector: Vec<Selector> = re
             .captures_iter(selector)
             .map(|capture| get_selector(&capture))
             .collect();
@@ -37,7 +57,11 @@ pub fn walker(json: &Value, selector: Option<&str>) -> Option<Selection> {
             .iter()
             .enumerate()
             .map(|(i, s)| -> Result<Value, String> {
-                // Array case.
+                println!("*** {:?} ***",s);
+                match s {
+                    Selector::Default(s) => {
+
+                         // Array case.
                 if let Ok(index) = s.parse::<isize>() {
                     // A Negative index has been provided.
                     if (index).is_negative() {
@@ -66,7 +90,11 @@ pub fn walker(json: &Value, selector: Option<&str>) -> Option<Selection> {
                                         "Index (",
                                         s,
                                         ") is out of bound, node (",
-                                        selector[i - 1].as_str(),
+                                        match &selector[i - 1] {
+                                            Selector::Default(value) => value.as_str(),
+                                            Selector::Range(range) => "0:3",
+                                        },
+                                        // selector[i - 1],
                                         ") has a length of",
                                         &(array.len()).to_string(),
                                     ]
@@ -81,7 +109,11 @@ pub fn walker(json: &Value, selector: Option<&str>) -> Option<Selection> {
                                 } else {
                                     [
                                         "Node (",
-                                        selector[i - 1].as_str(),
+                                        match &selector[i - 1] {
+                                            Selector::Default(value) => value.as_str(),
+                                            Selector::Range(range) => "0:3",
+                                        },
+                                        // selector[i - 1].to_string(),
                                         ") is not an array",
                                     ]
                                         .join(" ")
@@ -107,7 +139,11 @@ pub fn walker(json: &Value, selector: Option<&str>) -> Option<Selection> {
                             "Node (",
                             s,
                             ") not found on parent (",
-                            selector[i - 1].as_str(),
+                            match &selector[i - 1] {
+                                Selector::Default(value) => value.as_str(),
+                                Selector::Range(range) => "0:3",
+                            },
+                            // selector[i - 1].to_string(),
                             ")",
                         ]
                             .join(" "))
@@ -116,6 +152,18 @@ pub fn walker(json: &Value, selector: Option<&str>) -> Option<Selection> {
                     inner_json = &inner_json[s];
                     Ok(inner_json.clone())
                 }
+                    }
+                    Selector::Range((start, end)) => {
+                        if inner_json.as_array().unwrap().len() < *start || inner_json.as_array().unwrap().len() < *end{
+return Err(["Range is out of bound"]
+                            .join(" "))
+                        }
+
+                        println!("{}", json!(inner_json.as_array().unwrap()[*start..*end]));
+                        Ok(inner_json[start].clone())
+                        }
+                }
+
             }).collect();
 
         // Final check for empty selection, in this case we assume that the user
