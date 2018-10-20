@@ -4,6 +4,7 @@ extern crate serde_json;
 use regex::Regex;
 use serde_json::Value;
 use types::{Selection, Selector};
+use utils::get_node_or_range;
 
 /// Get the trimmed text of the match with a default of an empty
 /// string if the group didn't participate in the match.
@@ -71,11 +72,7 @@ pub fn array_walker(
                         "Index (",
                         s,
                         ") is out of bound, node (",
-                        match &selector[i - 1] {
-                            Selector::Default(value) => value.as_str(),
-                            Selector::Range(range) => "0:3",
-                        },
-                        // selector[i - 1],
+                        &get_node_or_range(&selector[i - 1]),
                         ") has a length of",
                         &(array.len()).to_string(),
                     ]
@@ -90,11 +87,7 @@ pub fn array_walker(
                 } else {
                     [
                         "Node (",
-                        match &selector[i - 1] {
-                            Selector::Default(value) => value.as_str(),
-                            Selector::Range(range) => "0:3",
-                        },
-                        // selector[i - 1].to_string(),
+                        &get_node_or_range(&selector[i - 1]),
                         ") is not an array",
                     ]
                         .join(" ")
@@ -106,8 +99,6 @@ pub fn array_walker(
     }
 
     // Match found.
-    // inner_json = &inner_json[index as usize];
-    println!("FIx it {}", &inner_json[index as usize]);
     Ok(inner_json[index as usize].clone())
 }
 
@@ -140,10 +131,7 @@ pub fn range_selector(
                 ":",
                 end.to_string().as_str(),
                 ") is out of bound, node (",
-                match &selector[i - 1] {
-                    Selector::Default(value) => value.as_str(),
-                    Selector::Range(range) => "0:3",
-                },
+                &get_node_or_range(&selector[i - 1]),
                 ") has a length of",
                 &(inner_json.as_array().unwrap().len()).to_string(),
             ]
@@ -207,7 +195,6 @@ pub fn walker(json: &Value, selector: Option<&str>) -> Option<Selection> {
                         }
 
                         // A JSON null value has been found (non array).
-                        println!("- {} {}", inner_json, s);
                         if inner_json[s] == Value::Null {
                             if i == 0 {
                                 Err(["Node (", s, ") is not the root element"]
@@ -217,12 +204,7 @@ pub fn walker(json: &Value, selector: Option<&str>) -> Option<Selection> {
                                     "Node (",
                                     s,
                                     ") not found on parent (",
-                                    match &selector[i - 1] {
-                                        Selector::Default(value) => {
-                                            value.as_str()
-                                        }
-                                        Selector::Range(range) => "0:3",
-                                    },
+                                    &get_node_or_range(&selector[i - 1]),
                                     ")",
                                 ]
                                     .join(" "))
