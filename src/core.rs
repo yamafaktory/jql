@@ -140,11 +140,11 @@ pub fn range_selector(
     }
 
     Ok(if is_default {
-        json!(inner_json.as_array().unwrap()[start..(end + 1)])
+        json!(inner_json.as_array().unwrap()[start..=end])
     } else {
         // Get the normalized slice selection, i.e. from end to start.
         let normalized_range_selection =
-            json!(inner_json.as_array().unwrap()[end..(start + 1)]);
+            json!(inner_json.as_array().unwrap()[end..=start]);
         // Reverse it.
         let reversed_range_selection: Vec<&Value> = normalized_range_selection
             .as_array()
