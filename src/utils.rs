@@ -16,14 +16,36 @@ pub fn get_cargo_version() -> String {
 }
 
 /// Convert a range to a readable string.
-fn range_to_string((start, end): (usize, usize)) -> String {
-    [start.to_string().as_str(), ":", end.to_string().as_str()].join(" ")
+fn display_range_selector(
+    (start, end): (usize, usize),
+    capitalized: bool,
+) -> String {
+    [
+        if capitalized { "Range (" } else { "range (" },
+        start.to_string().as_str(),
+        ":",
+        end.to_string().as_str(),
+        ")",
+    ]
+        .join(" ")
+}
+
+/// Convert a range to a readable string.
+fn display_default_selector(value: String, capitalized: bool) -> String {
+    [
+        if capitalized { "Node (" } else { "node (" },
+        value.as_str(),
+        ")",
+    ]
+        .join(" ")
 }
 
 /// Return the node or the range of Selector as a string.
-pub fn get_node_or_range(selector: &Selector) -> String {
+pub fn display_node_or_range(selector: &Selector, capitalized: bool) -> String {
     match selector {
-        Selector::Default(value) => value.clone(),
-        Selector::Range(range) => range_to_string(*range),
+        Selector::Default(value) => {
+            display_default_selector(value.clone(), capitalized)
+        }
+        Selector::Range(range) => display_range_selector(*range, capitalized),
     }
 }

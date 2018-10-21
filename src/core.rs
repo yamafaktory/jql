@@ -4,7 +4,7 @@ extern crate serde_json;
 use regex::Regex;
 use serde_json::Value;
 use types::{Selection, Selector};
-use utils::get_node_or_range;
+use utils::display_node_or_range;
 
 /// Get the trimmed text of the match with a default of an empty
 /// string if the group didn't participate in the match.
@@ -62,8 +62,7 @@ pub fn array_walker(
                     [
                         "Index (",
                         s,
-                        ") is out of bound, root element has \
-                         a length of",
+                        ") is out of bound, root element has a length of",
                         &(array.len()).to_string(),
                     ]
                         .join(" ")
@@ -71,9 +70,9 @@ pub fn array_walker(
                     [
                         "Index (",
                         s,
-                        ") is out of bound, node (",
-                        &get_node_or_range(&selector[i - 1]),
-                        ") has a length of",
+                        ") is out of bound,",
+                        &display_node_or_range(&selector[i - 1], false),
+                        "has a length of",
                         &(array.len()).to_string(),
                     ]
                         .join(" ")
@@ -86,9 +85,8 @@ pub fn array_walker(
                     ["Root element is not an array"].join(" ")
                 } else {
                     [
-                        "Node (",
-                        &get_node_or_range(&selector[i - 1]),
-                        ") is not an array",
+                        &display_node_or_range(&selector[i - 1], true),
+                        "is not an array",
                     ]
                         .join(" ")
                 }
@@ -110,6 +108,7 @@ pub fn range_selector(
     selector: &[Selector],
 ) -> Result<Value, String> {
     let is_default = start < end;
+
     // Check the range validity.
     if inner_json.as_array().unwrap().len() < start
         || inner_json.as_array().unwrap().len() < (end + 1)
@@ -130,9 +129,9 @@ pub fn range_selector(
                 start.to_string().as_str(),
                 ":",
                 end.to_string().as_str(),
-                ") is out of bound, node (",
-                &get_node_or_range(&selector[i - 1]),
-                ") has a length of",
+                ") is out of bound,",
+                &display_node_or_range(&selector[i - 1], false),
+                "has a length of",
                 &(inner_json.as_array().unwrap().len()).to_string(),
             ]
                 .join(" ")
@@ -190,7 +189,7 @@ pub fn walker(json: &Value, selector: Option<&str>) -> Option<Selection> {
                                     inner_json = json.clone();
                                     Ok(json.clone())
                                 }
-                                Err(error) => Err(error.to_string()),
+                                Err(error) => Err(error),
                             };
                         }
 
@@ -203,9 +202,11 @@ pub fn walker(json: &Value, selector: Option<&str>) -> Option<Selection> {
                                 Err([
                                     "Node (",
                                     s,
-                                    ") not found on parent (",
-                                    &get_node_or_range(&selector[i - 1]),
-                                    ")",
+                                    ") not found on parent",
+                                    &display_node_or_range(
+                                        &selector[i - 1],
+                                        false,
+                                    ),
                                 ]
                                     .join(" "))
                             }
@@ -215,13 +216,19 @@ pub fn walker(json: &Value, selector: Option<&str>) -> Option<Selection> {
                         }
                     }
                     // Range selector.
-                    Selector::Range((start, end)) => range_selector(
+                    Selector::Range((start, end)) => match range_selector(
                         i,
                         &inner_json.clone(),
                         *start,
                         *end,
                         &selector,
-                    ),
+                    ) {
+                        Ok(json) => {
+                            inner_json = json.clone();
+                            Ok(json.clone())
+                        }
+                        Err(error) => Err(error),
+                    },
                 }
             }).collect();
 
@@ -263,7 +270,9 @@ mod tests {
         "number": 1337,
         "text": "some text",
         ".property..": "This is valid JSON!",
-        "\"": "This is valid JSON as well"
+        "\"": "This is valid JSON as well",
+        "mix": [{ "first": 1 }],
+        "range": [1, 2, 3, 4, 5, 6, 7]
     }"#;
 
     #[test]
@@ -381,7 +390,7 @@ mod tests {
         let selector: Option<&str> = Some("nested.d");
         assert_eq!(
             Some(Err(String::from(
-                "Node ( d ) not found on parent ( nested )"
+                "Node ( d ) not found on parent node ( nested )"
             ))),
             walker(&json, selector)
         );
@@ -430,6 +439,74 @@ mod tests {
         assert_eq!(
             Some(Ok(vec![json[r#"""#].clone()])),
             walker(&json, quote_selector)
+        );
+    }
+
+    #[test]
+    fn get_mix_json() {
+        let json: Value = serde_json::from_str(DATA).unwrap();
+        let mix_selector: Option<&str> = Some("mix.0.first");
+        assert_eq!(
+            Some(Ok(vec![
+                json["mix"].clone(),
+                json["mix"][0].clone(),
+                json["mix"][0]["first"].clone()
+            ])),
+            walker(&json, mix_selector)
+        );
+    }
+
+    #[test]
+    fn get_range() {
+        let json: Value = serde_json::from_str(DATA).unwrap();
+        let selector: Option<&str> = Some("range.2:5");
+        assert_eq!(
+            Some(Ok(vec![json["range"].clone(), json!([3, 4, 5, 6])])),
+            walker(&json, selector)
+        );
+    }
+
+    #[test]
+    fn get_one_item_range() {
+        let json: Value = serde_json::from_str(DATA).unwrap();
+        let selector: Option<&str> = Some("range.2:2");
+        assert_eq!(
+            Some(Ok(vec![json["range"].clone(), json!([3])])),
+            walker(&json, selector)
+        );
+    }
+
+    #[test]
+    fn get_reversed_range() {
+        let json: Value = serde_json::from_str(DATA).unwrap();
+        let selector: Option<&str> = Some("range.5:2");
+        assert_eq!(
+            Some(Ok(vec![json["range"].clone(), json!([6, 5, 4, 3])])),
+            walker(&json, selector)
+        );
+    }
+
+    #[test]
+    fn get_original_from_reversed_range() {
+        let json: Value = serde_json::from_str(DATA).unwrap();
+        let selector: Option<&str> = Some("range.5:2.3:0");
+        assert_eq!(
+            Some(Ok(vec![
+                json["range"].clone(),
+                json!([6, 5, 4, 3]),
+                json!([3, 4, 5, 6])
+            ])),
+            walker(&json, selector)
+        );
+    }
+
+    #[test]
+    fn get_out_of_bound_range() {
+        let json: Value = serde_json::from_str(DATA).unwrap();
+        let selector: Option<&str> = Some("range.6:7");
+        assert_eq!(
+            Some(Err(String::from("Range ( 6 : 7 ) is out of bound, node ( range ) has a length of 7"))),
+            walker(&json, selector)
         );
     }
 }
