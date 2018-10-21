@@ -31,20 +31,15 @@ fn display_range_selector(
 }
 
 /// Convert a range to a readable string.
-fn display_default_selector(value: String, capitalized: bool) -> String {
-    [
-        if capitalized { "Node (" } else { "node (" },
-        value.as_str(),
-        ")",
-    ]
-        .join(" ")
+fn display_default_selector(value: &str, capitalized: bool) -> String {
+    [if capitalized { "Node (" } else { "node (" }, value, ")"].join(" ")
 }
 
 /// Return the node or the range of Selector as a string.
 pub fn display_node_or_range(selector: &Selector, capitalized: bool) -> String {
     match selector {
         Selector::Default(value) => {
-            display_default_selector(value.clone(), capitalized)
+            display_default_selector(&value.clone(), capitalized)
         }
         Selector::Range(range) => display_range_selector(*range, capitalized),
     }
