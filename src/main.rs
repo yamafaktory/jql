@@ -1,5 +1,6 @@
 extern crate clap;
 extern crate regex;
+#[macro_use]
 extern crate serde_json;
 extern crate toml;
 
