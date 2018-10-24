@@ -510,4 +510,14 @@ mod tests {
             walker(&json, selector)
         );
     }
+
+    #[test]
+    fn get_multi_selection() {
+        let json: Value = serde_json::from_str(DATA).unwrap();
+        let selector: Option<&str> = Some("array,number");
+        assert_eq!(
+            Ok(json!([json["array"], json["number"]])),
+            walker(&json, selector)
+        );
+    }
 }
