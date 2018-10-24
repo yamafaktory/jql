@@ -17,8 +17,10 @@ fn get_selector(capture: &regex::Captures<'_>) -> Selector {
         Selector::Default(String::from(&cap[1..cap.len() - 1]))
     } else {
         // Array range, e.g. 0:3.
-        let range_regex = Regex::new(r"(\d+):(\d+)").unwrap();
-        let ranges: Vec<(&str, &str)> = range_regex
+        lazy_static! {
+            static ref RANGE_REGEX: Regex = Regex::new(r"(\d+):(\d+)").unwrap();
+        }
+        let ranges: Vec<(&str, &str)> = RANGE_REGEX
             .captures_iter(cap)
             .map(|capture| {
                 (
@@ -155,98 +157,128 @@ pub fn range_selector(
     })
 }
 
-/// Given some selector walk over the JSON file.
-pub fn walker(json: &Value, selector: Option<&str>) -> Option<Selection> {
+fn group_walker(capture: &regex::Captures<'_>, json: &Value) -> Selection {
+    lazy_static! {
+        static ref SUB_GROUP_REGEX: Regex =
+            Regex::new(r#"("[^"]+")|([^.]+)"#).unwrap();
+    }
     let mut inner_json = json.clone();
-    if let Some(selector) = selector {
-        // Capture groups of double quoted selectors and simple ones surrounded
-        // by dots.
-        let re = Regex::new(r#"("[^"]+")|([^.]+)"#).unwrap();
-        let selector: Vec<Selector> = re
-            .captures_iter(selector)
-            .map(|capture| get_selector(&capture))
-            .collect();
+    let group = capture.get(0).map_or("", |m| m.as_str());
+    // Capture sub-groups of double quoted selectors and simple ones surrounded
+    // by dots.
+    let selector: Vec<Selector> = SUB_GROUP_REGEX
+        .captures_iter(group)
+        .map(|capture| get_selector(&capture))
+        .collect();
 
-        // Returns a Result of values or an Err early on, stopping the iteration
-        // as soon as the latter is encountered.
-        let items: Selection = selector
-            .iter()
-            .enumerate()
-            .map(|(i, s)| -> Result<Value, String> {
-                match s {
-                    // Default selector.
-                    Selector::Default(s) => {
-                        // Array case.
-                        if let Ok(index) = s.parse::<isize>() {
-                            return match array_walker(
-                                i,
-                                index,
-                                &inner_json.clone(),
-                                s,
-                                &selector,
-                            ) {
-                                Ok(json) => {
-                                    inner_json = json.clone();
-                                    Ok(json.clone())
-                                }
-                                Err(error) => Err(error),
-                            };
-                        }
-
-                        // A JSON null value has been found (non array).
-                        if inner_json[s] == Value::Null {
-                            if i == 0 {
-                                Err(["Node (", s, ") is not the root element"]
-                                    .join(" "))
-                            } else {
-                                Err([
-                                    "Node (",
-                                    s,
-                                    ") not found on parent",
-                                    &display_node_or_range(
-                                        &selector[i - 1],
-                                        false,
-                                    ),
-                                ]
-                                    .join(" "))
+    // Returns a Result of values or an Err early on, stopping the iteration
+    // as soon as the latter is encountered.
+    let items: Selection = selector
+        .iter()
+        .enumerate()
+        .map(|(i, s)| -> Result<Value, String> {
+            match s {
+                // Default selector.
+                Selector::Default(s) => {
+                    // Array case.
+                    if let Ok(index) = s.parse::<isize>() {
+                        return match array_walker(
+                            i,
+                            index,
+                            &inner_json.clone(),
+                            s,
+                            &selector,
+                        ) {
+                            Ok(json) => {
+                                inner_json = json.clone();
+                                Ok(json.clone())
                             }
-                        } else {
-                            inner_json = inner_json[s].clone();
-                            Ok(inner_json.clone())
-                        }
+                            Err(error) => Err(error),
+                        };
                     }
-                    // Range selector.
-                    Selector::Range((start, end)) => match range_selector(
-                        i,
-                        &inner_json.clone(),
-                        *start,
-                        *end,
-                        &selector,
-                    ) {
-                        Ok(json) => {
-                            inner_json = json.clone();
-                            Ok(json.clone())
+
+                    // A JSON null value has been found (non array).
+                    if inner_json[s] == Value::Null {
+                        if i == 0 {
+                            Err(["Node (", s, ") is not the root element"]
+                                .join(" "))
+                        } else {
+                            Err([
+                                "Node (",
+                                s,
+                                ") not found on parent",
+                                &display_node_or_range(&selector[i - 1], false),
+                            ]
+                                .join(" "))
                         }
-                        Err(error) => Err(error),
-                    },
+                    } else {
+                        inner_json = inner_json[s].clone();
+                        Ok(inner_json.clone())
+                    }
+                }
+                // Range selector.
+                Selector::Range((start, end)) => match range_selector(
+                    i,
+                    &inner_json.clone(),
+                    *start,
+                    *end,
+                    &selector,
+                ) {
+                    Ok(json) => {
+                        inner_json = json.clone();
+                        Ok(json.clone())
+                    }
+                    Err(error) => Err(error),
+                },
+            }
+        }).collect();
+
+    // Check for empty selection, in this case we assume that the user expects
+    // to get back the complete raw JSON back for this group.
+    match items {
+        Ok(items) => {
+            if items.is_empty() {
+                Ok(vec![json.clone()])
+            } else {
+                Ok(items)
+            }
+        }
+        Err(items) => Err(items),
+    }
+}
+
+/// Given some selector walk over the JSON file.
+pub fn walker(json: &Value, selector: Option<&str>) -> Result<Value, String> {
+    // A Selector has been found.
+    if let Some(selector) = selector {
+        lazy_static! {
+            static ref GROUP_REGEX: Regex = Regex::new(r"([^,]+)").unwrap();
+        }
+        // Capture groups separated by commas, apply the selector for the
+        // current group and return a Result of values or an Err early on.
+        let groups: Result<Vec<Value>, String> = GROUP_REGEX
+            .captures_iter(selector)
+            .map(|capture| group_walker(&capture, json))
+            .map(|s| -> Result<Value, String> {
+                match s {
+                    Ok(items) => Ok(items.last().unwrap().clone()),
+                    Err(error) => Err(error.clone()),
                 }
             }).collect();
 
-        // Final check for empty selection, in this case we assume that the user
-        // expects to get back the complete raw JSON back.
-        Some(match items {
-            Ok(items) => {
-                if items.is_empty() {
-                    Ok(vec![json.clone()])
-                } else {
-                    Ok(items)
-                }
-            }
-            Err(items) => Err(items),
-        })
-    } else {
-        None
+        return match groups {
+            Ok(groups) => match groups.len() {
+                0 => Err(String::from("Empty selection")),
+                // One group.
+                1 => Ok(json!(groups[0])),
+                // Multiple groups.
+                _ => Ok(json!(groups)),
+            },
+            Err(error) => Err(error),
+        };
     }
+    // Nothing found.
+    Err(String::from("No selector found"))
 }
 
 #[cfg(test)]
@@ -279,40 +311,28 @@ mod tests {
     fn get_text() {
         let json: Value = serde_json::from_str(DATA).unwrap();
         let selector: Option<&str> = Some("text");
-        assert_eq!(
-            Some(Ok(vec![json["text"].clone()])),
-            walker(&json, selector)
-        );
+        assert_eq!(Ok(json["text"].clone()), walker(&json, selector));
     }
 
     #[test]
     fn get_number() {
         let json: Value = serde_json::from_str(DATA).unwrap();
         let selector: Option<&str> = Some("number");
-        assert_eq!(
-            Some(Ok(vec![json["number"].clone()])),
-            walker(&json, selector)
-        );
+        assert_eq!(Ok(json["number"].clone()), walker(&json, selector));
     }
 
     #[test]
     fn get_array() {
         let json: Value = serde_json::from_str(DATA).unwrap();
         let selector: Option<&str> = Some("array");
-        assert_eq!(
-            Some(Ok(vec![json["array"].clone()])),
-            walker(&json, selector)
-        );
+        assert_eq!(Ok(json["array"].clone()), walker(&json, selector));
     }
 
     #[test]
     fn get_item_in_array() {
         let json: Value = serde_json::from_str(DATA).unwrap();
         let selector: Option<&str> = Some("array.0");
-        assert_eq!(
-            Some(Ok(vec![json["array"].clone(), json["array"][0].clone()])),
-            walker(&json, selector)
-        );
+        assert_eq!(Ok(json["array"][0].clone()), walker(&json, selector));
     }
 
     #[test]
@@ -320,9 +340,9 @@ mod tests {
         let json: Value = serde_json::from_str(DATA).unwrap();
         let selector: Option<&str> = Some("array.3");
         assert_eq!(
-            Some(Err(String::from(
+            Err(String::from(
                 "Index ( 3 ) is out of bound, node ( array ) has a length of 3"
-            ))),
+            )),
             walker(&json, selector)
         );
     }
@@ -332,9 +352,9 @@ mod tests {
         let json_array: Value = serde_json::from_str(ARRAY_DATA).unwrap();
         let array_selector: Option<&str> = Some("3");
         assert_eq!(
-            Some(Err(String::from(
+            Err(String::from(
                 "Index ( 3 ) is out of bound, root element has a length of 3"
-            ))),
+            )),
             walker(&json_array, array_selector)
         );
     }
@@ -344,7 +364,7 @@ mod tests {
         let json: Value = serde_json::from_str(DATA).unwrap();
         let selector: Option<&str> = Some("array.-1");
         assert_eq!(
-            Some(Err(String::from("Invalid negative array index"))),
+            Err(String::from("Invalid negative array index")),
             walker(&json, selector)
         );
     }
@@ -354,7 +374,7 @@ mod tests {
         let json_array: Value = serde_json::from_str(ARRAY_DATA).unwrap();
         let array_selector: Option<&str> = Some("-1");
         assert_eq!(
-            Some(Err(String::from("Invalid negative array index"))),
+            Err(String::from("Invalid negative array index")),
             walker(&json_array, array_selector)
         );
     }
@@ -365,11 +385,11 @@ mod tests {
         let selector: Option<&str> = Some("text.1");
         let root_selector: Option<&str> = Some("1");
         assert_eq!(
-            Some(Err(String::from("Node ( text ) is not an array"))),
+            Err(String::from("Node ( text ) is not an array")),
             walker(&json, selector)
         );
         assert_eq!(
-            Some(Err(String::from("Root element is not an array"))),
+            Err(String::from("Root element is not an array")),
             walker(&json, root_selector)
         );
     }
@@ -379,7 +399,7 @@ mod tests {
         let json: Value = serde_json::from_str(DATA).unwrap();
         let selector: Option<&str> = Some("foo");
         assert_eq!(
-            Some(Err(String::from("Node ( foo ) is not the root element"))),
+            Err(String::from("Node ( foo ) is not the root element")),
             walker(&json, selector)
         );
     }
@@ -389,9 +409,9 @@ mod tests {
         let json: Value = serde_json::from_str(DATA).unwrap();
         let selector: Option<&str> = Some("nested.d");
         assert_eq!(
-            Some(Err(String::from(
+            Err(String::from(
                 "Node ( d ) not found on parent node ( nested )"
-            ))),
+            )),
             walker(&json, selector)
         );
     }
@@ -400,13 +420,7 @@ mod tests {
     fn get_existing_child_node() {
         let json: Value = serde_json::from_str(DATA).unwrap();
         let selector: Option<&str> = Some("nested.a");
-        assert_eq!(
-            Some(Ok(vec![
-                json["nested"].clone(),
-                json["nested"]["a"].clone()
-            ])),
-            walker(&json, selector)
-        );
+        assert_eq!(Ok(json["nested"]["a"].clone()), walker(&json, selector));
     }
 
     #[test]
@@ -415,16 +429,26 @@ mod tests {
             serde_json::from_str(SINGLE_VALUE_DATA).unwrap();
         let selector: Option<&str> = Some(".");
         assert_eq!(
-            Some(Ok(vec![json_single_value.clone()])),
+            Ok(json_single_value.clone()),
             walker(&json_single_value, selector)
+        );
+    }
+
+    #[test]
+    fn get_empty() {
+        let json: Value = serde_json::from_str(DATA).unwrap();
+        let selector: Option<&str> = Some("");
+        assert_eq!(
+            Err(String::from("Empty selection")),
+            walker(&json, selector)
         );
     }
 
     #[test]
     fn get_raw_json() {
         let json: Value = serde_json::from_str(DATA).unwrap();
-        let selector: Option<&str> = Some("");
-        assert_eq!(Some(Ok(vec![json.clone()])), walker(&json, selector));
+        let selector: Option<&str> = Some(".");
+        assert_eq!(Ok(json.clone()), walker(&json, selector));
     }
 
     #[test]
@@ -433,13 +457,10 @@ mod tests {
         let dot_selector: Option<&str> = Some(r#"".property..""#);
         let quote_selector: Option<&str> = Some(r#"""""#);
         assert_eq!(
-            Some(Ok(vec![json[".property.."].clone()])),
+            Ok(json[".property.."].clone()),
             walker(&json, dot_selector)
         );
-        assert_eq!(
-            Some(Ok(vec![json[r#"""#].clone()])),
-            walker(&json, quote_selector)
-        );
+        assert_eq!(Ok(json[r#"""#].clone()), walker(&json, quote_selector));
     }
 
     #[test]
@@ -447,11 +468,7 @@ mod tests {
         let json: Value = serde_json::from_str(DATA).unwrap();
         let mix_selector: Option<&str> = Some("mix.0.first");
         assert_eq!(
-            Some(Ok(vec![
-                json["mix"].clone(),
-                json["mix"][0].clone(),
-                json["mix"][0]["first"].clone()
-            ])),
+            Ok(json["mix"][0]["first"].clone()),
             walker(&json, mix_selector)
         );
     }
@@ -460,44 +477,28 @@ mod tests {
     fn get_range() {
         let json: Value = serde_json::from_str(DATA).unwrap();
         let selector: Option<&str> = Some("range.2:5");
-        assert_eq!(
-            Some(Ok(vec![json["range"].clone(), json!([3, 4, 5, 6])])),
-            walker(&json, selector)
-        );
+        assert_eq!(Ok(json!([3, 4, 5, 6])), walker(&json, selector));
     }
 
     #[test]
     fn get_one_item_range() {
         let json: Value = serde_json::from_str(DATA).unwrap();
         let selector: Option<&str> = Some("range.2:2");
-        assert_eq!(
-            Some(Ok(vec![json["range"].clone(), json!([3])])),
-            walker(&json, selector)
-        );
+        assert_eq!(Ok(json!([3])), walker(&json, selector));
     }
 
     #[test]
     fn get_reversed_range() {
         let json: Value = serde_json::from_str(DATA).unwrap();
         let selector: Option<&str> = Some("range.5:2");
-        assert_eq!(
-            Some(Ok(vec![json["range"].clone(), json!([6, 5, 4, 3])])),
-            walker(&json, selector)
-        );
+        assert_eq!(Ok(json!([6, 5, 4, 3])), walker(&json, selector));
     }
 
     #[test]
     fn get_original_from_reversed_range() {
         let json: Value = serde_json::from_str(DATA).unwrap();
         let selector: Option<&str> = Some("range.5:2.3:0");
-        assert_eq!(
-            Some(Ok(vec![
-                json["range"].clone(),
-                json!([6, 5, 4, 3]),
-                json!([3, 4, 5, 6])
-            ])),
-            walker(&json, selector)
-        );
+        assert_eq!(Ok(json!([3, 4, 5, 6])), walker(&json, selector));
     }
 
     #[test]
@@ -505,7 +506,7 @@ mod tests {
         let json: Value = serde_json::from_str(DATA).unwrap();
         let selector: Option<&str> = Some("range.6:7");
         assert_eq!(
-            Some(Err(String::from("Range ( 6 : 7 ) is out of bound, node ( range ) has a length of 7"))),
+            Err(String::from("Range ( 6 : 7 ) is out of bound, node ( range ) has a length of 7")),
             walker(&json, selector)
         );
     }
