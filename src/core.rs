@@ -3,7 +3,7 @@ extern crate serde_json;
 
 use regex::Regex;
 use serde_json::Value;
-use types::{Selection, Selector};
+use types::{Selection, Selector, Selectors};
 use utils::display_node_or_range;
 
 /// Get the trimmed text of the match with a default of an empty
@@ -42,28 +42,29 @@ fn get_selector(capture: &regex::Captures<'_>) -> Selector {
     }
 }
 
+/// Walks through a JSON array.
 pub fn array_walker(
-    i: usize,
-    index: isize,
+    map_index: usize,
+    array_index: isize,
     inner_json: &Value,
-    s: &str,
-    selector: &[Selector],
+    raw_selector: &str,
+    selectors: &Selectors,
 ) -> Result<Value, String> {
     // A Negative index has been provided.
-    if (index).is_negative() {
+    if (array_index).is_negative() {
         return Err(String::from("Invalid negative array index"));
     }
 
     // A JSON null value has been found (array).
-    if inner_json[index as usize] == Value::Null {
+    if inner_json[array_index as usize] == Value::Null {
         let error_message = match inner_json.as_array() {
             // Trying to access an out of bound index on a node
             // or on the root element.
             Some(array) => {
-                if selector.len() == 1 {
+                if selectors.len() == 1 {
                     [
                         "Index (",
-                        s,
+                        raw_selector,
                         ") is out of bound, root element has a length of",
                         &(array.len()).to_string(),
                     ]
@@ -71,9 +72,12 @@ pub fn array_walker(
                 } else {
                     [
                         "Index (",
-                        s,
+                        raw_selector,
                         ") is out of bound,",
-                        &display_node_or_range(&selector[i - 1], false),
+                        &display_node_or_range(
+                            &selectors[map_index - 1],
+                            false,
+                        ),
                         "has a length of",
                         &(array.len()).to_string(),
                     ]
@@ -83,11 +87,11 @@ pub fn array_walker(
             // Trying to access an index on a node which is not
             // an array.
             None => {
-                if selector.len() == 1 {
+                if selectors.len() == 1 {
                     ["Root element is not an array"].join(" ")
                 } else {
                     [
-                        &display_node_or_range(&selector[i - 1], true),
+                        &display_node_or_range(&selectors[map_index - 1], true),
                         "is not an array",
                     ]
                         .join(" ")
@@ -99,15 +103,16 @@ pub fn array_walker(
     }
 
     // Match found.
-    Ok(inner_json[index as usize].clone())
+    Ok(inner_json[array_index as usize].clone())
 }
 
+/// Returns a range selection or an error.
 pub fn range_selector(
-    i: usize,
+    map_index: usize,
     inner_json: &Value,
     start: usize,
     end: usize,
-    selector: &[Selector],
+    selectors: &Selectors,
 ) -> Result<Value, String> {
     let is_default = start < end;
 
@@ -115,7 +120,7 @@ pub fn range_selector(
     if inner_json.as_array().unwrap().len() < start
         || inner_json.as_array().unwrap().len() < (end + 1)
     {
-        return Err(if selector.len() == 1 {
+        return Err(if selectors.len() == 1 {
             [
                 "Range (",
                 start.to_string().as_str(),
@@ -132,7 +137,7 @@ pub fn range_selector(
                 ":",
                 end.to_string().as_str(),
                 ") is out of bound,",
-                &display_node_or_range(&selector[i - 1], false),
+                &display_node_or_range(&selectors[map_index - 1], false),
                 "has a length of",
                 &(inner_json.as_array().unwrap().len()).to_string(),
             ]
@@ -157,37 +162,44 @@ pub fn range_selector(
     })
 }
 
+/// Walks through a group.
 fn group_walker(capture: &regex::Captures<'_>, json: &Value) -> Selection {
     lazy_static! {
         static ref SUB_GROUP_REGEX: Regex =
             Regex::new(r#"("[^"]+")|([^.]+)"#).unwrap();
     }
     let mut inner_json = json.clone();
-    let group = capture.get(0).map_or("", |m| m.as_str());
+    let group = capture.get(0).map_or("", |m| m.as_str()).trim();
+
+    // Empty group, return early.
+    if group.is_empty() {
+        return Err(String::from("Empty group"));
+    }
+
     // Capture sub-groups of double quoted selectors and simple ones surrounded
     // by dots.
-    let selector: Vec<Selector> = SUB_GROUP_REGEX
+    let selectors: Vec<Selector> = SUB_GROUP_REGEX
         .captures_iter(group)
         .map(|capture| get_selector(&capture))
         .collect();
 
     // Returns a Result of values or an Err early on, stopping the iteration
     // as soon as the latter is encountered.
-    let items: Selection = selector
+    let items: Selection = selectors
         .iter()
         .enumerate()
-        .map(|(i, s)| -> Result<Value, String> {
-            match s {
+        .map(|(map_index, current_selector)| -> Result<Value, String> {
+            match current_selector {
                 // Default selector.
-                Selector::Default(s) => {
+                Selector::Default(raw_selector) => {
                     // Array case.
-                    if let Ok(index) = s.parse::<isize>() {
+                    if let Ok(array_index) = raw_selector.parse::<isize>() {
                         return match array_walker(
-                            i,
-                            index,
+                            map_index,
+                            array_index,
                             &inner_json.clone(),
-                            s,
-                            &selector,
+                            raw_selector,
+                            &selectors,
                         ) {
                             Ok(json) => {
                                 inner_json = json.clone();
@@ -198,31 +210,38 @@ fn group_walker(capture: &regex::Captures<'_>, json: &Value) -> Selection {
                     }
 
                     // A JSON null value has been found (non array).
-                    if inner_json[s] == Value::Null {
-                        if i == 0 {
-                            Err(["Node (", s, ") is not the root element"]
+                    if inner_json[raw_selector] == Value::Null {
+                        if map_index == 0 {
+                            Err([
+                                "Node (",
+                                raw_selector,
+                                ") is not the root element",
+                            ]
                                 .join(" "))
                         } else {
                             Err([
                                 "Node (",
-                                s,
+                                raw_selector,
                                 ") not found on parent",
-                                &display_node_or_range(&selector[i - 1], false),
+                                &display_node_or_range(
+                                    &selectors[map_index - 1],
+                                    false,
+                                ),
                             ]
                                 .join(" "))
                         }
                     } else {
-                        inner_json = inner_json[s].clone();
+                        inner_json = inner_json[raw_selector].clone();
                         Ok(inner_json.clone())
                     }
                 }
                 // Range selector.
                 Selector::Range((start, end)) => match range_selector(
-                    i,
+                    map_index,
                     &inner_json.clone(),
                     *start,
                     *end,
-                    &selector,
+                    &selectors,
                 ) {
                     Ok(json) => {
                         inner_json = json.clone();
@@ -303,6 +322,8 @@ mod tests {
         "text": "some text",
         ".property..": "This is valid JSON!",
         "\"": "This is valid JSON as well",
+        " ": "Yup, this too 🐼!",
+        "": "Yup, again 🐨!",
         "mix": [{ "first": 1 }],
         "range": [1, 2, 3, 4, 5, 6, 7]
     }"#;
@@ -456,11 +477,15 @@ mod tests {
         let json: Value = serde_json::from_str(DATA).unwrap();
         let dot_selector: Option<&str> = Some(r#"".property..""#);
         let quote_selector: Option<&str> = Some(r#"""""#);
+        let space_selector: Option<&str> = Some(r#"" ""#);
+        let empty_selector: Option<&str> = Some(r#""""#);
         assert_eq!(
             Ok(json[".property.."].clone()),
             walker(&json, dot_selector)
         );
         assert_eq!(Ok(json[r#"""#].clone()), walker(&json, quote_selector));
+        assert_eq!(Ok(json[r#" "#].clone()), walker(&json, space_selector));
+        assert_eq!(Ok(json[r#""#].clone()), walker(&json, empty_selector));
     }
 
     #[test]
@@ -519,5 +544,26 @@ mod tests {
             Ok(json!([json["array"], json["number"]])),
             walker(&json, selector)
         );
+    }
+
+    #[test]
+    fn get_multi_selection_with_space() {
+        let json: Value = serde_json::from_str(DATA).unwrap();
+        let selector: Option<&str> = Some("array,,, ");
+        assert_eq!(Err(String::from("Empty group")), walker(&json, selector));
+    }
+
+    #[test]
+    fn get_multi_selection_with_empty() {
+        let json: Value = serde_json::from_str(DATA).unwrap();
+        let selector: Option<&str> = Some("array,,,");
+        assert_eq!(Ok(json["array"].clone()), walker(&json, selector));
+    }
+
+    #[test]
+    fn get_multi_selection_with_range() {
+        let json: Value = serde_json::from_str(DATA).unwrap();
+        let selector: Option<&str> = Some("range.5:3,array.2:1");
+        assert_eq!(Ok(json!([[6, 5, 4], [3, 2]])), walker(&json, selector));
     }
 }

@@ -157,6 +157,32 @@ jql example.json 'cats.2:1.0.third'
 "Misty"
 ```
 
+### Multi-selection
+
+```json
+{
+  "one": [1, 2, 3],
+  "two": 2,
+  "three": 3
+}
+```
+
+```sh
+jql example.json 'one.2:0,two,three'
+```
+
+```json
+[
+  [
+    3,
+    2,
+    1
+  ],
+  2,
+  3
+]
+```
+
 ### Special characters
 
 ```json

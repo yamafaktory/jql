@@ -28,7 +28,7 @@ fn main() {
         let mut file = match File::open(&path) {
             Err(_) => {
                 println!("File {:?} not found", &path);
-                return ();
+                return;
             }
             Ok(file) => file,
         };
