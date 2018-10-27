@@ -1,4 +1,6 @@
 extern crate clap;
+#[macro_use]
+extern crate lazy_static;
 extern crate regex;
 #[macro_use]
 extern crate serde_json;
@@ -24,9 +26,9 @@ fn main() {
         let selector = cli.value_of("selector");
         let path = Path::new(json);
         let mut file = match File::open(&path) {
-            Err(..) => {
+            Err(_) => {
                 println!("File {:?} not found", &path);
-                return ();
+                return;
             }
             Ok(file) => file,
         };
@@ -36,24 +38,13 @@ fn main() {
         match buffer_reader.read_to_string(&mut contents) {
             Ok(_) => match serde_json::from_str(&contents) {
                 Ok(valid_json) => {
-                    if cli.is_present("pretty-print") {
-                        println!(
-                            "{}",
-                            serde_json::to_string_pretty(&json).unwrap()
-                        );
-                    }
-
                     // Walk through the JSON content with the provided selector.
                     match walker(&valid_json, selector) {
-                        Some(items) => match items {
-                            Ok(results) => println!(
-                                "{}",
-                                serde_json::to_string_pretty(&results.last())
-                                    .unwrap()
-                            ),
-                            Err(error) => println!("{}", error),
-                        },
-                        None => println!("has no value"),
+                        Ok(selection) => println!(
+                            "{}",
+                            serde_json::to_string_pretty(&selection).unwrap()
+                        ),
+                        Err(error) => println!("{}", error),
                     }
                 }
                 Err(_) => println!("Invalid JSON file"),
