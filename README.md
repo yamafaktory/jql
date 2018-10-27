@@ -36,7 +36,7 @@ jql example.json '.'
 "This is a valid JSON text with one value"
 ```
 
-### Accessing a children
+### Accessing a child
 
 ```json
 {
