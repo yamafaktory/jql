@@ -1,7 +1,9 @@
 extern crate regex;
 extern crate serde_json;
 
+use lazy_static::lazy_static;
 use regex::Regex;
+use serde_json::json;
 use serde_json::Value;
 use types::{Selection, Selector, Selectors};
 use utils::display_node_or_range;
@@ -20,6 +22,7 @@ fn get_selector(capture: &regex::Captures<'_>) -> Selector {
         lazy_static! {
             static ref RANGE_REGEX: Regex = Regex::new(r"(\d+):(\d+)").unwrap();
         }
+
         let ranges: Vec<(&str, &str)> = RANGE_REGEX
             .captures_iter(cap)
             .map(|capture| {
@@ -162,30 +165,11 @@ pub fn range_selector(
     })
 }
 
-/// Walks through a group.
-fn group_walker(capture: &regex::Captures<'_>, json: &Value) -> Selection {
-    lazy_static! {
-        static ref SUB_GROUP_REGEX: Regex =
-            Regex::new(r#"("[^"]+")|([^.]+)"#).unwrap();
-    }
+/// Returns a selection based on selectors and some JSON content.
+fn get_selection(selectors: &Selectors, json: &Value) -> Selection {
+    // Local copy of the origin json that will be reused in the loop.
     let mut inner_json = json.clone();
-    let group = capture.get(0).map_or("", |m| m.as_str()).trim();
-
-    // Empty group, return early.
-    if group.is_empty() {
-        return Err(String::from("Empty group"));
-    }
-
-    // Capture sub-groups of double quoted selectors and simple ones surrounded
-    // by dots.
-    let selectors: Vec<Selector> = SUB_GROUP_REGEX
-        .captures_iter(group)
-        .map(|capture| get_selector(&capture))
-        .collect();
-
-    // Returns a Result of values or an Err early on, stopping the iteration
-    // as soon as the latter is encountered.
-    let items: Selection = selectors
+    selectors
         .iter()
         .enumerate()
         .map(|(map_index, current_selector)| -> Result<Value, String> {
@@ -250,8 +234,38 @@ fn group_walker(capture: &regex::Captures<'_>, json: &Value) -> Selection {
                     Err(error) => Err(error),
                 },
             }
-        }).collect();
+        }).collect()
+}
 
+/// Walks through a group.
+fn group_walker(
+    capture: &regex::Captures<'_>,
+    filter: Option<&str>,
+    json: &Value,
+) -> Selection {
+    lazy_static! {
+        static ref SUB_GROUP_REGEX: Regex =
+            Regex::new(r#"("[^"]+")|([^.]+)"#).unwrap();
+    }
+
+    let group = capture.get(0).map_or("", |m| m.as_str()).trim();
+
+    println!("** {:?} **", filter);
+    // Empty group, return early.
+    if group.is_empty() {
+        return Err(String::from("Empty group"));
+    }
+
+    // Capture sub-groups of double quoted selectors and simple ones surrounded
+    // by dots.
+    let selectors: Vec<Selector> = SUB_GROUP_REGEX
+        .captures_iter(group)
+        .map(|capture| get_selector(&capture))
+        .collect();
+
+    // Returns a Result of values or an Err early on, stopping the iteration
+    // as soon as the latter is encountered.
+    let items: Selection = get_selection(&selectors, &json);
     // Check for empty selection, in this case we assume that the user expects
     // to get back the complete raw JSON back for this group.
     match items {
@@ -271,13 +285,33 @@ pub fn walker(json: &Value, selector: Option<&str>) -> Result<Value, String> {
     // A Selector has been found.
     if let Some(selector) = selector {
         lazy_static! {
+            static ref FILTER_REGEX: Regex =
+                Regex::new(r"^(.*)\|([^|]+)$").unwrap();
             static ref GROUP_REGEX: Regex = Regex::new(r"([^,]+)").unwrap();
         }
+
+        let selection_with_filter: Vec<(&str, &str)> = FILTER_REGEX
+            .captures_iter(selector)
+            .map(|capture| {
+                (
+                    capture.get(1).map_or("", |m| m.as_str()),
+                    capture.get(2).map_or("", |m| m.as_str()),
+                )
+            }).collect();
+
+        let selector_and_filter = if selection_with_filter.is_empty() {
+            // No filter, use the initial selector.
+            (selector, None)
+        } else {
+            // Use the left part before the filter.
+            (selection_with_filter[0].0, Some(selection_with_filter[0].1))
+        };
+
         // Capture groups separated by commas, apply the selector for the
         // current group and return a Result of values or an Err early on.
         let groups: Result<Vec<Value>, String> = GROUP_REGEX
-            .captures_iter(selector)
-            .map(|capture| group_walker(&capture, json))
+            .captures_iter(selector_and_filter.0)
+            .map(|capture| group_walker(&capture, selector_and_filter.1, json))
             .map(|s| -> Result<Value, String> {
                 match s {
                     Ok(items) => Ok(items.last().unwrap().clone()),
