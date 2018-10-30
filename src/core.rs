@@ -674,4 +674,11 @@ mod tests {
             walker(&json, selector)
         );
     }
+
+    #[test]
+    fn get_filter_with_range() {
+        let json: Value = serde_json::from_str(DATA).unwrap();
+        let selector = Some("filter.1:2|color");
+        assert_eq!(Ok(json!(["green", "blue"])), walker(&json, selector));
+    }
 }
