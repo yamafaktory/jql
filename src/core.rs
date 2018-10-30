@@ -681,4 +681,14 @@ mod tests {
         let selector = Some("filter.1:2|color");
         assert_eq!(Ok(json!(["green", "blue"])), walker(&json, selector));
     }
+
+    #[test]
+    fn get_filter_with_multi_selection() {
+        let json: Value = serde_json::from_str(DATA).unwrap();
+        let selector = Some("filter,filter.1:2|color");
+        assert_eq!(
+            Ok(json!([["red", "green", "blue"], ["green", "blue"]])),
+            walker(&json, selector)
+        );
+    }
 }
