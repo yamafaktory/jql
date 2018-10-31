@@ -6,6 +6,7 @@ use regex::Regex;
 use serde_json::json;
 use serde_json::Value;
 use types::{Selection, Selector};
+
 /// Walks through a group.
 pub fn group_walker(
     capture: &regex::Captures<'_>,
