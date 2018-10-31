@@ -183,6 +183,74 @@ jql example.json 'one.2:0,two,three'
 ]
 ```
 
+### Filter
+
+```json
+{
+  "laptops": [
+    {
+      "laptop": {
+        "brand": "Apple",
+        "options": ["a", "b", "c"]
+      }
+    },
+    {
+      "laptop": {
+        "brand": "Asus",
+        "options": ["d", "e", "f"]
+      }
+    }
+  ]
+}
+```
+
+```sh
+jql example.json 'laptops|laptop'
+```
+
+```json
+[
+  {
+    "brand": "Apple",
+    "options": ["a", "b", "c"]
+  },
+  {
+    "brand": "Asus",
+    "options": ["d", "e", "f"]
+  }
+]
+```
+
+You can also combine a filter with a child selection, a multi-selection and ranges at the same time:
+
+```sh
+jql example.json 'laptops|laptop.brand'
+```
+
+```json
+[
+  "Apple",
+  "Asus"
+]
+```
+
+```sh
+jql example.json 'laptops.1:0,laptops|laptop.brand'
+```
+
+```json
+[
+  [
+    "Asus",
+    "Apple"
+  ],
+  [
+    "Apple",
+    "Asus"
+  ]
+]
+```
+
 ### Special characters
 
 ```json
