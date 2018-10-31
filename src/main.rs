@@ -1,13 +1,17 @@
 extern crate clap;
-#[macro_use]
 extern crate lazy_static;
 extern crate regex;
-#[macro_use]
 extern crate serde_json;
 extern crate toml;
 
+mod apply_filter;
+mod array_walker;
 mod cli;
 mod core;
+mod get_selection;
+mod get_selector;
+mod group_walker;
+mod range_selector;
 mod types;
 mod utils;
 
