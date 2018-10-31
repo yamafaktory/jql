@@ -1,1 +1,16 @@
-[{ "name": "boo" }, { "name": "dope" }, { "name": "shulk" }]
+{
+  "nested-filter": [
+    {
+      "laptop": {
+        "brand": "Apple",
+        "options": ["a", "b", "c"]
+      }
+    },
+    {
+      "laptop": {
+        "brand": "Asus",
+        "options": ["d", "e", "f"]
+      }
+    }
+  ]
+}
