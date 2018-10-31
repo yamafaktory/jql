@@ -286,11 +286,11 @@ fn group_walker(
             if items.is_empty() {
                 apply_filter(&json, &filter_selectors)
             } else {
-                Ok(items
+                items
                     .iter()
-                    .map(|item| apply_filter(&item, &filter_selectors).unwrap())
-                    .flatten()
-                    .collect::<Vec<Value>>())
+                    .map(|item| apply_filter(&item, &filter_selectors))
+                    .last()
+                    .unwrap()
             }
         }
         Err(items) => Err(items),
@@ -676,10 +676,30 @@ mod tests {
     }
 
     #[test]
+    fn get_wrong_filter() {
+        let json: Value = serde_json::from_str(DATA).unwrap();
+        let selector = Some("filter|colors");
+        assert_eq!(
+            Err(String::from("Node ( colors ) is not the root element")),
+            walker(&json, selector)
+        );
+    }
+
+    #[test]
     fn get_filter_with_range() {
         let json: Value = serde_json::from_str(DATA).unwrap();
         let selector = Some("filter.1:2|color");
         assert_eq!(Ok(json!(["green", "blue"])), walker(&json, selector));
+    }
+
+    #[test]
+    fn get_wrong_filter_with_range() {
+        let json: Value = serde_json::from_str(DATA).unwrap();
+        let selector = Some("filter.1:2|colors");
+        assert_eq!(
+            Err(String::from("Node ( colors ) is not the root element")),
+            walker(&json, selector)
+        );
     }
 
     #[test]
