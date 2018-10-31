@@ -437,4 +437,14 @@ mod tests {
             walker(&json, selector)
         );
     }
+
+    #[test]
+    fn get_filter_on_non_array() {
+        let json: Value = serde_json::from_str(DATA).unwrap();
+        let selector = Some("nested|some");
+        assert_eq!(
+            Err(String::from("A filter can only be applied to an array")),
+            walker(&json, selector)
+        );
+    }
 }
