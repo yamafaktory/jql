@@ -2,7 +2,6 @@ extern crate clap;
 extern crate lazy_static;
 extern crate regex;
 extern crate serde_json;
-extern crate toml;
 
 mod apply_filter;
 mod array_walker;
