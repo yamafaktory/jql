@@ -1,13 +1,14 @@
 use clap::{App, Arg, ArgMatches};
-use utils::get_cargo_version;
 
+// Should match the Cargo.toml version!
+static VERSION: &str = "0.1.7";
 
 /// Get the CLI matches.
 pub fn get_matches<'a>() -> ArgMatches<'a> {
     App::new("jql")
         .about("JSON query language")
         .author("Davy Duperron <yamafaktory@gmail.com>")
-        .version(get_cargo_version().as_str())
+        .version(VERSION)
         .arg(
             Arg::with_name("JSON")
                 .help("JSON file to use")

@@ -19,16 +19,6 @@ If you find some of the following examples confusing, please have a look at [The
 ```
 
 ```sh
-jql example.json ''
-```
-
-```json
-"This is a valid JSON text with one value"
-```
-
-Please note that the following is also valid:
-
-```sh
 jql example.json '.'
 ```
 
