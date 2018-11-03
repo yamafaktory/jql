@@ -12,33 +12,14 @@ pub fn walker(json: &Value, selector: Option<&str>) -> Result<Value, String> {
     // A Selector has been found.
     if let Some(selector) = selector {
         lazy_static! {
-            static ref FILTER_REGEX: Regex =
-                Regex::new(r"^(.*)\|([^|]+)$").unwrap();
             static ref GROUP_REGEX: Regex = Regex::new(r"([^,]+)").unwrap();
         }
-
-        let selection_with_filter: Vec<(&str, &str)> = FILTER_REGEX
-            .captures_iter(selector)
-            .map(|capture| {
-                (
-                    capture.get(1).map_or("", |m| m.as_str()),
-                    capture.get(2).map_or("", |m| m.as_str()),
-                )
-            }).collect();
-
-        let selector_and_filter = if selection_with_filter.is_empty() {
-            // No filter, use the initial selector.
-            (selector, None)
-        } else {
-            // Use the left part before the filter.
-            (selection_with_filter[0].0, Some(selection_with_filter[0].1))
-        };
 
         // Capture groups separated by commas, apply the selector for the
         // current group and return a Result of values or an Err early on.
         let groups: Result<Vec<Value>, String> = GROUP_REGEX
-            .captures_iter(selector_and_filter.0)
-            .map(|capture| group_walker(&capture, selector_and_filter.1, json))
+            .captures_iter(selector)
+            .map(|capture| group_walker(&capture, json))
             .map(|s| -> Result<Value, String> {
                 match s {
                     Ok(items) => Ok(items.last().unwrap().clone()),
@@ -185,6 +166,7 @@ mod tests {
         let json: Value = serde_json::from_str(DATA).unwrap();
         let selector = Some("text.1");
         let root_selector = Some("1");
+        let root_selector_nested = Some("0.1");
         assert_eq!(
             Err(String::from("Node ( text ) is not an array")),
             walker(&json, selector)
@@ -192,6 +174,10 @@ mod tests {
         assert_eq!(
             Err(String::from("Root element is not an array")),
             walker(&json, root_selector)
+        );
+        assert_eq!(
+            Err(String::from("Root element is not an array")),
+            walker(&json, root_selector_nested)
         );
     }
 
@@ -317,6 +303,26 @@ mod tests {
     }
 
     #[test]
+    fn get_range_on_non_array_root() {
+        let json: Value = serde_json::from_str(SINGLE_VALUE_DATA).unwrap();
+        let selector = Some("2:0");
+        assert_eq!(
+            Err(String::from("Root element is not an array")),
+            walker(&json, selector)
+        );
+    }
+
+    #[test]
+    fn get_range_on_non_array_node() {
+        let json: Value = serde_json::from_str(DATA).unwrap();
+        let selector = Some("nested.0.1");
+        assert_eq!(
+            Err(String::from("Node ( nested ) is not an array")),
+            walker(&json, selector)
+        );
+    }
+
+    #[test]
     fn get_multi_selection() {
         let json: Value = serde_json::from_str(DATA).unwrap();
         let selector = Some("array,number");
@@ -381,10 +387,7 @@ mod tests {
     fn get_filter_with_no_selection() {
         let json: Value = serde_json::from_str(DATA).unwrap();
         let selector = Some("|color");
-        assert_eq!(
-            Err(String::from("Empty selection")),
-            walker(&json, selector)
-        );
+        assert_eq!(Err(String::from("Empty group")), walker(&json, selector));
     }
 
     #[test]
@@ -407,9 +410,9 @@ mod tests {
     #[test]
     fn get_filter_with_multi_selection() {
         let json: Value = serde_json::from_str(DATA).unwrap();
-        let selector = Some("filter,filter.1:2|color");
+        let selector = Some("filter.1:2|color,filter.2:1|color");
         assert_eq!(
-            Ok(json!([["red", "green", "blue"], ["green", "blue"]])),
+            Ok(json!([["green", "blue"], ["blue", "green"]])),
             walker(&json, selector)
         );
     }

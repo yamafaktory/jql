@@ -225,7 +225,7 @@ jql example.json 'laptops|laptop.brand'
 ```
 
 ```sh
-jql example.json 'laptops.1:0,laptops|laptop.brand'
+jql example.json 'laptops.1:0|laptop.brand,laptops|laptop.brand'
 ```
 
 ```json
@@ -240,6 +240,8 @@ jql example.json 'laptops.1:0,laptops|laptop.brand'
   ]
 ]
 ```
+
+Please note that a filter is applied at the group level.
 
 ### Special characters
 
