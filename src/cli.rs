@@ -1,7 +1,7 @@
 use clap::{App, Arg, ArgMatches};
 
 // Should match the Cargo.toml version!
-static VERSION: &str = "0.2.0";
+static VERSION: &str = "0.2.1";
 
 /// Get the CLI matches.
 pub fn get_matches<'a>() -> ArgMatches<'a> {
