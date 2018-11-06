@@ -32,13 +32,13 @@ pub fn get_selection(selectors: &Selectors, json: &Value) -> Selection {
                         };
                     }
 
-                    // A JSON null value has been found (non array).
-                    if inner_json[raw_selector] == Value::Null {
+                    // No JSON value has been found (non array).
+                    if inner_json.get(raw_selector).is_none() {
                         if map_index == 0 {
                             Err([
                                 "Node (",
                                 raw_selector,
-                                ") is not the root element",
+                                ") not found on the parent element",
                             ]
                                 .join(" "))
                         } else {
