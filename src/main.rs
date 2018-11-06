@@ -26,6 +26,7 @@ fn main() {
     let cli = get_matches();
 
     if let Some(json) = cli.value_of("JSON") {
+        let inline = cli.is_present("inline");
         let selector = cli.value_of("selector");
         let path = Path::new(json);
         let mut file = match File::open(&path) {
@@ -45,7 +46,12 @@ fn main() {
                     match walker(&valid_json, selector) {
                         Ok(selection) => println!(
                             "{}",
-                            serde_json::to_string_pretty(&selection).unwrap()
+                            // Inline or pretty output.
+                            (if inline {
+                                serde_json::to_string
+                            } else {
+                                serde_json::to_string_pretty
+                            })(&selection).unwrap()
                         ),
                         Err(error) => println!("{}", error),
                     }
