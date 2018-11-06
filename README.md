@@ -271,8 +271,25 @@ jql example.json '".valid"'
 jql input.json 'foo.bar' > output.json
 ```
 
-## Help 📖
+## Available flags 🤖
+
+### Help
 
 ```sh
+jql -h
 jql --help
+```
+
+### Version
+
+```sh
+jql -V
+jql --version
+```
+
+### Inlining the JSON output
+
+```sh
+jql -i example.json 'some.selector'
+jql --inline example.json 'some.selector'
 ```
