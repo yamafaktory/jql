@@ -2,6 +2,12 @@
 
 > A JSON Query Language CLI tool
 
+The core philosophy of jql:
+- Keep its features as simple as possible
+- Avoid redunduncy
+- Provide meaningful error messages
+- Eat JSON as input, process, output JSON back
+
 ## Installation 🚀
 
 ```sh
@@ -241,7 +247,7 @@ jql example.json 'laptops.1:0|laptop.brand,laptops|laptop.brand'
 ]
 ```
 
-Please note that a filter is applied at the group level.
+Please note that only one filter can be applied at the group level. If you want to achieve something like `.|foo|bar`, simply go for `.|foo.bar`.
 
 ### Special characters
 
@@ -257,6 +263,12 @@ jql example.json '".valid"'
 
 ```json
 1337
+```
+
+## How to save the output
+
+```sh
+jql input.json 'foo.bar' > output.json
 ```
 
 ## Help 📖
