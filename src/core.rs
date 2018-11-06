@@ -51,6 +51,8 @@ mod tests {
 
     const SINGLE_VALUE_DATA: &str = r#"1337"#;
 
+    const SINGLE_NULL_VALUE_DATA: &str = r#"null"#;
+
     const ARRAY_DATA: &str = r#"[1, 2, 3, null]"#;
 
     const DATA: &str = r#"{
@@ -239,6 +241,17 @@ mod tests {
         let selector = Some(".");
         assert_eq!(
             Ok(json_single_value.clone()),
+            walker(&json_single_value, selector)
+        );
+    }
+
+    #[test]
+    fn get_single_null_value() {
+        let json_single_value: Value =
+            serde_json::from_str(SINGLE_NULL_VALUE_DATA).unwrap();
+        let selector = Some(".");
+        assert_eq!(
+            Ok(Value::Null),
             walker(&json_single_value, selector)
         );
     }
