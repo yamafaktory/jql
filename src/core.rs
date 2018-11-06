@@ -51,15 +51,18 @@ mod tests {
 
     const SINGLE_VALUE_DATA: &str = r#"1337"#;
 
-    const ARRAY_DATA: &str = r#"[1, 2, 3]"#;
+    const SINGLE_NULL_VALUE_DATA: &str = r#"null"#;
+
+    const ARRAY_DATA: &str = r#"[1, 2, 3, null]"#;
 
     const DATA: &str = r#"{
-        "array": [1, 2, 3],
+        "array": [1, 2, 3, null],
         "nested": {
             "a": "one",
             "b": "two",
             "c": "three"
         },
+        "null": null,
         "number": 1337,
         "text": "some text",
         ".property..": "This is valid JSON!",
@@ -104,6 +107,13 @@ mod tests {
     }
 
     #[test]
+    fn get_null() {
+        let json: Value = serde_json::from_str(DATA).unwrap();
+        let selector = Some("null");
+        assert_eq!(Ok(Value::Null), walker(&json, selector));
+    }
+
+    #[test]
     fn get_array() {
         let json: Value = serde_json::from_str(DATA).unwrap();
         let selector = Some("array");
@@ -120,10 +130,10 @@ mod tests {
     #[test]
     fn get_out_of_bound_item_in_array() {
         let json: Value = serde_json::from_str(DATA).unwrap();
-        let selector = Some("array.3");
+        let selector = Some("array.4");
         assert_eq!(
             Err(String::from(
-                "Index ( 3 ) is out of bound, node ( array ) has a length of 3"
+                "Index ( 4 ) is out of bound, node ( array ) has a length of 4"
             )),
             walker(&json, selector)
         );
@@ -132,10 +142,10 @@ mod tests {
     #[test]
     fn get_out_of_bound_item_in_root_array() {
         let json_array: Value = serde_json::from_str(ARRAY_DATA).unwrap();
-        let array_selector = Some("3");
+        let array_selector = Some("4");
         assert_eq!(
             Err(String::from(
-                "Index ( 3 ) is out of bound, root element has a length of 3"
+                "Index ( 4 ) is out of bound, root element has a length of 4"
             )),
             walker(&json_array, array_selector)
         );
@@ -162,6 +172,20 @@ mod tests {
     }
 
     #[test]
+    fn get_null_in_array() {
+        let json_array: Value = serde_json::from_str(DATA).unwrap();
+        let array_selector = Some("array.3");
+        assert_eq!(Ok(Value::Null), walker(&json_array, array_selector));
+    }
+
+    #[test]
+    fn get_null_in_root_array() {
+        let json_array: Value = serde_json::from_str(ARRAY_DATA).unwrap();
+        let array_selector = Some("3");
+        assert_eq!(Ok(Value::Null), walker(&json_array, array_selector));
+    }
+
+    #[test]
     fn get_index_in_non_array() {
         let json: Value = serde_json::from_str(DATA).unwrap();
         let selector = Some("text.1");
@@ -182,11 +206,11 @@ mod tests {
     }
 
     #[test]
-    fn get_non_existing_root_node() {
+    fn get_non_existing_node_on_root() {
         let json: Value = serde_json::from_str(DATA).unwrap();
         let selector = Some("foo");
         assert_eq!(
-            Err(String::from("Node ( foo ) is not the root element")),
+            Err(String::from("Node ( foo ) not found on the parent element")),
             walker(&json, selector)
         );
     }
@@ -217,6 +241,17 @@ mod tests {
         let selector = Some(".");
         assert_eq!(
             Ok(json_single_value.clone()),
+            walker(&json_single_value, selector)
+        );
+    }
+
+    #[test]
+    fn get_single_null_value() {
+        let json_single_value: Value =
+            serde_json::from_str(SINGLE_NULL_VALUE_DATA).unwrap();
+        let selector = Some(".");
+        assert_eq!(
+            Ok(Value::Null),
             walker(&json_single_value, selector)
         );
     }
@@ -368,7 +403,7 @@ mod tests {
         let json: Value = serde_json::from_str(DATA).unwrap();
         let selector = Some("|color|color");
         assert_eq!(
-            Err(String::from("Node ( |color ) is not the root element")),
+            Err(String::from("Node ( |color ) not found on the parent element")),
             walker(&json, selector)
         );
     }
@@ -378,7 +413,7 @@ mod tests {
         let json: Value = serde_json::from_str(DATA).unwrap();
         let selector = Some("filter|colors");
         assert_eq!(
-            Err(String::from("Node ( colors ) is not the root element")),
+            Err(String::from("Node ( colors ) not found on the parent element")),
             walker(&json, selector)
         );
     }
@@ -402,7 +437,7 @@ mod tests {
         let json: Value = serde_json::from_str(DATA).unwrap();
         let selector = Some("filter.1:2|colors");
         assert_eq!(
-            Err(String::from("Node ( colors ) is not the root element")),
+            Err(String::from("Node ( colors ) not found on the parent element")),
             walker(&json, selector)
         );
     }
