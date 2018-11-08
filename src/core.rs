@@ -19,8 +19,12 @@ pub fn walker(json: &Value, selector: Option<&str>) -> Result<Value, String> {
         // current group and return a Result of values or an Err early on.
         let groups: Result<Vec<Value>, String> = GROUP_REGEX
             .captures_iter(selector)
-            .map(|capture| group_walker(&capture, json))
-            .map(|s| -> Result<Value, String> {
+            .map(|capture| {
+                group_walker(
+                    capture.get(0).map_or("", |m| m.as_str()).trim(),
+                    json,
+                )
+            }).map(|s| -> Result<Value, String> {
                 match s {
                     Ok(items) => Ok(items.last().unwrap().clone()),
                     Err(error) => Err(error.clone()),
@@ -250,10 +254,7 @@ mod tests {
         let json_single_value: Value =
             serde_json::from_str(SINGLE_NULL_VALUE_DATA).unwrap();
         let selector = Some(".");
-        assert_eq!(
-            Ok(Value::Null),
-            walker(&json_single_value, selector)
-        );
+        assert_eq!(Ok(Value::Null), walker(&json_single_value, selector));
     }
 
     #[test]
@@ -403,7 +404,9 @@ mod tests {
         let json: Value = serde_json::from_str(DATA).unwrap();
         let selector = Some("|color|color");
         assert_eq!(
-            Err(String::from("Node ( |color ) not found on the parent element")),
+            Err(String::from(
+                "Node ( |color ) not found on the parent element"
+            )),
             walker(&json, selector)
         );
     }
@@ -413,7 +416,9 @@ mod tests {
         let json: Value = serde_json::from_str(DATA).unwrap();
         let selector = Some("filter|colors");
         assert_eq!(
-            Err(String::from("Node ( colors ) not found on the parent element")),
+            Err(String::from(
+                "Node ( colors ) not found on the parent element"
+            )),
             walker(&json, selector)
         );
     }
@@ -437,7 +442,9 @@ mod tests {
         let json: Value = serde_json::from_str(DATA).unwrap();
         let selector = Some("filter.1:2|colors");
         assert_eq!(
-            Err(String::from("Node ( colors ) not found on the parent element")),
+            Err(String::from(
+                "Node ( colors ) not found on the parent element"
+            )),
             walker(&json, selector)
         );
     }

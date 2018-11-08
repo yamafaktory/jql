@@ -7,6 +7,7 @@ mod apply_filter;
 mod array_walker;
 mod cli;
 mod core;
+mod flatten_group;
 mod get_selection;
 mod get_selector;
 mod group_walker;

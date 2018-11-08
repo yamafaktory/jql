@@ -1,4 +1,5 @@
 use apply_filter::apply_filter;
+use flatten_group::flatten_group;
 use get_selection::get_selection;
 use get_selector::get_selector;
 use lazy_static::lazy_static;
@@ -8,47 +9,44 @@ use serde_json::Value;
 use types::{Selection, Selector};
 
 /// Walks through a group.
-pub fn group_walker(capture: &regex::Captures<'_>, json: &Value) -> Selection {
+pub fn group_walker(group: &str, json: &Value) -> Selection {
     lazy_static! {
         static ref FILTER_REGEX: Regex =
-            Regex::new(r"^(.*)\|([^|]+)$").unwrap();
+            Regex::new(r"^(\.{2})*(.*)\|([^|]+)$").unwrap();
         static ref SUB_GROUP_REGEX: Regex =
             Regex::new(r#"("[^"]+")|([^.]+)"#).unwrap();
     }
 
-    let group = capture.get(0).map_or("", |m| m.as_str()).trim();
-
-    let group_with_filter: Vec<(&str, &str)> = FILTER_REGEX
+    let parsed_group: (Option<()>, &str, Option<&str>) = FILTER_REGEX
         .captures_iter(group)
         .map(|capture| {
             (
-                capture.get(1).map_or("", |m| m.as_str()),
+                // Spread capture.
+                capture.get(1).and_then(|_| Some(())),
+                // Group capture.
                 capture.get(2).map_or("", |m| m.as_str()),
+                // Filter capture.
+                capture.get(3).and_then(|m| Some(m.as_str())),
             )
-        }).collect();
-
-    let group_and_filter = if group_with_filter.is_empty() {
-        // No filter, use the initial selector.
-        (group, None)
-    } else {
-        // Use the left part before the filter.
-        (group_with_filter[0].0, Some(group_with_filter[0].1))
-    };
+        })
+        .nth(0)
+        // If nothing is captured, use the initial group.
+        .unwrap_or_else(|| (None, group, None));
 
     // Empty group, return early.
-    if group_and_filter.0.is_empty() {
+    if parsed_group.1.is_empty() {
         return Err(String::from("Empty group"));
     }
 
     // Capture sub-groups of double quoted selectors and simple ones surrounded
     // by dots on the group itself.
     let selectors: Vec<Selector> = SUB_GROUP_REGEX
-        .captures_iter(group_and_filter.0)
+        .captures_iter(parsed_group.1)
         .map(|capture| get_selector(capture.get(0).map_or("", |m| m.as_str())))
         .collect();
 
     // Perform the same operation on the filter.
-    let filter_selectors = match group_and_filter.1 {
+    let filter_selectors = match parsed_group.2 {
         Some(filter) => Some(
             SUB_GROUP_REGEX
                 .captures_iter(filter)
@@ -63,14 +61,21 @@ pub fn group_walker(capture: &regex::Captures<'_>, json: &Value) -> Selection {
     // as soon as the latter is encountered.
     let items: Selection = get_selection(&selectors, &json);
 
-    // Check for an empty selection, in this case we assume that the user
-    // expects to get back the complete raw JSON for this group.
     match items {
-        Ok(items) => {
-            if items.is_empty() {
-                apply_filter(&json.clone(), &filter_selectors)
+        Ok(ref items) => {
+            // Check for an empty selection, in this case we assume that the user
+            // expects to get back the complete raw JSON for this group.
+            let output_json = if items.is_empty() {
+                json.clone()
             } else {
-                apply_filter(&json!(items.last()), &filter_selectors)
+                json!(items.last()).clone()
+            };
+
+            // Flatten the group if the spread operator was found.
+            if parsed_group.0.is_some() {
+                flatten_group(apply_filter(&output_json, &filter_selectors))
+            } else {
+                apply_filter(&output_json, &filter_selectors)
             }
         }
         Err(items) => Err(items),
