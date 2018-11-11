@@ -32,16 +32,20 @@ pub fn apply_filter(
                 // Throw it back.
                 Some(error) => Err(error),
                 // No error in this case, we can safely unwrap.
-                None => Ok(vec![json!(
-                    selections
-                        .iter()
-                        .map(|selection| selection
-                            .clone()
-                            .unwrap()
-                            .last()
-                            .unwrap()
-                            .clone()).collect::<Vec<Value>>()
-                )]),
+                None => Ok(selections.iter().fold(
+                    Vec::new(),
+                    |mut acc: Vec<Value>, selection| {
+                        println!(
+                            "=--- {:?}",
+                            selection.clone().unwrap().last().unwrap().clone()
+                        );
+                        acc.push(
+                            json!(selection.clone().unwrap().last().unwrap().clone()),
+                        );
+
+                        acc
+                    }
+                )),
             }
         }
         // Not an array, return the raw JSON content if there's no filter or

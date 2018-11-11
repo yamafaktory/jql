@@ -26,7 +26,7 @@ pub fn walker(json: &Value, selector: Option<&str>) -> Result<Value, String> {
                 )
             }).map(|s| -> Result<Value, String> {
                 match s {
-                    Ok(items) => Ok(items.last().unwrap().clone()),
+                    Ok(items) => Ok(json!(items.clone())),
                     Err(error) => Err(error.clone()),
                 }
             }).collect();

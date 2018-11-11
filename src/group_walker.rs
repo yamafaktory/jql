@@ -73,6 +73,7 @@ pub fn group_walker(group: &str, json: &Value) -> Selection {
 
             // Flatten the group if the spread operator was found.
             if parsed_group.0.is_some() {
+                println!("-- {:?}", flatten_group(apply_filter(&output_json, &filter_selectors)));
                 flatten_group(apply_filter(&output_json, &filter_selectors))
             } else {
                 apply_filter(&output_json, &filter_selectors)
