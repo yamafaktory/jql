@@ -1,5 +1,5 @@
 use apply_filter::apply_filter;
-use flatten_group::flatten_group;
+use flatten_array::flatten_array;
 use get_selection::get_selection;
 use get_selector::get_selector;
 use lazy_static::lazy_static;
@@ -76,7 +76,7 @@ pub fn group_walker(group: &str, json: &Value) -> Result<Value, String> {
             match apply_filter(&output_json, &filter_selectors) {
                 Ok(filtered) => match filtered {
                     MaybeArray::Array(array) => Ok(if is_spreading {
-                        json!(flatten_group(array))
+                        json!(flatten_array(&array))
                     } else {
                         json!(array)
                     }),
@@ -93,20 +93,6 @@ pub fn group_walker(group: &str, json: &Value) -> Result<Value, String> {
                 },
                 Err(error) => Err(error),
             }
-
-            // Flatten the group if the spread operator was found.
-            // if parsed_group.0.is_some() {
-            //     println!(
-            //         "-- {:?}",
-            //         flatten_group(apply_filter(
-            //             &output_json,
-            //             &filter_selectors
-            //         ))
-            //     );
-            //     flatten_group(apply_filter(&output_json, &filter_selectors))
-            // } else {
-            //     apply_filter(&output_json, &filter_selectors)
-            // }
         }
         Err(items) => Err(items),
     }

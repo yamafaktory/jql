@@ -1,7 +1,7 @@
 use serde_json::Value;
 
 /// Flatten nested arrays.
-pub fn flatten_group(array: Vec<Value>) -> Vec<Value> {
+pub fn flatten_array(array: &[Value]) -> Vec<Value> {
     array.iter()
         .fold(Vec::with_capacity(array.len()), |mut acc, value| {
             if value.is_array() {
