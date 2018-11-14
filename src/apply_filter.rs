@@ -1,13 +1,13 @@
 use get_selection::get_selection;
 use serde_json::json;
 use serde_json::Value;
-use types::{Selection, Selector};
+use types::{ExtendedSelection, MaybeArray, Selection, Selector};
 
 /// Apply the filter selectors to a JSON value and returns a selection.
 pub fn apply_filter(
     json: &Value,
     filter_selectors: &Option<Vec<Selector>>,
-) -> Selection {
+) -> ExtendedSelection {
     // Apply the filter iff the provided JSON value is an array.
     match json.as_array() {
         Some(array) => {
@@ -32,20 +32,20 @@ pub fn apply_filter(
                 // Throw it back.
                 Some(error) => Err(error),
                 // No error in this case, we can safely unwrap.
-                None => Ok(selections.iter().fold(
+                None => Ok(MaybeArray::Array(selections.iter().fold(
                     Vec::new(),
                     |mut acc: Vec<Value>, selection| {
                         println!(
                             "=--- {:?}",
                             selection.clone().unwrap().last().unwrap().clone()
                         );
-                        acc.push(
-                            json!(selection.clone().unwrap().last().unwrap().clone()),
-                        );
+                        acc.push(json!(
+                            selection.clone().unwrap().last().unwrap().clone()
+                        ));
 
                         acc
-                    }
-                )),
+                    },
+                ))),
             }
         }
         // Not an array, return the raw JSON content if there's no filter or
@@ -54,7 +54,7 @@ pub fn apply_filter(
             Some(_) => {
                 Err(String::from("A filter can only be applied to an array"))
             }
-            None => Ok(vec![json.clone()]),
+            None => Ok(MaybeArray::NonArray(vec![json.clone()])),
         },
     }
 }

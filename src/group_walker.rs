@@ -6,10 +6,10 @@ use lazy_static::lazy_static;
 use regex::Regex;
 use serde_json::json;
 use serde_json::Value;
-use types::{Selection, Selector};
+use types::{MaybeArray, Selection, Selector};
 
 /// Walks through a group.
-pub fn group_walker(group: &str, json: &Value) -> Selection {
+pub fn group_walker(group: &str, json: &Value) -> Result<Value, String> {
     lazy_static! {
         static ref FILTER_REGEX: Regex =
             Regex::new(r"^(\.{2})*(.*)\|([^|]+)$").unwrap();
@@ -71,13 +71,42 @@ pub fn group_walker(group: &str, json: &Value) -> Selection {
                 json!(items.last()).clone()
             };
 
-            // Flatten the group if the spread operator was found.
-            if parsed_group.0.is_some() {
-                println!("-- {:?}", flatten_group(apply_filter(&output_json, &filter_selectors)));
-                flatten_group(apply_filter(&output_json, &filter_selectors))
-            } else {
-                apply_filter(&output_json, &filter_selectors)
+            let is_spreading = parsed_group.0.is_some();
+
+            match apply_filter(&output_json, &filter_selectors) {
+                Ok(filtered) => match filtered {
+                    MaybeArray::Array(array) => Ok(if is_spreading {
+                        json!(flatten_group(array))
+                    } else {
+                        json!(array)
+                    }),
+                    MaybeArray::NonArray(single_value) => {
+                        if is_spreading {
+                            Err(String::from("Only arrays can be flattened"))
+                        } else {
+                            // We know that we are holding a single value
+                            // wrapped inside a MaybeArray::NonArray enum.
+                            // We need to pick the first item of the vector.
+                            Ok(json!(single_value[0]))
+                        }
+                    }
+                },
+                Err(error) => Err(error),
             }
+
+            // Flatten the group if the spread operator was found.
+            // if parsed_group.0.is_some() {
+            //     println!(
+            //         "-- {:?}",
+            //         flatten_group(apply_filter(
+            //             &output_json,
+            //             &filter_selectors
+            //         ))
+            //     );
+            //     flatten_group(apply_filter(&output_json, &filter_selectors))
+            // } else {
+            //     apply_filter(&output_json, &filter_selectors)
+            // }
         }
         Err(items) => Err(items),
     }
