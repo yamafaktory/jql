@@ -1,5 +1,6 @@
 extern crate clap;
 extern crate lazy_static;
+extern crate rayon;
 extern crate regex;
 extern crate serde_json;
 

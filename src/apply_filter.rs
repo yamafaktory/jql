@@ -35,10 +35,6 @@ pub fn apply_filter(
                 None => Ok(MaybeArray::Array(selections.iter().fold(
                     Vec::new(),
                     |mut acc: Vec<Value>, selection| {
-                        println!(
-                            "=--- {:?}",
-                            selection.clone().unwrap().last().unwrap().clone()
-                        );
                         acc.push(json!(
                             selection.clone().unwrap().last().unwrap().clone()
                         ));
