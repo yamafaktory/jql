@@ -31,3 +31,16 @@ pub fn flatten_json_array(value: &Value) -> Value {
             .collect::<Vec<Value>>()
     )
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    const DATA: &str = r#"[[[[[[[[[[[[[[1]]]]]]]]]]]]], [[[[[2]]]], 3], null]"#;
+
+    #[test]
+    fn get_flatten_value() {
+        let json: Value = serde_json::from_str(DATA).unwrap();
+        assert_eq!(json!([1, 2, 3, null]), flatten_json_array(&json));
+    }
+}
