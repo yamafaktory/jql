@@ -1,46 +1,43 @@
 extern crate regex;
 extern crate serde_json;
 
+use parser::selectors_parser;
 use group_walker::group_walker;
-use lazy_static::lazy_static;
-use regex::Regex;
 use serde_json::json;
 use serde_json::Value;
 
-/// Given some selector walk over the JSON file.
-pub fn walker(json: &Value, selector: Option<&str>) -> Result<Value, String> {
+/// Given some selectors walk over the JSON file.
+pub fn walker(json: &Value, selectors: Option<&str>) -> Result<Value, String> {
     // A Selector has been found.
-    if let Some(selector) = selector {
-        lazy_static! {
-            static ref GROUP_REGEX: Regex = Regex::new(r"([^,]+)").unwrap();
-        }
+    if let Some(selectors) = selectors {
+        let parsed_selectors = selectors_parser(selectors);
 
         // Capture groups separated by commas, apply the selector for the
         // current group and return a Result of values or an Err early on.
-        let groups: Result<Vec<Value>, String> = GROUP_REGEX
-            .captures_iter(selector)
-            .map(|capture| {
-                group_walker(
-                    capture.get(0).map_or("", |m| m.as_str()).trim(),
-                    json,
-                )
-            }).map(|s| -> Result<Value, String> {
-                match s {
-                    Ok(items) => Ok(json!(items.clone())),
-                    Err(error) => Err(error.clone()),
-                }
-            }).collect();
+        // let groups: Result<Vec<Value>, String> = GROUP_REGEX
+        //     .captures_iter(selector)
+        //     .map(|capture| {
+        //         group_walker(
+        //             capture.get(0).map_or("", |m| m.as_str()).trim(),
+        //             json,
+        //         )
+        //     }).map(|s| -> Result<Value, String> {
+        //         match s {
+        //             Ok(items) => Ok(json!(items.clone())),
+        //             Err(error) => Err(error.clone()),
+        //         }
+        //     }).collect();
 
-        return match groups {
-            Ok(groups) => match groups.len() {
-                0 => Err(String::from("Empty selection")),
-                // One group.
-                1 => Ok(json!(groups[0])),
-                // Multiple groups.
-                _ => Ok(json!(groups)),
-            },
-            Err(error) => Err(error),
-        };
+        // return match groups {
+        //     Ok(groups) => match groups.len() {
+        //         0 => Err(String::from("Empty selection")),
+        //         // One group.
+        //         1 => Ok(json!(groups[0])),
+        //         // Multiple groups.
+        //         _ => Ok(json!(groups)),
+        //     },
+        //     Err(error) => Err(error),
+        // };
     }
     // Nothing found.
     Err(String::from("No selector found"))
@@ -91,6 +88,21 @@ mod tests {
                 "laptop": {
                     "brand": "Asus",
                     "options": ["d", "e", "f"]
+                }
+            }
+        ],
+        "filter-to-flatten": [[[[["c", "a", "c"]]]], "g", [[["a", ["t"]]]]],
+        "nested-filter-to-flatten": [
+            {
+                "fruit": {
+                    "type": "Banana",
+                    "dna": ["c", "g", "a", "t"]
+                }
+            },
+            {
+                "fruit": {
+                    "type": "Pear",
+                    "dna": [[[[["c", "a", "c"]]]], "g", "t", [[["a", ["t"]]]]]
                 }
             }
         ]
@@ -491,5 +503,12 @@ mod tests {
             Err(String::from("A filter can only be applied to an array")),
             walker(&json, selector)
         );
+    }
+
+    #[test]
+    fn get_flattened_array() {
+        let json: Value = serde_json::from_str(DATA).unwrap();
+        let selector = Some("..filter-to-flatten");
+        assert_eq!(Ok(json!(["Apple", "Asus"])), walker(&json, selector));
     }
 }

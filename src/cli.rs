@@ -15,8 +15,8 @@ pub fn get_matches<'a>() -> ArgMatches<'a> {
                 .index(1)
                 .required(true),
         ).arg(
-            Arg::with_name("selector")
-                .help("Selector to apply")
+            Arg::with_name("selectors")
+                .help("Selectors to apply")
                 .index(2)
                 .required(true),
         ).arg(

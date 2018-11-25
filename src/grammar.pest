@@ -1,0 +1,19 @@
+char = {
+    !("\"" | "\\") ~ ANY
+    | "\\" ~ ("\"" | "\\" | "/" | "b" | "f" | "n" | "r" | "t")
+    | "\\" ~ ("u" ~ ASCII_HEX_DIGIT{4})
+}
+
+selector = { ("\"" ~ char* ~ "\"") }
+
+pipe = _{ "|" }
+
+filter = { selector }
+
+filters = _{ pipe ~ filter ~ ("." ~ filter)* }
+
+spread = { ".." }
+
+selection = { spread? ~ selector ~ ("." ~ selector)* ~ filters* }
+
+groups = _{ selection ~ ("," ~ selection)* }

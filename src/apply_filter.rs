@@ -17,7 +17,7 @@ pub fn apply_filter(
                 .map(|partial_json| -> Selection {
                     match filter_selectors {
                         // Get the selection based on the filter.
-                        Some(ref selectors) => {
+                        Some(selectors) => {
                             get_selection(&selectors, &partial_json)
                         }
                         // No filter, return the JSON value.
