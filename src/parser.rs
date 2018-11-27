@@ -31,15 +31,14 @@ pub fn selectors_parser(selectors: &str) -> Result<Groups, String> {
                         Rule::spread => {
                             current_group.0 = Some(stringified_inner_span)
                         }
-                        _ => println!("<>"),
+                        _ => (),
                     };
                 }
                 // Add the group.
                 groups.push(current_group.clone());
             }
-            println!("{:?}", groups);
             Ok(groups)
         }
-        Err(_) => Err(String::from("Empty group")),
+        Err(_) => Err(String::from("Error, unable to parse invalid selectors")),
     }
 }

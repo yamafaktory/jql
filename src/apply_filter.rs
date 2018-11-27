@@ -6,7 +6,7 @@ use types::{ExtendedSelection, MaybeArray, Selection, Selector};
 /// Apply the filter selectors to a JSON value and returns a selection.
 pub fn apply_filter(
     json: &Value,
-    filter_selectors: &Option<Vec<Selector>>,
+    filter_selectors: &[Selector],
 ) -> ExtendedSelection {
     // Apply the filter iff the provided JSON value is an array.
     match json.as_array() {
@@ -15,15 +15,13 @@ pub fn apply_filter(
                 .iter()
                 .cloned()
                 .map(|partial_json| -> Selection {
-                    match filter_selectors {
-                        // Get the selection based on the filter.
-                        Some(selectors) => {
-                            get_selection(&selectors, &partial_json)
-                        }
-                        // No filter, return the JSON value.
-                        None => Ok(vec![partial_json]),
+                    if filter_selectors.is_empty() {
+                        Ok(vec![partial_json])
+                    } else {
+                        get_selection(&filter_selectors, &partial_json)
                     }
                 }).collect();
+
             // Try to find the first error.
             match selections
                 .iter()
@@ -46,11 +44,12 @@ pub fn apply_filter(
         }
         // Not an array, return the raw JSON content if there's no filter or
         // throw an error.
-        None => match filter_selectors {
-            Some(_) => {
-                Err(String::from("A filter can only be applied to an array"))
-            }
-            None => Ok(MaybeArray::NonArray(vec![json.clone()])),
-        },
+        // None => match filter_selectors {
+        //     Some(_) => {
+        //         Err(String::from("A filter can only be applied to an array"))
+        //     }
+        //     None => Ok(MaybeArray::NonArray(vec![json.clone()])),
+        // },
+        None => Ok(MaybeArray::NonArray(vec![json.clone()])),
     }
 }

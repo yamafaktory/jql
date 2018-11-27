@@ -1,8 +1,8 @@
 extern crate regex;
 extern crate serde_json;
 
-use parser::selectors_parser;
 use group_walker::group_walker;
+use parser::selectors_parser;
 use serde_json::json;
 use serde_json::Value;
 
@@ -10,34 +10,27 @@ use serde_json::Value;
 pub fn walker(json: &Value, selectors: Option<&str>) -> Result<Value, String> {
     // A Selector has been found.
     if let Some(selectors) = selectors {
-        let parsed_selectors = selectors_parser(selectors);
-
-        // Capture groups separated by commas, apply the selector for the
-        // current group and return a Result of values or an Err early on.
-        // let groups: Result<Vec<Value>, String> = GROUP_REGEX
-        //     .captures_iter(selector)
-        //     .map(|capture| {
-        //         group_walker(
-        //             capture.get(0).map_or("", |m| m.as_str()).trim(),
-        //             json,
-        //         )
-        //     }).map(|s| -> Result<Value, String> {
-        //         match s {
-        //             Ok(items) => Ok(json!(items.clone())),
-        //             Err(error) => Err(error.clone()),
-        //         }
-        //     }).collect();
-
-        // return match groups {
-        //     Ok(groups) => match groups.len() {
-        //         0 => Err(String::from("Empty selection")),
-        //         // One group.
-        //         1 => Ok(json!(groups[0])),
-        //         // Multiple groups.
-        //         _ => Ok(json!(groups)),
-        //     },
-        //     Err(error) => Err(error),
-        // };
+        return match selectors_parser(selectors) {
+            Ok(groups) => {
+                // Capture groups separated by commas, apply the selector for the
+                // current group and return a Result of values or an Err early on.
+                let inner_groups: Result<Vec<Value>, String> = groups
+                    .iter()
+                    .map(|group| group_walker(group.clone(), json))
+                    .collect();
+                match inner_groups {
+                    Ok(groups) => match groups.len() {
+                        0 => Err(String::from("Empty selection")),
+                        // One group.
+                        1 => Ok(json!(groups[0])),
+                        // Multiple groups.
+                        _ => Ok(json!(groups)),
+                    },
+                    Err(error) => Err(error),
+                }
+            }
+            Err(error) => Err(error),
+        };
     }
     // Nothing found.
     Err(String::from("No selector found"))

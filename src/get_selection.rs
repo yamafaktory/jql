@@ -53,6 +53,7 @@ pub fn get_selection(selectors: &Selectors, json: &Value) -> Selection {
                             ]
                                 .join(" "))
                         }
+                    // Default case.
                     } else {
                         inner_json = inner_json[raw_selector].clone();
                         Ok(inner_json.clone())

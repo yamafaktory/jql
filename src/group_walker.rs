@@ -6,10 +6,13 @@ use lazy_static::lazy_static;
 use regex::Regex;
 use serde_json::json;
 use serde_json::Value;
-use types::{MaybeArray, Selection, Selector};
+use types::{Group, MaybeArray, Selection, Selector};
 
 /// Walks through a group.
-pub fn group_walker(group: &str, json: &Value) -> Result<Value, String> {
+pub fn group_walker(
+    (spread, selectors, filters): Group,
+    json: &Value,
+) -> Result<Value, String> {
     lazy_static! {
         static ref FILTER_REGEX: Regex =
             Regex::new(r"^(\.{2})?(.*)(?:\|([^|]*))+$").unwrap();
@@ -17,59 +20,42 @@ pub fn group_walker(group: &str, json: &Value) -> Result<Value, String> {
             Regex::new(r#"("[^"]+")|([^.]+)"#).unwrap();
     }
 
-    let parsed_group: (Option<()>, &str, Option<&str>) = FILTER_REGEX
-        .captures_iter(group)
-        .map(|capture| {
-            println!("--++ {:?}", capture);
-            (
-                // Spread capture.
-                capture.get(1).and_then(|_| Some(())),
-                // Group capture.
-                capture.get(2).map_or("", |m| m.as_str()),
-                // Filter capture.
-                capture.get(3).and_then(|m| Some(m.as_str())),
-            )
-        })
-        .nth(0)
-        // If nothing is captured, use the initial group.
-        .unwrap_or_else(|| (None, group, None));
+    // let parsed_group: (Option<()>, &str, Option<&str>) = FILTER_REGEX
+    //     .captures_iter(group)
+    //     .map(|capture| {
+    //         println!("--++ {:?}", capture);
+    //         (
+    //             // Spread capture.
+    //             capture.get(1).and_then(|_| Some(())),
+    //             // Group capture.
+    //             capture.get(2).map_or("", |m| m.as_str()),
+    //             // Filter capture.
+    //             capture.get(3).and_then(|m| Some(m.as_str())),
+    //         )
+    //     })
+    //     .nth(0)
+    //     // If nothing is captured, use the initial group.
+    //     .unwrap_or_else(|| (None, group, None));
 
     // Empty group, return early.
-    if parsed_group.1.is_empty() {
+    if selectors.is_empty() {
         return Err(String::from("Empty group"));
     }
 
-    // Capture sub-groups of double quoted selectors and simple ones surrounded
-    // by dots on the group itself.
-    let selectors: Vec<Selector> = SUB_GROUP_REGEX
-        .captures_iter(parsed_group.1)
-        .map(|capture| get_selector(capture.get(0).map_or("", |m| m.as_str())))
+    let parsed_selectors: Vec<Selector> = selectors
+        .iter()
+        .map(|selector| get_selector(selector))
         .collect();
 
     // Perform the same operation on the filter.
-    let filter_selectors = match parsed_group.2 {
-        Some(filter) => {
-            println!("filter {:?}", filter);
-            if filter.is_empty() {
-                None
-            } else {
-                Some(
-                    SUB_GROUP_REGEX
-                        .captures_iter(filter)
-                        .map(|capture| {
-                            get_selector(
-                                capture.get(0).map_or("", |m| m.as_str()),
-                            )
-                        }).collect::<Vec<Selector>>(),
-                )
-            }
-        }
-        None => None,
-    };
+    let filter_selectors: Vec<Selector> = filters
+        .iter()
+        .map(|selector| get_selector(selector))
+        .collect();
 
     // Returns a Result of values or an Err early on, stopping the iteration
     // as soon as the latter is encountered.
-    let items: Selection = get_selection(&selectors, &json);
+    let items: Selection = get_selection(&parsed_selectors, &json);
 
     match items {
         Ok(ref items) => {
@@ -81,8 +67,7 @@ pub fn group_walker(group: &str, json: &Value) -> Result<Value, String> {
                 json!(items.last()).clone()
             };
 
-            let is_spreading = parsed_group.0.is_some();
-            println!("{:?} {:?}", parsed_group, filter_selectors);
+            let is_spreading = spread.is_some();
 
             match apply_filter(&output_json, &filter_selectors) {
                 Ok(filtered) => match filtered {
