@@ -4,16 +4,24 @@ char = {
     | "\\" ~ ("u" ~ ASCII_HEX_DIGIT{4})
 }
 
-selector = { ("\"" ~ char* ~ "\"") }
+quote = { "\"" }
+
+default = { quote ~ char* ~ quote }
+
+range = { "[" ~ ASCII_DIGIT+ ~ ":" ~ ASCII_DIGIT+ ~ "]" }
+
+index = { "[" ~ ASCII_DIGIT+ ~ "]" }
+
+selector = _{ range | index | default }
 
 pipe = _{ "|" }
 
 filter = { selector }
 
-filters = _{ pipe ~ filter ~ ("." ~ filter)* }
+filters = _{ pipe ~ filter ~ ("."? ~ filter)* }
 
 spread = { ".." }
 
-selection = { spread? ~ selector ~ ("." ~ selector)* ~ filters* }
+selection = { spread? ~ selector ~ ("."? ~ selector)* ~ filters* }
 
 groups = _{ selection ~ ("," ~ selection)* }

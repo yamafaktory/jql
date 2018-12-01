@@ -20,11 +20,11 @@ pub type Selectors = [Selector];
 
 pub type Group = (
     // Spread part.
-    Option<String>,
+    Option<()>,
     // Selectors part.
-    Vec<String>,
+    Vec<Selector>,
     // Filters part.
-    Vec<String>,
+    Vec<Selector>,
 );
 
 pub type Groups = Vec<Group>;

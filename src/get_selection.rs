@@ -4,10 +4,13 @@ use serde_json::Value;
 use types::{Selection, Selector, Selectors};
 use utils::display_node_or_range;
 
-/// Returns a selection based on selectors and some JSON content.
+/// Returns a selection based on selectors and a JSON content as a Result of
+/// values or an Err early on, stopping the iteration as soon as the latter is
+/// encountered.
 pub fn get_selection(selectors: &Selectors, json: &Value) -> Selection {
     // Local copy of the original JSON that will be reused in the loop.
     let mut inner_json = json.clone();
+
     selectors
         .iter()
         .enumerate()
@@ -15,6 +18,7 @@ pub fn get_selection(selectors: &Selectors, json: &Value) -> Selection {
             match current_selector {
                 // Default selector.
                 Selector::Default(raw_selector) => {
+                    println!("-- {:?}", raw_selector.parse::<isize>());
                     // Array case.
                     if let Ok(array_index) = raw_selector.parse::<isize>() {
                         return match array_walker(
@@ -36,22 +40,22 @@ pub fn get_selection(selectors: &Selectors, json: &Value) -> Selection {
                     if inner_json.get(raw_selector).is_none() {
                         if map_index == 0 {
                             Err([
-                                "Node (",
+                                "Node \"",
                                 raw_selector,
-                                ") not found on the parent element",
+                                "\" not found on the parent element",
                             ]
-                                .join(" "))
+                                .join(""))
                         } else {
                             Err([
-                                "Node (",
+                                "Node \"",
                                 raw_selector,
-                                ") not found on parent",
+                                "\" not found on parent ",
                                 &display_node_or_range(
                                     &selectors[map_index - 1],
                                     false,
                                 ),
                             ]
-                                .join(" "))
+                                .join(""))
                         }
                     // Default case.
                     } else {
@@ -59,6 +63,7 @@ pub fn get_selection(selectors: &Selectors, json: &Value) -> Selection {
                         Ok(inner_json.clone())
                     }
                 }
+
                 // Range selector.
                 Selector::Range((start, end)) => match range_selector(
                     map_index,

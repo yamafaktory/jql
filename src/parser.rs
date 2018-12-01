@@ -1,9 +1,46 @@
+use lazy_static::lazy_static;
 use pest::Parser;
+use regex::Regex;
+use types::Selector;
 use types::{Group, Groups};
 
 #[derive(Parser)]
 #[grammar = "grammar.pest"]
 struct GroupsParser;
+
+/// Drop the enclosing double quotes of a span and convert it to a default
+/// selector.
+fn span_to_default(inner_span: &str) -> Selector {
+    Selector::Default(String::from(&inner_span[1..inner_span.len() - 1]))
+}
+
+///
+fn span_to_range(inner_span: &str) -> Selector {
+    lazy_static! {
+        static ref RANGE_REGEX: Regex = Regex::new(r"(\d+):(\d+)").unwrap();
+    }
+
+    let ranges: Vec<(&str, &str)> = RANGE_REGEX
+        .captures_iter(inner_span)
+        .map(|capture| {
+            (
+                capture.get(1).map_or("", |m| m.as_str()),
+                capture.get(2).map_or("", |m| m.as_str()),
+            )
+        }).collect();
+
+    if ranges.is_empty() {
+        // Returns the initial captured value.
+        Selector::Default(String::from(inner_span))
+    } else {
+        // Returns the range as a tuple of the form (start,end).
+        let (start, end) = &ranges[0];
+        Selector::Range((
+            usize::from_str_radix(start, 10).unwrap(),
+            usize::from_str_radix(end, 10).unwrap(),
+        ))
+    }
+}
 
 pub fn selectors_parser(selectors: &str) -> Result<Groups, String> {
     match GroupsParser::parse(Rule::groups, selectors) {
@@ -11,31 +48,33 @@ pub fn selectors_parser(selectors: &str) -> Result<Groups, String> {
             let mut groups: Groups = Vec::new();
 
             for pair in pairs {
-                let mut current_group: Group = (None, Vec::new(), Vec::new());
+                let mut group: Group = (None, Vec::new(), Vec::new());
 
                 // Loop over the pairs converted as an iterator of the tokens
                 // which composed it.
                 for inner_pair in pair.into_inner() {
-                    let stringified_inner_span =
-                        inner_pair.clone().into_span().as_str().to_string();
+                    let inner_span = inner_pair.clone().into_span().as_str();
 
                     // Populate the group based on the rules found by the
                     // parser.
                     match inner_pair.as_rule() {
+                        Rule::default => {
+                            group.1.push(span_to_default(inner_span))
+                        }
                         Rule::filter => {
-                            current_group.2.push(stringified_inner_span)
+                            group.2.push(span_to_default(inner_span))
                         }
-                        Rule::selector => {
-                            current_group.1.push(stringified_inner_span)
+                        Rule::index => {
+                            group.1.push(span_to_default(inner_span))
                         }
-                        Rule::spread => {
-                            current_group.0 = Some(stringified_inner_span)
-                        }
+                        Rule::range => group.1.push(span_to_range(inner_span)),
+                        Rule::spread => group.0 = Some(()),
                         _ => (),
                     };
                 }
+
                 // Add the group.
-                groups.push(current_group.clone());
+                groups.push(group);
             }
             Ok(groups)
         }

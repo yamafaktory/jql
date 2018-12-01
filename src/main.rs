@@ -13,7 +13,6 @@ mod cli;
 mod core;
 mod flatten_json_array;
 mod get_selection;
-mod get_selector;
 mod group_walker;
 mod range_selector;
 mod types;

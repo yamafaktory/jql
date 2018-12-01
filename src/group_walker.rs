@@ -1,63 +1,21 @@
 use apply_filter::apply_filter;
 use flatten_json_array::flatten_json_array;
 use get_selection::get_selection;
-use get_selector::get_selector;
-use lazy_static::lazy_static;
-use regex::Regex;
 use serde_json::json;
 use serde_json::Value;
-use types::{Group, MaybeArray, Selection, Selector};
+use types::{Group, MaybeArray};
 
 /// Walks through a group.
 pub fn group_walker(
-    (spread, selectors, filters): Group,
+    (spread, selectors, filters): &Group,
     json: &Value,
 ) -> Result<Value, String> {
-    lazy_static! {
-        static ref FILTER_REGEX: Regex =
-            Regex::new(r"^(\.{2})?(.*)(?:\|([^|]*))+$").unwrap();
-        static ref SUB_GROUP_REGEX: Regex =
-            Regex::new(r#"("[^"]+")|([^.]+)"#).unwrap();
-    }
-
-    // let parsed_group: (Option<()>, &str, Option<&str>) = FILTER_REGEX
-    //     .captures_iter(group)
-    //     .map(|capture| {
-    //         println!("--++ {:?}", capture);
-    //         (
-    //             // Spread capture.
-    //             capture.get(1).and_then(|_| Some(())),
-    //             // Group capture.
-    //             capture.get(2).map_or("", |m| m.as_str()),
-    //             // Filter capture.
-    //             capture.get(3).and_then(|m| Some(m.as_str())),
-    //         )
-    //     })
-    //     .nth(0)
-    //     // If nothing is captured, use the initial group.
-    //     .unwrap_or_else(|| (None, group, None));
-
     // Empty group, return early.
     if selectors.is_empty() {
         return Err(String::from("Empty group"));
     }
 
-    let parsed_selectors: Vec<Selector> = selectors
-        .iter()
-        .map(|selector| get_selector(selector))
-        .collect();
-
-    // Perform the same operation on the filter.
-    let filter_selectors: Vec<Selector> = filters
-        .iter()
-        .map(|selector| get_selector(selector))
-        .collect();
-
-    // Returns a Result of values or an Err early on, stopping the iteration
-    // as soon as the latter is encountered.
-    let items: Selection = get_selection(&parsed_selectors, &json);
-
-    match items {
+    match get_selection(&selectors, &json) {
         Ok(ref items) => {
             // Check for an empty selection, in this case we assume that the user
             // expects to get back the complete raw JSON for this group.
@@ -69,7 +27,7 @@ pub fn group_walker(
 
             let is_spreading = spread.is_some();
 
-            match apply_filter(&output_json, &filter_selectors) {
+            match apply_filter(&output_json, &filters) {
                 Ok(filtered) => match filtered {
                     MaybeArray::Array(array) => Ok(if is_spreading {
                         flatten_json_array(&json!(array))

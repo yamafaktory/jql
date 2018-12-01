@@ -19,29 +19,29 @@ pub fn range_selector(
             if json_array.len() < start || json_array.len() < (end + 1) {
                 return Err(if selectors.len() == 1 {
                     [
-                        "Range (",
+                        "Range [",
                         start.to_string().as_str(),
                         ":",
                         end.to_string().as_str(),
-                        ") is out of bound, root element has a length of",
+                        "] is out of bound, root element has a length of ",
                         &(json_array.len()).to_string(),
                     ]
-                        .join(" ")
+                        .join("")
                 } else {
                     [
-                        "Range (",
+                        "Range [",
                         start.to_string().as_str(),
                         ":",
                         end.to_string().as_str(),
-                        ") is out of bound,",
+                        "] is out of bound, ",
                         &display_node_or_range(
                             &selectors[map_index - 1],
                             false,
                         ),
-                        "has a length of",
+                        " has a length of ",
                         &(json_array.len()).to_string(),
                     ]
-                        .join(" ")
+                        .join("")
                 });
             }
 

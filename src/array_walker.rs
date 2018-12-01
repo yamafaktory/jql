@@ -23,38 +23,38 @@ pub fn array_walker(
             Some(array) => {
                 if selectors.len() == 1 {
                     [
-                        "Index (",
+                        "Index [",
                         raw_selector,
-                        ") is out of bound, root element has a length of",
+                        "] is out of bound, root element has a length of ",
                         &(array.len()).to_string(),
                     ]
-                        .join(" ")
+                        .join("")
                 } else {
                     [
-                        "Index (",
+                        "Index [",
                         raw_selector,
-                        ") is out of bound,",
+                        "] is out of bound, ",
                         &display_node_or_range(
                             &selectors[map_index - 1],
                             false,
                         ),
-                        "has a length of",
+                        " has a length of ",
                         &(array.len()).to_string(),
                     ]
-                        .join(" ")
+                        .join("")
                 }
             }
             // Trying to access an index on a node which is not
             // an array.
             None => {
                 if selectors.len() == 1 || map_index == 0 {
-                    ["Root element is not an array"].join(" ")
+                    String::from("Root element is not an array")
                 } else {
                     [
                         &display_node_or_range(&selectors[map_index - 1], true),
-                        "is not an array",
+                        " is not an array",
                     ]
-                        .join(" ")
+                        .join("")
                 }
             }
         };
