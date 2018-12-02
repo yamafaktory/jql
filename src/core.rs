@@ -139,10 +139,10 @@ mod tests {
     #[test]
     fn get_out_of_bound_item_in_array() {
         let json: Value = serde_json::from_str(DATA).unwrap();
-        let selector = Some(r#""array.4""#);
+        let selector = Some(r#""array".[4]"#);
         assert_eq!(
             Err(String::from(
-                "Index ( 4 ) is out of bound, node ( array ) has a length of 4"
+                r#"Index [4] is out of bound, node "array" has a length of 4"#
             )),
             walker(&json, selector)
         );
@@ -154,7 +154,7 @@ mod tests {
         let array_selector = Some(r#""4""#);
         assert_eq!(
             Err(String::from(
-                "Index ( 4 ) is out of bound, root element has a length of 4"
+                "Index [4] is out of bound, root element has a length of 4"
             )),
             walker(&json_array, array_selector)
         );
@@ -197,11 +197,11 @@ mod tests {
     #[test]
     fn get_index_in_non_array() {
         let json: Value = serde_json::from_str(DATA).unwrap();
-        let selector = Some(r#""text.1""#);
-        let root_selector = Some(r#""1""#);
-        let root_selector_nested = Some(r#""0"."1""#);
+        let selector = Some(r#""text".[1]"#);
+        let root_selector = Some("[1]");
+        let root_selector_nested = Some(r#"[0].[1]"#);
         assert_eq!(
-            Err(String::from("Node ( text ) is not an array")),
+            Err(String::from(r#"Node "text" is not an array"#)),
             walker(&json, selector)
         );
         assert_eq!(
@@ -219,7 +219,9 @@ mod tests {
         let json: Value = serde_json::from_str(DATA).unwrap();
         let selector = Some(r#""foo""#);
         assert_eq!(
-            Err(String::from("Node ( foo ) not found on the parent element")),
+            Err(String::from(
+                r#"Node "foo" not found on the parent element"#
+            )),
             walker(&json, selector)
         );
     }
@@ -230,7 +232,7 @@ mod tests {
         let selector = Some(r#""nested"."d""#);
         assert_eq!(
             Err(String::from(
-                "Node ( d ) not found on parent node ( nested )"
+                r#"Node "d" not found on parent node "nested""#
             )),
             walker(&json, selector)
         );
@@ -267,7 +269,7 @@ mod tests {
         let json: Value = serde_json::from_str(DATA).unwrap();
         let selector = Some(r#""#);
         assert_eq!(
-            Err(String::from("Empty selection")),
+            Err(String::from("Empty group")),
             walker(&json, selector)
         );
     }
@@ -283,7 +285,7 @@ mod tests {
     fn get_weird_json() {
         let json: Value = serde_json::from_str(DATA).unwrap();
         let dot_selector = Some(r#"".property..""#);
-        let quote_selector = Some(r#"""""#);
+        let quote_selector = Some(r##""\"""##);
         let space_selector = Some(r#"" ""#);
         let empty_selector = Some(r#""""#);
         assert_eq!(
@@ -298,7 +300,7 @@ mod tests {
     #[test]
     fn get_mix_json() {
         let json: Value = serde_json::from_str(DATA).unwrap();
-        let mix_selector = Some("mix.0.first");
+        let mix_selector = Some(r#""mix".[0]."first""#);
         assert_eq!(
             Ok(json["mix"][0]["first"].clone()),
             walker(&json, mix_selector)
@@ -308,28 +310,28 @@ mod tests {
     #[test]
     fn get_range() {
         let json: Value = serde_json::from_str(DATA).unwrap();
-        let selector = Some("range.2:5");
+        let selector = Some(r#""range".[2:5]"#);
         assert_eq!(Ok(json!([3, 4, 5, 6])), walker(&json, selector));
     }
 
     #[test]
     fn get_one_item_range() {
         let json: Value = serde_json::from_str(DATA).unwrap();
-        let selector = Some("range.2:2");
+        let selector = Some(r#""range".[2:2]"#);
         assert_eq!(Ok(json!([3])), walker(&json, selector));
     }
 
     #[test]
     fn get_reversed_range() {
         let json: Value = serde_json::from_str(DATA).unwrap();
-        let selector = Some("range.5:2");
+        let selector = Some(r#""range".[5:2]"#);
         assert_eq!(Ok(json!([6, 5, 4, 3])), walker(&json, selector));
     }
 
     #[test]
     fn get_original_from_reversed_range() {
         let json: Value = serde_json::from_str(DATA).unwrap();
-        let selector = Some("range.5:2.3:0");
+        let selector = Some(r#""range".[5:2].[3:0]"#);
         assert_eq!(Ok(json!([3, 4, 5, 6])), walker(&json, selector));
     }
 
@@ -356,9 +358,9 @@ mod tests {
     #[test]
     fn get_range_on_non_array_node() {
         let json: Value = serde_json::from_str(DATA).unwrap();
-        let selector = Some(r#""nested".[0.1]"#);
+        let selector = Some(r#""nested".[0:1]"#);
         assert_eq!(
-            Err(String::from("Node ( nested ) is not an array")),
+            Err(String::from(r#"Node "nested" is not an array"#)),
             walker(&json, selector)
         );
     }
@@ -384,7 +386,7 @@ mod tests {
     fn get_multi_selection_with_empty() {
         let json: Value = serde_json::from_str(DATA).unwrap();
         let selector = Some(r#""array",,,"#);
-        assert_eq!(Ok(json["array"].clone()), walker(&json, selector));
+        assert_eq!(Err(String::from("Empty group")), walker(&json, selector));
     }
 
     #[test]
@@ -405,24 +407,19 @@ mod tests {
     }
 
     #[test]
-    fn get_only_one_filter() {
+    fn get_double_filter() {
         let json: Value = serde_json::from_str(DATA).unwrap();
-        let selector = Some("|color|color");
-        assert_eq!(
-            Err(String::from(
-                "Node ( |color ) not found on the parent element"
-            )),
-            walker(&json, selector)
-        );
+        let selector = Some(r#""nested-filter"|"laptop"|"brand""#);
+        assert_eq!(Ok(json!(["Apple", "Asus"])), walker(&json, selector));
     }
 
     #[test]
     fn get_wrong_filter() {
         let json: Value = serde_json::from_str(DATA).unwrap();
-        let selector = Some("filter|colors");
+        let selector = Some(r#""filter"|"colors""#);
         assert_eq!(
             Err(String::from(
-                "Node ( colors ) not found on the parent element"
+                r#"Node "colors" not found on the parent element"#
             )),
             walker(&json, selector)
         );
@@ -431,24 +428,24 @@ mod tests {
     #[test]
     fn get_filter_with_no_selection() {
         let json: Value = serde_json::from_str(DATA).unwrap();
-        let selector = Some("|color");
+        let selector = Some(r#"|"color""#);
         assert_eq!(Err(String::from("Empty group")), walker(&json, selector));
     }
 
     #[test]
     fn get_filter_with_range() {
         let json: Value = serde_json::from_str(DATA).unwrap();
-        let selector = Some("filter.1:2|color");
+        let selector = Some(r#""filter".[1:2]|"color""#);
         assert_eq!(Ok(json!(["green", "blue"])), walker(&json, selector));
     }
 
     #[test]
     fn get_wrong_filter_with_range() {
         let json: Value = serde_json::from_str(DATA).unwrap();
-        let selector = Some("filter.1:2|colors");
+        let selector = Some(r#""filter".[1:2]|"colors""#);
         assert_eq!(
             Err(String::from(
-                "Node ( colors ) not found on the parent element"
+                r#"Node "colors" not found on the parent element"#
             )),
             walker(&json, selector)
         );
@@ -457,7 +454,7 @@ mod tests {
     #[test]
     fn get_filter_with_multi_selection() {
         let json: Value = serde_json::from_str(DATA).unwrap();
-        let selector = Some("filter.1:2|color,filter.2:1|color");
+        let selector = Some(r#""filter".[1:2]|"color","filter".[2:1]|"color""#);
         assert_eq!(
             Ok(json!([["green", "blue"], ["blue", "green"]])),
             walker(&json, selector)
@@ -467,21 +464,21 @@ mod tests {
     #[test]
     fn get_nested_filter() {
         let json: Value = serde_json::from_str(DATA).unwrap();
-        let selector = Some("nested-filter|laptop.brand");
+        let selector = Some(r#""nested-filter"|"laptop"."brand""#);
         assert_eq!(Ok(json!(["Apple", "Asus"])), walker(&json, selector));
     }
 
     #[test]
     fn get_nested_filter_with_index() {
         let json: Value = serde_json::from_str(DATA).unwrap();
-        let selector = Some("nested-filter|laptop.options.0");
+        let selector = Some(r#""nested-filter"|"laptop"."options".[0]"#);
         assert_eq!(Ok(json!(["a", "d"])), walker(&json, selector));
     }
 
     #[test]
     fn get_nested_filter_with_range() {
         let json: Value = serde_json::from_str(DATA).unwrap();
-        let selector = Some("nested-filter|laptop.options.1:2");
+        let selector = Some(r#""nested-filter"|"laptop"."options".[1:2]"#);
         assert_eq!(
             Ok(json!([["b", "c"], ["e", "f"]])),
             walker(&json, selector)
@@ -491,7 +488,7 @@ mod tests {
     #[test]
     fn get_filter_on_non_array() {
         let json: Value = serde_json::from_str(DATA).unwrap();
-        let selector = Some("nested|some");
+        let selector = Some(r#""nested"|"some""#);
         assert_eq!(
             Err(String::from("A filter can only be applied to an array")),
             walker(&json, selector)
@@ -501,7 +498,10 @@ mod tests {
     #[test]
     fn get_flattened_array() {
         let json: Value = serde_json::from_str(DATA).unwrap();
-        let selector = Some("..filter-to-flatten");
-        assert_eq!(Ok(json!(["Apple", "Asus"])), walker(&json, selector));
+        let selector = Some(r#".."filter-to-flatten""#);
+        assert_eq!(
+            Ok(json!(["c", "a", "c", "g", "a", "t"])),
+            walker(&json, selector)
+        );
     }
 }

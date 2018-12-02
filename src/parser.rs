@@ -11,10 +11,13 @@ struct GroupsParser;
 /// Drop the enclosing double quotes of a span and convert it to a default
 /// selector.
 fn span_to_default(inner_span: &str) -> Selector {
-    Selector::Default(String::from(&inner_span[1..inner_span.len() - 1]))
+    Selector::Default(
+        String::from(&inner_span[1..inner_span.len() - 1])
+            .replace(r#"\""#, r#"""#),
+    )
 }
 
-///
+/// Convert a span to a range selector.
 fn span_to_range(inner_span: &str) -> Selector {
     lazy_static! {
         static ref RANGE_REGEX: Regex = Regex::new(r"(\d+):(\d+)").unwrap();
@@ -42,6 +45,7 @@ fn span_to_range(inner_span: &str) -> Selector {
     }
 }
 
+/// Parse the provided selectors and returns a set of groups or an error.
 pub fn selectors_parser(selectors: &str) -> Result<Groups, String> {
     match GroupsParser::parse(Rule::groups, selectors) {
         Ok(pairs) => {
@@ -61,15 +65,24 @@ pub fn selectors_parser(selectors: &str) -> Result<Groups, String> {
                         Rule::default => {
                             group.1.push(span_to_default(inner_span))
                         }
-                        Rule::filter => {
+                        Rule::filterDefault => {
                             group.2.push(span_to_default(inner_span))
                         }
                         Rule::index => {
                             group.1.push(span_to_default(inner_span))
                         }
+                        Rule::filterIndex => {
+                            group.2.push(span_to_default(inner_span))
+                        }
                         Rule::range => group.1.push(span_to_range(inner_span)),
+                        Rule::filterRange => {
+                            group.2.push(span_to_range(inner_span))
+                        }
                         Rule::spread => group.0 = Some(()),
-                        _ => (),
+                        _ => {
+                            println!("wefwef");
+                            ()
+                            },
                     };
                 }
 

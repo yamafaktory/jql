@@ -1,7 +1,9 @@
 use serde_json::json;
 use serde_json::Value;
-use types::Selectors;
-use utils::display_node_or_range;
+use types::{Selector, Selectors};
+use utils::{
+    display_default_selector, display_node_or_range, display_range_selector,
+};
 
 /// Returns a range selection or an error.
 pub fn range_selector(
@@ -10,6 +12,7 @@ pub fn range_selector(
     start: usize,
     end: usize,
     selectors: &Selectors,
+    previous_selector: Option<&Selector>,
 ) -> Result<Value, String> {
     let is_default = start < end;
 
@@ -61,6 +64,20 @@ pub fn range_selector(
                 json!(reversed_range_selection)
             })
         }
-        None => Err(String::from("Root element is not an array")),
+        None => Err([
+            (match previous_selector {
+                Some(selector) => match selector {
+                    Selector::Default(node) => {
+                        display_default_selector(node, true)
+                    }
+                    Selector::Range(range) => {
+                        display_range_selector(*range, true)
+                    }
+                },
+                None => String::from("Root element"),
+            }).as_str(),
+            " is not an array",
+        ]
+            .join("")),
     }
 }

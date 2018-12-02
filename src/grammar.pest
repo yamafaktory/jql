@@ -1,27 +1,21 @@
-char = {
-    !("\"" | "\\") ~ ANY
-    | "\\" ~ ("\"" | "\\" | "/" | "b" | "f" | "n" | "r" | "t")
-    | "\\" ~ ("u" ~ ASCII_HEX_DIGIT{4})
-}
-
-quote = { "\"" }
-
-default = { quote ~ char* ~ quote }
-
-range = { "[" ~ ASCII_DIGIT+ ~ ":" ~ ASCII_DIGIT+ ~ "]" }
-
-index = { "[" ~ ASCII_DIGIT+ ~ "]" }
-
-selector = _{ range | index | default }
-
-pipe = _{ "|" }
-
-filter = { selector }
-
-filters = _{ pipe ~ filter ~ ("."? ~ filter)* }
-
-spread = { ".." }
-
-selection = { spread? ~ selector ~ ("."? ~ selector)* ~ filters* }
-
 groups = _{ selection ~ ("," ~ selection)* }
+    selection = { (spread? ~ selector ~ ("."? ~ selector)*)? ~ filters* }
+        spread = { ".." }
+
+        selector = _{ range | index | default }
+            default = { quote ~ char* ~ quote }
+                char = {
+                    !("\"" | "\\") ~ ANY
+                    | "\\" ~ ("\"" | "\\" | "/" | "b" | "f" | "n" | "r" | "t")
+                    | "\\" ~ ("u" ~ ASCII_HEX_DIGIT{4})
+                }
+                quote = { "\"" }
+            range = { "[" ~ ASCII_DIGIT+ ~ ":" ~ ASCII_DIGIT+ ~ "]" }
+            index = { "[" ~ ASCII_DIGIT+ ~ "]" }
+
+        filters = _{ pipe ~ filter ~ ("."? ~ filter)* }
+            pipe = _{ "|" }
+            filter = _{ filterRange | filterIndex | filterDefault }
+                filterDefault = { default }
+                filterRange = { range }
+                filterIndex = { index }

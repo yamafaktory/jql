@@ -18,7 +18,6 @@ pub fn get_selection(selectors: &Selectors, json: &Value) -> Selection {
             match current_selector {
                 // Default selector.
                 Selector::Default(raw_selector) => {
-                    println!("-- {:?}", raw_selector.parse::<isize>());
                     // Array case.
                     if let Ok(array_index) = raw_selector.parse::<isize>() {
                         return match array_walker(
@@ -40,16 +39,16 @@ pub fn get_selection(selectors: &Selectors, json: &Value) -> Selection {
                     if inner_json.get(raw_selector).is_none() {
                         if map_index == 0 {
                             Err([
-                                "Node \"",
+                                r#"Node ""#,
                                 raw_selector,
-                                "\" not found on the parent element",
+                                r#"" not found on the parent element"#,
                             ]
                                 .join(""))
                         } else {
                             Err([
-                                "Node \"",
+                                r#"Node ""#,
                                 raw_selector,
-                                "\" not found on parent ",
+                                r#"" not found on parent "#,
                                 &display_node_or_range(
                                     &selectors[map_index - 1],
                                     false,
@@ -71,6 +70,11 @@ pub fn get_selection(selectors: &Selectors, json: &Value) -> Selection {
                     *start,
                     *end,
                     &selectors,
+                    if map_index == 0 {
+                        None
+                    } else {
+                        Some(&selectors[map_index - 1])
+                    },
                 ) {
                     Ok(json) => {
                         inner_json = json.clone();
