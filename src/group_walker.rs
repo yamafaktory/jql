@@ -7,18 +7,18 @@ use types::{Group, MaybeArray};
 
 /// Walks through a group.
 pub fn group_walker(
-    (spread, selectors, filters): &Group,
+    (spread, root, selectors, filters): &Group,
     json: &Value,
 ) -> Result<Value, String> {
     // Empty group, return early.
-    if selectors.is_empty() {
+    if selectors.is_empty() && root.is_none() {
         return Err(String::from("Empty group"));
     }
 
     match get_selection(&selectors, &json) {
         Ok(ref items) => {
-            // Check for an empty selection, in this case we assume that the user
-            // expects to get back the complete raw JSON for this group.
+            // Check for an empty selection, in this case we assume that the
+            // user expects to get back the complete raw JSON for this group.
             let output_json = if items.is_empty() {
                 json.clone()
             } else {

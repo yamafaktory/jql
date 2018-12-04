@@ -2,7 +2,8 @@ use serde_json::json;
 use serde_json::Value;
 use types::{Selector, Selectors};
 use utils::{
-    display_default_selector, display_node_or_range, display_range_selector,
+    display_default_selector, display_index_selector, display_node_or_range,
+    display_range_selector,
 };
 
 /// Returns a range selection or an error.
@@ -72,6 +73,9 @@ pub fn range_selector(
                     }
                     Selector::Range(range) => {
                         display_range_selector(*range, true)
+                    }
+                    Selector::Index(index) => {
+                        display_index_selector(*index, true)
                     }
                 },
                 None => String::from("Root element"),

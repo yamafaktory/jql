@@ -1,5 +1,8 @@
 groups = _{ selection ~ ("," ~ selection)* }
-    selection = { (spread? ~ selector ~ ("."? ~ selector)*)? ~ filters* }
+    garbage = { ANY+ }
+    selection = { (spread? ~ root? ~ (selector ~ ("."? ~ selector)*)?)? ~ filters* }
+        root = { "." }
+
         spread = { ".." }
 
         selector = _{ range | index | default }

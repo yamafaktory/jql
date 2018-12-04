@@ -17,6 +17,17 @@ fn span_to_default(inner_span: &str) -> Selector {
     )
 }
 
+/// Convert a span to an index selector.
+fn span_to_index(inner_span: &str) -> Selector {
+    Selector::Index(
+        inner_span
+            .replace(r#"["#, "")
+            .replace(r#"]"#, "")
+            .parse::<usize>()
+            .unwrap(),
+    )
+}
+
 /// Convert a span to a range selector.
 fn span_to_range(inner_span: &str) -> Selector {
     lazy_static! {
@@ -52,7 +63,7 @@ pub fn selectors_parser(selectors: &str) -> Result<Groups, String> {
             let mut groups: Groups = Vec::new();
 
             for pair in pairs {
-                let mut group: Group = (None, Vec::new(), Vec::new());
+                let mut group: Group = (None, None, Vec::new(), Vec::new());
 
                 // Loop over the pairs converted as an iterator of the tokens
                 // which composed it.
@@ -63,26 +74,22 @@ pub fn selectors_parser(selectors: &str) -> Result<Groups, String> {
                     // parser.
                     match inner_pair.as_rule() {
                         Rule::default => {
-                            group.1.push(span_to_default(inner_span))
+                            group.2.push(span_to_default(inner_span))
                         }
                         Rule::filterDefault => {
-                            group.2.push(span_to_default(inner_span))
+                            group.3.push(span_to_default(inner_span))
                         }
-                        Rule::index => {
-                            group.1.push(span_to_default(inner_span))
-                        }
+                        Rule::index => group.2.push(span_to_index(inner_span)),
                         Rule::filterIndex => {
-                            group.2.push(span_to_default(inner_span))
+                            group.3.push(span_to_index(inner_span))
                         }
-                        Rule::range => group.1.push(span_to_range(inner_span)),
+                        Rule::range => group.2.push(span_to_range(inner_span)),
                         Rule::filterRange => {
-                            group.2.push(span_to_range(inner_span))
+                            group.3.push(span_to_range(inner_span))
                         }
+                        Rule::root => group.1 = Some(()),
                         Rule::spread => group.0 = Some(()),
-                        _ => {
-                            println!("wefwef");
-                            ()
-                            },
+                        _ => (),
                     };
                 }
 

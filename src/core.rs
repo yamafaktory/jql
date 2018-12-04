@@ -132,7 +132,7 @@ mod tests {
     #[test]
     fn get_item_in_array() {
         let json: Value = serde_json::from_str(DATA).unwrap();
-        let selector = Some(r#""array"."0""#);
+        let selector = Some(r#""array".[0]"#);
         assert_eq!(Ok(json["array"][0].clone()), walker(&json, selector));
     }
 
@@ -151,7 +151,7 @@ mod tests {
     #[test]
     fn get_out_of_bound_item_in_root_array() {
         let json_array: Value = serde_json::from_str(ARRAY_DATA).unwrap();
-        let array_selector = Some(r#""4""#);
+        let array_selector = Some(r#"[4]"#);
         assert_eq!(
             Err(String::from(
                 "Index [4] is out of bound, root element has a length of 4"
@@ -161,36 +161,16 @@ mod tests {
     }
 
     #[test]
-    fn get_negative_index_in_array() {
-        let json: Value = serde_json::from_str(DATA).unwrap();
-        let selector = Some(r#""array"."-1""#);
-        assert_eq!(
-            Err(String::from("Invalid negative array index")),
-            walker(&json, selector)
-        );
-    }
-
-    #[test]
-    fn get_negative_index_in_root_array() {
-        let json_array: Value = serde_json::from_str(ARRAY_DATA).unwrap();
-        let array_selector = Some(r#""-1""#);
-        assert_eq!(
-            Err(String::from("Invalid negative array index")),
-            walker(&json_array, array_selector)
-        );
-    }
-
-    #[test]
     fn get_null_in_array() {
         let json_array: Value = serde_json::from_str(DATA).unwrap();
-        let array_selector = Some(r#""array"."3""#);
+        let array_selector = Some(r#""array".[3]"#);
         assert_eq!(Ok(Value::Null), walker(&json_array, array_selector));
     }
 
     #[test]
     fn get_null_in_root_array() {
         let json_array: Value = serde_json::from_str(ARRAY_DATA).unwrap();
-        let array_selector = Some(r#""3""#);
+        let array_selector = Some(r#"[3]"#);
         assert_eq!(Ok(Value::Null), walker(&json_array, array_selector));
     }
 
@@ -249,7 +229,7 @@ mod tests {
     fn get_single_value() {
         let json_single_value: Value =
             serde_json::from_str(SINGLE_VALUE_DATA).unwrap();
-        let selector = Some(r#"".""#);
+        let selector = Some(".");
         assert_eq!(
             Ok(json_single_value.clone()),
             walker(&json_single_value, selector)
@@ -260,18 +240,15 @@ mod tests {
     fn get_single_null_value() {
         let json_single_value: Value =
             serde_json::from_str(SINGLE_NULL_VALUE_DATA).unwrap();
-        let selector = Some(r#"".""#);
+        let selector = Some(".");
         assert_eq!(Ok(Value::Null), walker(&json_single_value, selector));
     }
 
     #[test]
     fn get_empty() {
         let json: Value = serde_json::from_str(DATA).unwrap();
-        let selector = Some(r#""#);
-        assert_eq!(
-            Err(String::from("Empty group")),
-            walker(&json, selector)
-        );
+        let selector = Some("");
+        assert_eq!(Err(String::from("Empty group")), walker(&json, selector));
     }
 
     #[test]
@@ -293,7 +270,7 @@ mod tests {
             walker(&json, dot_selector)
         );
         assert_eq!(Ok(json[r#"""#].clone()), walker(&json, quote_selector));
-        assert_eq!(Ok(json[r#" "#].clone()), walker(&json, space_selector));
+        assert_eq!(Ok(json[" "].clone()), walker(&json, space_selector));
         assert_eq!(Ok(json[r#""#].clone()), walker(&json, empty_selector));
     }
 
@@ -501,6 +478,31 @@ mod tests {
         let selector = Some(r#".."filter-to-flatten""#);
         assert_eq!(
             Ok(json!(["c", "a", "c", "g", "a", "t"])),
+            walker(&json, selector)
+        );
+    }
+
+    #[test]
+    fn get_flattened_groups() {
+        let json: Value = serde_json::from_str(DATA).unwrap();
+        let selector = Some(r#".."filter-to-flatten",.."filter-to-flatten""#);
+        assert_eq!(
+            Ok(json!([
+                ["c", "a", "c", "g", "a", "t"],
+                ["c", "a", "c", "g", "a", "t"]
+            ])),
+            walker(&json, selector)
+        );
+    }
+
+    #[test]
+    fn get_flattened_and_filtered_array() {
+        let json: Value = serde_json::from_str(DATA).unwrap();
+        let selector = Some(r#".."nested-filter-to-flatten"|"fruit"."dna""#);
+        assert_eq!(
+            Ok(json!([
+                "c", "g", "a", "t", "c", "a", "c", "g", "t", "a", "t"
+            ])),
             walker(&json, selector)
         );
     }

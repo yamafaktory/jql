@@ -5,18 +5,12 @@ use utils::display_node_or_range;
 /// Walks through a JSON array.
 pub fn array_walker(
     map_index: usize,
-    array_index: isize,
+    array_index: usize,
     inner_json: &Value,
-    raw_selector: &str,
     selectors: &Selectors,
 ) -> Result<Value, String> {
-    // A Negative index has been provided.
-    if (array_index).is_negative() {
-        return Err(String::from("Invalid negative array index"));
-    }
-
     // No JSON value has been found (array).
-    if inner_json.get(array_index as usize).is_none() {
+    if inner_json.get(array_index).is_none() {
         let error_message = match inner_json.as_array() {
             // Trying to access an out of bound index on a node
             // or on the root element.
@@ -24,7 +18,7 @@ pub fn array_walker(
                 if selectors.len() == 1 {
                     [
                         "Index [",
-                        raw_selector,
+                        array_index.to_string().as_str(),
                         "] is out of bound, root element has a length of ",
                         &(array.len()).to_string(),
                     ]
@@ -32,7 +26,7 @@ pub fn array_walker(
                 } else {
                     [
                         "Index [",
-                        raw_selector,
+                        array_index.to_string().as_str(),
                         "] is out of bound, ",
                         &display_node_or_range(
                             &selectors[map_index - 1],
@@ -63,5 +57,5 @@ pub fn array_walker(
     }
 
     // Match found.
-    Ok(inner_json[array_index as usize].clone())
+    Ok(inner_json.get(array_index).unwrap().clone())
 }

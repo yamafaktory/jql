@@ -3,6 +3,7 @@ use serde_json::Value;
 #[derive(Debug)]
 pub enum Selector {
     Default(String),
+    Index(usize),
     Range((usize, usize)),
 }
 
@@ -20,6 +21,8 @@ pub type Selectors = [Selector];
 
 pub type Group = (
     // Spread part.
+    Option<()>,
+    // Root part.
     Option<()>,
     // Selectors part.
     Vec<Selector>,

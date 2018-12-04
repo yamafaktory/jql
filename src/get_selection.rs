@@ -18,24 +18,7 @@ pub fn get_selection(selectors: &Selectors, json: &Value) -> Selection {
             match current_selector {
                 // Default selector.
                 Selector::Default(raw_selector) => {
-                    // Array case.
-                    if let Ok(array_index) = raw_selector.parse::<isize>() {
-                        return match array_walker(
-                            map_index,
-                            array_index,
-                            &inner_json.clone(),
-                            raw_selector,
-                            &selectors,
-                        ) {
-                            Ok(json) => {
-                                inner_json = json.clone();
-                                Ok(json.clone())
-                            }
-                            Err(error) => Err(error),
-                        };
-                    }
-
-                    // No JSON value has been found (non array).
+                    // No JSON value has been found.
                     if inner_json.get(raw_selector).is_none() {
                         if map_index == 0 {
                             Err([
@@ -75,6 +58,20 @@ pub fn get_selection(selectors: &Selectors, json: &Value) -> Selection {
                     } else {
                         Some(&selectors[map_index - 1])
                     },
+                ) {
+                    Ok(json) => {
+                        inner_json = json.clone();
+                        Ok(json.clone())
+                    }
+                    Err(error) => Err(error),
+                },
+
+                // Index selector.
+                Selector::Index(array_index) => match array_walker(
+                    map_index,
+                    *array_index,
+                    &inner_json.clone(),
+                    &selectors,
                 ) {
                     Ok(json) => {
                         inner_json = json.clone();
