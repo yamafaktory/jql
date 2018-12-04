@@ -1,0 +1,24 @@
+groups = _{ selection ~ ("," ~ selection)* }
+    garbage = { ANY+ }
+    selection = { (spread? ~ root? ~ (selector ~ ("."? ~ selector)*)?)? ~ filters* }
+        root = { "." }
+
+        spread = { ".." }
+
+        selector = _{ range | index | default }
+            default = { quote ~ char* ~ quote }
+                char = {
+                    !("\"" | "\\") ~ ANY
+                    | "\\" ~ ("\"" | "\\" | "/" | "b" | "f" | "n" | "r" | "t")
+                    | "\\" ~ ("u" ~ ASCII_HEX_DIGIT{4})
+                }
+                quote = { "\"" }
+            range = { "[" ~ ASCII_DIGIT+ ~ ":" ~ ASCII_DIGIT+ ~ "]" }
+            index = { "[" ~ ASCII_DIGIT+ ~ "]" }
+
+        filters = _{ pipe ~ filter ~ ("."? ~ filter)* }
+            pipe = _{ "|" }
+            filter = _{ filterRange | filterIndex | filterDefault }
+                filterDefault = { default }
+                filterRange = { range }
+                filterIndex = { index }

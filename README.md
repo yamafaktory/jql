@@ -50,16 +50,6 @@ jql example.json '"some"."property"'
 "yay!"
 ```
 
-Please note that the following is also valid:
-
-```sh
-jql example.json 'some.property'
-```
-
-```json
-"yay!"
-```
-
 ### Accessing an index
 
 ```json
@@ -69,7 +59,7 @@ jql example.json 'some.property'
 ```
 
 ```sh
-jql example.json 'primes.0'
+jql example.json '"primes".[0]'
 ```
 
 ```json
@@ -79,7 +69,7 @@ jql example.json 'primes.0'
 Please note that the following is also valid:
 
 ```sh
-jql example.json 'primes."0"'
+jql example.json '"primes"[0]"'
 ```
 
 ```json
@@ -95,7 +85,7 @@ jql example.json 'primes."0"'
 ```
 
 ```sh
-jql example.json 'cats.1:2'
+jql example.json '"cats".[1:2]'
 ```
 
 ```json
@@ -112,7 +102,7 @@ jql example.json 'cats.1:2'
 Please note that you can reverse it:
 
 ```sh
-jql example.json 'cats.2:1'
+jql example.json '"cats".[2:1]'
 ```
 
 ```json
@@ -129,7 +119,7 @@ jql example.json 'cats.2:1'
 Bonus, you can do it again to get it back:
 
 ```sh
-jql example.json 'cats.2:1.1:0'
+jql example.json '"cats".[2:1].[1:0]'
 ```
 
 ```json
@@ -146,7 +136,7 @@ jql example.json 'cats.2:1.1:0'
 Please note that you can still access the children:
 
 ```sh
-jql example.json 'cats.2:1.0.third'
+jql example.json '"cats".[2:1].[0]."third"'
 ```
 
 ```json
@@ -164,7 +154,7 @@ jql example.json 'cats.2:1.0.third'
 ```
 
 ```sh
-jql example.json 'one.2:0,two,three'
+jql example.json '"one".[2:0],"two","three"'
 ```
 
 ```json
@@ -201,7 +191,7 @@ jql example.json 'one.2:0,two,three'
 ```
 
 ```sh
-jql example.json 'laptops|laptop'
+jql example.json '"laptops"|"laptop"'
 ```
 
 ```json
@@ -220,7 +210,7 @@ jql example.json 'laptops|laptop'
 You can also combine a filter with a child selection, a multi-selection and ranges at the same time:
 
 ```sh
-jql example.json 'laptops|laptop.brand'
+jql example.json '"laptops"|"laptop"."brand"'
 ```
 
 ```json
@@ -231,7 +221,7 @@ jql example.json 'laptops|laptop.brand'
 ```
 
 ```sh
-jql example.json 'laptops.1:0|laptop.brand,laptops|laptop.brand'
+jql example.json '"laptops".[1:0]|"laptop"."brand","laptops"|"laptop"."brand"'
 ```
 
 ```json
@@ -247,13 +237,50 @@ jql example.json 'laptops.1:0|laptop.brand,laptops|laptop.brand'
 ]
 ```
 
-Please note that only one filter can be applied at the group level. If you want to achieve something like `.|foo|bar`, simply go for `.|foo.bar`.
+Please note that you can combine filters to achieve the same result:
+
+```sh
+jql example.json '"laptops".[1:0]|"laptop"|"brand","laptops"|"laptop"|"brand"'
+```
+
+```json
+[
+  "Apple",
+  "Asus"
+]
+```
+
+### Flattening arrays
+
+```json
+{
+  "dna": [[[[["c", "a", "c"]]]], "g", "t", [[["a", ["t"]]]]]
+}
+```
+
+```sh
+jql example.json '.."dna"'
+```
+
+```json
+[
+  "c",
+  "a",
+  "c",
+  "g",
+  "t",
+  "a",
+  "t"
+]
+```
 
 ### Special characters
 
 ```json
 {
-  ".valid": 1337
+  ".valid": 1337,
+  "": "yeah!",
+  "\"": "yup, valid too!"
 }
 ```
 
@@ -263,6 +290,22 @@ jql example.json '".valid"'
 
 ```json
 1337
+```
+
+```sh
+jql example.json '""'
+```
+
+```json
+"yeah!"
+```
+
+```sh
+jql example.json '"\""'
+```
+
+```json
+"yup, valid too!"
 ```
 
 ## How to save the output

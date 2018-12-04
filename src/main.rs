@@ -1,17 +1,22 @@
 extern crate clap;
 extern crate lazy_static;
+extern crate rayon;
 extern crate regex;
 extern crate serde_json;
+extern crate pest;
+#[macro_use]
+extern crate pest_derive;
 
 mod apply_filter;
 mod array_walker;
 mod cli;
 mod core;
+mod flatten_json_array;
 mod get_selection;
-mod get_selector;
 mod group_walker;
 mod range_selector;
 mod types;
+mod parser;
 mod utils;
 
 use cli::get_matches;
@@ -27,7 +32,7 @@ fn main() {
 
     if let Some(json) = cli.value_of("JSON") {
         let inline = cli.is_present("inline");
-        let selector = cli.value_of("selector");
+        let selectors = cli.value_of("selectors");
         let path = Path::new(json);
         let mut file = match File::open(&path) {
             Err(_) => {
@@ -42,8 +47,9 @@ fn main() {
         match buffer_reader.read_to_string(&mut contents) {
             Ok(_) => match serde_json::from_str(&contents) {
                 Ok(valid_json) => {
-                    // Walk through the JSON content with the provided selector.
-                    match walker(&valid_json, selector) {
+                    // Walk through the JSON content with the provided
+                    // selectors as input.
+                    match walker(&valid_json, selectors) {
                         Ok(selection) => println!(
                             "{}",
                             // Inline or pretty output.

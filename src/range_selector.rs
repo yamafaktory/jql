@@ -1,7 +1,10 @@
 use serde_json::json;
 use serde_json::Value;
-use types::Selectors;
-use utils::display_node_or_range;
+use types::{Selector, Selectors};
+use utils::{
+    display_default_selector, display_index_selector, display_node_or_range,
+    display_range_selector,
+};
 
 /// Returns a range selection or an error.
 pub fn range_selector(
@@ -10,6 +13,7 @@ pub fn range_selector(
     start: usize,
     end: usize,
     selectors: &Selectors,
+    previous_selector: Option<&Selector>,
 ) -> Result<Value, String> {
     let is_default = start < end;
 
@@ -19,29 +23,29 @@ pub fn range_selector(
             if json_array.len() < start || json_array.len() < (end + 1) {
                 return Err(if selectors.len() == 1 {
                     [
-                        "Range (",
+                        "Range [",
                         start.to_string().as_str(),
                         ":",
                         end.to_string().as_str(),
-                        ") is out of bound, root element has a length of",
+                        "] is out of bound, root element has a length of ",
                         &(json_array.len()).to_string(),
                     ]
-                        .join(" ")
+                        .join("")
                 } else {
                     [
-                        "Range (",
+                        "Range [",
                         start.to_string().as_str(),
                         ":",
                         end.to_string().as_str(),
-                        ") is out of bound,",
+                        "] is out of bound, ",
                         &display_node_or_range(
                             &selectors[map_index - 1],
                             false,
                         ),
-                        "has a length of",
+                        " has a length of ",
                         &(json_array.len()).to_string(),
                     ]
-                        .join(" ")
+                        .join("")
                 });
             }
 
@@ -61,6 +65,23 @@ pub fn range_selector(
                 json!(reversed_range_selection)
             })
         }
-        None => Err(String::from("Root element is not an array")),
+        None => Err([
+            (match previous_selector {
+                Some(selector) => match selector {
+                    Selector::Default(node) => {
+                        display_default_selector(node, true)
+                    }
+                    Selector::Range(range) => {
+                        display_range_selector(*range, true)
+                    }
+                    Selector::Index(index) => {
+                        display_index_selector(*index, true)
+                    }
+                },
+                None => String::from("Root element"),
+            }).as_str(),
+            " is not an array",
+        ]
+            .join("")),
     }
 }
