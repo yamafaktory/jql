@@ -1,9 +1,10 @@
+#[macro_use]
 extern crate clap;
 extern crate lazy_static;
+extern crate pest;
 extern crate rayon;
 extern crate regex;
 extern crate serde_json;
-extern crate pest;
 #[macro_use]
 extern crate pest_derive;
 
@@ -14,9 +15,9 @@ mod core;
 mod flatten_json_array;
 mod get_selection;
 mod group_walker;
+mod parser;
 mod range_selector;
 mod types;
-mod parser;
 mod utils;
 
 use cli::get_matches;
