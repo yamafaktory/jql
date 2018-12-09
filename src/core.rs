@@ -1,8 +1,5 @@
-extern crate regex;
-extern crate serde_json;
-
-use group_walker::group_walker;
-use parser::selectors_parser;
+use crate::group_walker::group_walker;
+use crate::parser::selectors_parser;
 use serde_json::json;
 use serde_json::Value;
 

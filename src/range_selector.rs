@@ -1,10 +1,10 @@
-use serde_json::json;
-use serde_json::Value;
-use types::{Selector, Selectors};
-use utils::{
+use crate::types::{Selector, Selectors};
+use crate::utils::{
     display_default_selector, display_index_selector, display_node_or_range,
     display_range_selector,
 };
+use serde_json::json;
+use serde_json::Value;
 
 /// Returns a range selection or an error.
 pub fn range_selector(
@@ -30,7 +30,7 @@ pub fn range_selector(
                         "] is out of bound, root element has a length of ",
                         &(json_array.len()).to_string(),
                     ]
-                        .join("")
+                    .join("")
                 } else {
                     [
                         "Range [",
@@ -45,7 +45,7 @@ pub fn range_selector(
                         " has a length of ",
                         &(json_array.len()).to_string(),
                     ]
-                        .join("")
+                    .join("")
                 });
             }
 
@@ -79,9 +79,10 @@ pub fn range_selector(
                     }
                 },
                 None => String::from("Root element"),
-            }).as_str(),
+            })
+            .as_str(),
             " is not an array",
         ]
-            .join("")),
+        .join("")),
     }
 }

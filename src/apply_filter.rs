@@ -1,7 +1,7 @@
-use get_selection::get_selection;
+use crate::get_selection::get_selection;
+use crate::types::{ExtendedSelection, MaybeArray, Selection, Selector};
 use serde_json::json;
 use serde_json::Value;
-use types::{ExtendedSelection, MaybeArray, Selection, Selector};
 
 /// Apply the filter selectors to a JSON value and returns a selection.
 pub fn apply_filter(
@@ -20,7 +20,8 @@ pub fn apply_filter(
                     } else {
                         get_selection(&filter_selectors, &partial_json)
                     }
-                }).collect();
+                })
+                .collect();
 
             // Try to find the first error.
             match selections
@@ -33,9 +34,12 @@ pub fn apply_filter(
                 None => Ok(MaybeArray::Array(selections.iter().fold(
                     Vec::new(),
                     |mut acc: Vec<Value>, selection| {
-                        acc.push(json!(
-                            selection.clone().unwrap().last().unwrap().clone()
-                        ));
+                        acc.push(json!(selection
+                            .clone()
+                            .unwrap()
+                            .last()
+                            .unwrap()
+                            .clone()));
 
                         acc
                     },
@@ -44,10 +48,12 @@ pub fn apply_filter(
         }
         // Not an array, return the raw JSON content if there's no filter or
         // throw an error.
-        None => if filter_selectors.is_empty() {
-            Ok(MaybeArray::NonArray(vec![json.clone()]))
-        } else {
-            Err(String::from("A filter can only be applied to an array"))
-        },
+        None => {
+            if filter_selectors.is_empty() {
+                Ok(MaybeArray::NonArray(vec![json.clone()]))
+            } else {
+                Err(String::from("A filter can only be applied to an array"))
+            }
+        }
     }
 }

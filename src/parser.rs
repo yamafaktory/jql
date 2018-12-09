@@ -1,8 +1,9 @@
+use crate::types::Selector;
+use crate::types::{Group, Groups};
 use lazy_static::lazy_static;
 use pest::Parser;
+use pest_derive::*;
 use regex::Regex;
-use types::Selector;
-use types::{Group, Groups};
 
 #[derive(Parser)]
 #[grammar = "grammar.pest"]
@@ -41,7 +42,8 @@ fn span_to_range(inner_span: &str) -> Selector {
                 capture.get(1).map_or("", |m| m.as_str()),
                 capture.get(2).map_or("", |m| m.as_str()),
             )
-        }).collect();
+        })
+        .collect();
 
     if ranges.is_empty() {
         // Returns the initial captured value.

@@ -1,22 +1,25 @@
-use clap::{App, Arg, ArgMatches};
+use clap::{
+    crate_authors, crate_description, crate_name, crate_version, App, Arg,
+    ArgMatches,
+};
 
 /// Get the CLI matches.
 pub fn get_matches<'a>() -> ArgMatches<'a> {
-    App::new("jql")
-        .about("JSON Query Language")
-        .author("Davy Duperron <yamafaktory@gmail.com>")
+    App::new(crate_name!())
+        .about(crate_description!())
+        .author(crate_authors!())
         .version(crate_version!())
         .arg(
-            Arg::with_name("JSON")
-                .help("JSON file to use")
+            Arg::with_name("selectors")
+                .help("Selectors to apply")
                 .index(1)
                 .required(true),
         )
         .arg(
-            Arg::with_name("selectors")
-                .help("Selectors to apply")
+            Arg::with_name("JSON")
+                .help("JSON file to use")
                 .index(2)
-                .required(true),
+                .required(false),
         )
         .arg(
             Arg::with_name("inline")

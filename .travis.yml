@@ -7,7 +7,7 @@ matrix:
   allow_failures:
     - rust: nightly
 before_script:
-  - rustup component add clippy-preview
+  - rustup component add clippy
 script:
   - cargo clippy --all-targets --all-features -- -D warnings
   - cargo test

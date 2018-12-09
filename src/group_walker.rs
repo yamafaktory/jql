@@ -1,9 +1,9 @@
-use apply_filter::apply_filter;
-use flatten_json_array::flatten_json_array;
-use get_selection::get_selection;
+use crate::apply_filter::apply_filter;
+use crate::flatten_json_array::flatten_json_array;
+use crate::get_selection::get_selection;
+use crate::types::{Group, MaybeArray};
 use serde_json::json;
 use serde_json::Value;
-use types::{Group, MaybeArray};
 
 /// Walks through a group.
 pub fn group_walker(
