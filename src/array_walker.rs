@@ -1,6 +1,6 @@
+use crate::types::Selectors;
+use crate::utils::display_node_or_range;
 use serde_json::Value;
-use types::Selectors;
-use utils::display_node_or_range;
 
 /// Walks through a JSON array.
 pub fn array_walker(
@@ -22,7 +22,7 @@ pub fn array_walker(
                         "] is out of bound, root element has a length of ",
                         &(array.len()).to_string(),
                     ]
-                        .join("")
+                    .join("")
                 } else {
                     [
                         "Index [",
@@ -35,7 +35,7 @@ pub fn array_walker(
                         " has a length of ",
                         &(array.len()).to_string(),
                     ]
-                        .join("")
+                    .join("")
                 }
             }
             // Trying to access an index on a node which is not
@@ -48,7 +48,7 @@ pub fn array_walker(
                         &display_node_or_range(&selectors[map_index - 1], true),
                         " is not an array",
                     ]
-                        .join("")
+                    .join("")
                 }
             }
         };

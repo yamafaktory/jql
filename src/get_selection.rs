@@ -1,8 +1,8 @@
-use array_walker::array_walker;
-use range_selector::range_selector;
+use crate::array_walker::array_walker;
+use crate::range_selector::range_selector;
+use crate::types::{Selection, Selector, Selectors};
+use crate::utils::display_node_or_range;
 use serde_json::Value;
-use types::{Selection, Selector, Selectors};
-use utils::display_node_or_range;
 
 /// Returns a selection based on selectors and a JSON content as a Result of
 /// values or an Err early on, stopping the iteration as soon as the latter is
@@ -26,7 +26,7 @@ pub fn get_selection(selectors: &Selectors, json: &Value) -> Selection {
                                 raw_selector,
                                 r#"" not found on the parent element"#,
                             ]
-                                .join(""))
+                            .join(""))
                         } else {
                             Err([
                                 r#"Node ""#,
@@ -37,7 +37,7 @@ pub fn get_selection(selectors: &Selectors, json: &Value) -> Selection {
                                     false,
                                 ),
                             ]
-                                .join(""))
+                            .join(""))
                         }
                     // Default case.
                     } else {
@@ -80,5 +80,6 @@ pub fn get_selection(selectors: &Selectors, json: &Value) -> Selection {
                     Err(error) => Err(error),
                 },
             }
-        }).collect()
+        })
+        .collect()
 }

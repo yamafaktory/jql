@@ -4,7 +4,7 @@
 
 The core philosophy of jql:
 - Keep its features as simple as possible
-- Avoid redunduncy
+- Avoid redundancy
 - Provide meaningful error messages
 - Eat JSON as input, process, output JSON back
 
@@ -25,7 +25,7 @@ If you find some of the following examples confusing, please have a look at [The
 ```
 
 ```sh
-jql example.json '.'
+jql '.' example.json
 ```
 
 ```json
@@ -43,7 +43,7 @@ jql example.json '.'
 ```
 
 ```sh
-jql example.json '"some"."property"'
+jql '"some"."property"' example.json
 ```
 
 ```json
@@ -59,7 +59,7 @@ jql example.json '"some"."property"'
 ```
 
 ```sh
-jql example.json '"primes".[0]'
+jql '"primes".[0]' example.json
 ```
 
 ```json
@@ -69,7 +69,7 @@ jql example.json '"primes".[0]'
 Please note that the following is also valid:
 
 ```sh
-jql example.json '"primes"[0]"'
+jql '"primes"[0]"' example.json
 ```
 
 ```json
@@ -85,7 +85,7 @@ jql example.json '"primes"[0]"'
 ```
 
 ```sh
-jql example.json '"cats".[1:2]'
+jql '"cats".[1:2]' example.json
 ```
 
 ```json
@@ -102,7 +102,7 @@ jql example.json '"cats".[1:2]'
 Please note that you can reverse it:
 
 ```sh
-jql example.json '"cats".[2:1]'
+jql '"cats".[2:1]' example.json
 ```
 
 ```json
@@ -119,7 +119,7 @@ jql example.json '"cats".[2:1]'
 Bonus, you can do it again to get it back:
 
 ```sh
-jql example.json '"cats".[2:1].[1:0]'
+jql '"cats".[2:1].[1:0]' example.json
 ```
 
 ```json
@@ -136,7 +136,7 @@ jql example.json '"cats".[2:1].[1:0]'
 Please note that you can still access the children:
 
 ```sh
-jql example.json '"cats".[2:1].[0]."third"'
+jql '"cats".[2:1].[0]."third"' example.json
 ```
 
 ```json
@@ -154,7 +154,7 @@ jql example.json '"cats".[2:1].[0]."third"'
 ```
 
 ```sh
-jql example.json '"one".[2:0],"two","three"'
+jql '"one".[2:0],"two","three"' example.json
 ```
 
 ```json
@@ -191,7 +191,7 @@ jql example.json '"one".[2:0],"two","three"'
 ```
 
 ```sh
-jql example.json '"laptops"|"laptop"'
+jql '"laptops"|"laptop"' example.json
 ```
 
 ```json
@@ -210,7 +210,7 @@ jql example.json '"laptops"|"laptop"'
 You can also combine a filter with a child selection, a multi-selection and ranges at the same time:
 
 ```sh
-jql example.json '"laptops"|"laptop"."brand"'
+jql '"laptops"|"laptop"."brand"' example.json
 ```
 
 ```json
@@ -221,7 +221,7 @@ jql example.json '"laptops"|"laptop"."brand"'
 ```
 
 ```sh
-jql example.json '"laptops".[1:0]|"laptop"."brand","laptops"|"laptop"."brand"'
+jql '"laptops".[1:0]|"laptop"."brand","laptops"|"laptop"."brand"' example.json
 ```
 
 ```json
@@ -240,7 +240,7 @@ jql example.json '"laptops".[1:0]|"laptop"."brand","laptops"|"laptop"."brand"'
 Please note that you can combine filters to achieve the same result:
 
 ```sh
-jql example.json '"laptops".[1:0]|"laptop"|"brand","laptops"|"laptop"|"brand"'
+jql '"laptops".[1:0]|"laptop"|"brand","laptops"|"laptop"|"brand"' example.json
 ```
 
 ```json
@@ -259,7 +259,7 @@ jql example.json '"laptops".[1:0]|"laptop"|"brand","laptops"|"laptop"|"brand"'
 ```
 
 ```sh
-jql example.json '.."dna"'
+jql '.."dna"' example.json
 ```
 
 ```json
@@ -285,7 +285,7 @@ jql example.json '.."dna"'
 ```
 
 ```sh
-jql example.json '".valid"'
+jql '".valid"' example.json
 ```
 
 ```json
@@ -293,7 +293,7 @@ jql example.json '".valid"'
 ```
 
 ```sh
-jql example.json '""'
+jql '""' example.json
 ```
 
 ```json
@@ -301,38 +301,46 @@ jql example.json '""'
 ```
 
 ```sh
-jql example.json '"\""'
+jql '"\""' example.json
 ```
 
 ```json
 "yup, valid too!"
 ```
 
-## How to save the output
+## Shell integration
+
+### How to save the output
 
 ```sh
-jql input.json 'foo.bar' > output.json
+jql '"foo"."bar"' input.json > output.json
 ```
 
-## Available flags 🤖
+### How to read from stdin
 
-### Help
+```sh
+cat example.json | jql '"foo"."bar"'
+```
+
+### Available flags 🤖
+
+#### Help
 
 ```sh
 jql -h
 jql --help
 ```
 
-### Version
+#### Version
 
 ```sh
 jql -V
 jql --version
 ```
 
-### Inlining the JSON output
+#### Inlining the JSON output
 
 ```sh
-jql -i example.json 'some.selector'
-jql --inline example.json 'some.selector'
+jql -i 'some.selector' example.json
+jql --inline 'some.selector' example.json
 ```

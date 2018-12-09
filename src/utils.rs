@@ -1,4 +1,4 @@
-use types::Selector;
+use crate::types::Selector;
 
 /// Convert a range to a readable string.
 pub fn display_range_selector(
@@ -12,7 +12,7 @@ pub fn display_range_selector(
         end.to_string().as_str(),
         "]",
     ]
-        .join("")
+    .join("")
 }
 
 /// Convert a range to a readable string.
@@ -26,7 +26,7 @@ pub fn display_default_selector(value: &str, capitalized: bool) -> String {
         value,
         r#"""#,
     ]
-        .join("")
+    .join("")
 }
 
 /// Convert a range to a readable string.
@@ -36,7 +36,7 @@ pub fn display_index_selector(index: usize, capitalized: bool) -> String {
         index.to_string().as_str(),
         "]",
     ]
-        .join("")
+    .join("")
 }
 
 /// Return the node or the range of Selector as a string.
