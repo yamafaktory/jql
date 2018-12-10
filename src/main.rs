@@ -11,6 +11,7 @@ mod types;
 mod utils;
 
 use clap::ArgMatches;
+use colored_json::{ColoredFormatter, CompactFormatter, PrettyFormatter};
 use std::error::Error;
 use std::fs::File;
 use std::io;
@@ -33,10 +34,12 @@ fn output(json_content: &str, cli: &ArgMatches<'_>) {
                     "{}",
                     // Inline or pretty output.
                     (if inline {
-                        serde_json::to_string
+                        ColoredFormatter::new(CompactFormatter {})
+                            .to_colored_json_auto(&selection)
                     } else {
-                        serde_json::to_string_pretty
-                    })(&selection)
+                        ColoredFormatter::new(PrettyFormatter::new())
+                            .to_colored_json_auto(&selection)
+                    })
                     .unwrap()
                 ),
                 Err(error) => eprintln!("{}", error),
