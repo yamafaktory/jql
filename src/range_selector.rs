@@ -15,7 +15,7 @@ pub fn range_selector(
         Some(json_array) => {
             let end = match end {
                 Some(end) => end,
-                None => json_array.len(),
+                None => json_array.len() - 1,
             };
             let is_default = start < end;
 
