@@ -1,8 +1,4 @@
-use crate::types::{Selector, Selectors};
-use crate::utils::{
-    display_default_selector, display_index_selector, display_node_or_range,
-    display_range_selector,
-};
+use crate::types::{Display, Selector, Selectors};
 use serde_json::json;
 use serde_json::Value;
 
@@ -11,14 +7,18 @@ pub fn range_selector(
     map_index: usize,
     inner_json: &Value,
     start: usize,
-    end: usize,
+    end: Option<usize>,
     selectors: &Selectors,
     previous_selector: Option<&Selector>,
 ) -> Result<Value, String> {
-    let is_default = start < end;
-
     match inner_json.as_array() {
         Some(json_array) => {
+            let end = match end {
+                Some(end) => end,
+                None => json_array.len(),
+            };
+            let is_default = start < end;
+
             // Check the range validity.
             if json_array.len() < start || json_array.len() < (end + 1) {
                 return Err(if selectors.len() == 1 {
@@ -38,10 +38,7 @@ pub fn range_selector(
                         ":",
                         end.to_string().as_str(),
                         "] is out of bound, ",
-                        &display_node_or_range(
-                            &selectors[map_index - 1],
-                            false,
-                        ),
+                        &selectors[map_index - 1].as_str(false),
                         " has a length of ",
                         &(json_array.len()).to_string(),
                     ]
@@ -67,17 +64,7 @@ pub fn range_selector(
         }
         None => Err([
             (match previous_selector {
-                Some(selector) => match selector {
-                    Selector::Default(node) => {
-                        display_default_selector(node, true)
-                    }
-                    Selector::Range(range) => {
-                        display_range_selector(*range, true)
-                    }
-                    Selector::Index(index) => {
-                        display_index_selector(*index, true)
-                    }
-                },
+                Some(selector) => selector.as_str(true),
                 None => String::from("Root element"),
             })
             .as_str(),
