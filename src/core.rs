@@ -192,6 +192,34 @@ mod tests {
     }
 
     #[test]
+    fn get_root_array_without_index() {
+        let json_array: Value = serde_json::from_str(ARRAY_DATA).unwrap();
+        let array_selector = Some(r#"[]"#);
+        assert_eq!(Ok(json_array.clone()), walker(&json_array, array_selector));
+    }
+
+    #[test]
+    fn get_array_without_index() {
+        let json: Value = serde_json::from_str(DATA).unwrap();
+        let selector = Some(r#""array".[]"#);
+        assert_eq!(Ok(json!([1, 2, 3, null])), walker(&json, selector));
+    }
+
+    #[test]
+    fn get_array_of_array_without_index() {
+        let json: Value = serde_json::from_str(DATA).unwrap();
+        let selector = Some(r#""array".[].[]"#);
+        assert_eq!(Ok(json!([1, 2, 3, null])), walker(&json, selector));
+    }
+
+    #[test]
+    fn get_index_of_array_without_index() {
+        let json: Value = serde_json::from_str(DATA).unwrap();
+        let selector = Some(r#""array".[].[0]"#);
+        assert_eq!(Ok(json!(1)), walker(&json, selector));
+    }
+
+    #[test]
     fn get_non_existing_node_on_root() {
         let json: Value = serde_json::from_str(DATA).unwrap();
         let selector = Some(r#""foo""#);
