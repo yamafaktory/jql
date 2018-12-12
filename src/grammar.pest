@@ -1,5 +1,4 @@
 groups = _{ selection ~ ("," ~ selection)* }
-    garbage = { ANY+ }
     selection = { (spread? ~ root? ~ (selector ~ ("."? ~ selector)*)?)? ~ filters* }
         root = { "." }
 
@@ -14,7 +13,7 @@ groups = _{ selection ~ ("," ~ selection)* }
                 }
                 quote = { "\"" }
             range = { "[" ~ ASCII_DIGIT+ ~ ":" ~ ASCII_DIGIT+ ~ "]" }
-            index = { "[" ~ ASCII_DIGIT+ ~ "]" }
+            index = { "[" ~ (ASCII_DIGIT+)? ~ "]" }
 
         filters = _{ pipe ~ filter ~ ("."? ~ filter)* }
             pipe = _{ "|" }

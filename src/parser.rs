@@ -20,13 +20,19 @@ fn span_to_default(inner_span: &str) -> Selector {
 
 /// Convert a span to an index selector.
 fn span_to_index(inner_span: &str) -> Selector {
-    Selector::Index(
-        inner_span
-            .replace(r#"["#, "")
-            .replace(r#"]"#, "")
-            .parse::<usize>()
-            .unwrap(),
-    )
+    let index = inner_span.replace(r#"["#, "").replace(r#"]"#, "");
+
+    if index.is_empty() {
+        Selector::Array
+    } else {
+        Selector::Index(
+            inner_span
+                .replace(r#"["#, "")
+                .replace(r#"]"#, "")
+                .parse::<usize>()
+                .unwrap(),
+        )
+    }
 }
 
 /// Convert a span to a range selector.
