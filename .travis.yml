@@ -1,13 +1,18 @@
 language: rust
+
 rust:
   - stable
   - beta
   - nightly
+
 matrix:
   allow_failures:
     - rust: nightly
+
 before_script:
   - rustup component add clippy
+
 script:
+  - cargo check
   - cargo clippy --all-targets --all-features -- -D warnings
   - cargo test
