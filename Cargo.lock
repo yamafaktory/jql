@@ -151,7 +151,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "jql"
-version = "2.1.1"
+version = "2.1.2"
 dependencies = [
  "clap 2.32.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "colored_json 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
