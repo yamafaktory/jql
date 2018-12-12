@@ -16,6 +16,7 @@ use std::error::Error;
 use std::fs::File;
 use std::io;
 use std::io::prelude::Read;
+use std::io::prelude::*;
 use std::io::BufReader;
 use std::path::Path;
 
@@ -77,10 +78,12 @@ fn main() {
         }
         // JSON content coming from the stdin.
         None => {
-            let mut json = String::new();
-            match io::stdin().read_line(&mut json) {
-                Ok(_) => output(&json, &cli),
-                Err(error) => eprintln!("error: {}", error),
+            let stdin: Result<String, std::io::Error> =
+                io::stdin().lock().lines().collect();
+
+            match stdin {
+                Ok(json) => output(&json, &cli),
+                Err(error) => eprintln!("Error: {}", error),
             }
         }
     }
