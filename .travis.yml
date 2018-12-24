@@ -27,3 +27,5 @@ script:
     }
     EOF
 
+after_success:
+  - ./after-success.sh

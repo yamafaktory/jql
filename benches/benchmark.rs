@@ -6,7 +6,7 @@ const DATA: &str = r#"{
     "array": [[[[["c", "a", "c"]]]], "g", [[["a", ["t"]]]]]
 }"#;
 
-fn criterion_benchmark(c: &mut Criterion) {
+fn flatten_array_benchmark(c: &mut Criterion) {
     let json: Value = serde_json::from_str(DATA).unwrap();
     let selector = Some(r#".."array""#);
     c.bench_function("Flatten an array", move |b| {
@@ -14,5 +14,5 @@ fn criterion_benchmark(c: &mut Criterion) {
     });
 }
 
-criterion_group!(benches, criterion_benchmark);
+criterion_group!(benches, flatten_array_benchmark);
 criterion_main!(benches);
