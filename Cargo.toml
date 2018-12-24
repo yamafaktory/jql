@@ -3,6 +3,7 @@ authors = ["Davy Duperron <yamafaktory@gmail.com>"]
 categories = ["command-line-utilities"]
 description = "A JSON query language CLI tool"
 edition = "2018"
+exclude = [".travis.yml", "after-success.sh", "benches/**/*", "rustfmt.toml"]
 keywords = ["CLI", "JSON", "tool"]
 license = "MIT"
 name = "jql"
