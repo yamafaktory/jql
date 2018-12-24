@@ -2,7 +2,7 @@ mod cli;
 
 use clap::ArgMatches;
 use colored_json::{ColoredFormatter, CompactFormatter, PrettyFormatter};
-use jql::process;
+use jql::walker;
 use std::error::Error;
 use std::fs::File;
 use std::io;
@@ -21,7 +21,7 @@ fn output(json_content: &str, cli: &ArgMatches<'_>) {
         Ok(valid_json) => {
             // Walk through the JSON content with the provided selectors as
             // input.
-            match process(&valid_json, selectors) {
+            match walker(&valid_json, selectors) {
                 Ok(selection) => println!(
                     "{}",
                     // Inline or pretty output.

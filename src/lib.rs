@@ -16,6 +16,16 @@ mod utils;
 use serde_json::Value;
 
 /// Process a Serde JSON Value based on the provided selectors.
-pub fn process(json: &Value, selectors: Option<&str>) -> Result<Value, String> {
+///
+/// # Example
+///
+/// ```
+/// use serde_json::json;
+///
+/// let json_array = json!([2, 3, 5, 7, 11]);
+///
+/// assert_eq!(jql::walker(&json_array, Some("[4]")), Ok(json!(11)));
+/// ```
+pub fn walker(json: &Value, selectors: Option<&str>) -> Result<Value, String> {
     core::walker(&json, selectors)
 }
