@@ -2,6 +2,7 @@ use crate::get_selection::get_selection;
 use crate::types::{ExtendedSelection, MaybeArray, Selection, Selector};
 use serde_json::json;
 use serde_json::Value;
+use rayon::prelude::*;
 
 /// Apply the filter selectors to a JSON value and returns a selection.
 pub fn apply_filter(
@@ -12,7 +13,7 @@ pub fn apply_filter(
     match json.as_array() {
         Some(array) => {
             let selections: Vec<Selection> = array
-                .iter()
+                .par_iter()
                 .cloned()
                 .map(|partial_json| -> Selection {
                     if filter_selectors.is_empty() {

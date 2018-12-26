@@ -1,17 +1,8 @@
-mod apply_filter;
-mod array_walker;
 mod cli;
-mod core;
-mod flatten_json_array;
-mod get_selection;
-mod group_walker;
-mod parser;
-mod range_selector;
-mod types;
-mod utils;
 
 use clap::ArgMatches;
 use colored_json::{ColoredFormatter, CompactFormatter, PrettyFormatter};
+use jql::walker;
 use std::error::Error;
 use std::fs::File;
 use std::io;
@@ -30,7 +21,7 @@ fn output(json_content: &str, cli: &ArgMatches<'_>) {
         Ok(valid_json) => {
             // Walk through the JSON content with the provided selectors as
             // input.
-            match core::walker(&valid_json, selectors) {
+            match walker(&valid_json, selectors) {
                 Ok(selection) => println!(
                     "{}",
                     // Inline or pretty output.

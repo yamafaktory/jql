@@ -3,6 +3,7 @@ authors = ["Davy Duperron <yamafaktory@gmail.com>"]
 categories = ["command-line-utilities"]
 description = "A JSON query language CLI tool"
 edition = "2018"
+exclude = [".travis.yml", "after-success.sh", "benches/**/*", "rustfmt.toml"]
 keywords = ["CLI", "JSON", "tool"]
 license = "MIT"
 name = "jql"
@@ -13,12 +14,27 @@ version = "2.1.2"
 [badges]
 travis-ci = { repository = "yamafaktory/jql" }
 
+[dev-dependencies]
+criterion = "0.2"
+
 [dependencies]
 clap = "2.32.0"
 colored_json = "1"
 lazy_static = "1.2.0"
-pest = "2.0.2"
-pest_derive = "2.0.1"
+pest = "2.1.0"
+pest_derive = "2.1.0"
 rayon = "1.0.3"
 regex= "1.1.0"
 serde_json = "1.0.33"
+
+[[bench]]
+name = "benchmark"
+harness = false
+
+[lib]
+name = "jql"
+path = "src/lib.rs"
+
+[[bin]]
+name = "jql"
+path = "src/bin.rs"

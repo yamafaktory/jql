@@ -1,5 +1,6 @@
 use crate::group_walker::group_walker;
 use crate::parser::selectors_parser;
+use rayon::prelude::*;
 use serde_json::json;
 use serde_json::Value;
 
@@ -12,7 +13,7 @@ pub fn walker(json: &Value, selectors: Option<&str>) -> Result<Value, String> {
                 // Capture groups separated by commas, return a Result of values
                 // or an Err early on.
                 let inner_groups: Result<Vec<Value>, String> = groups
-                    .iter()
+                    .par_iter()
                     .map(|group| group_walker(group, json))
                     .collect();
                 match inner_groups {
