@@ -52,12 +52,21 @@ fn range_array_benchmark(c: &mut Criterion) {
     });
 }
 
+fn group_benchmark(c: &mut Criterion) {
+    let json: Value = serde_json::from_str(DATA).unwrap();
+    let selector = Some(r#""array","flatten-array","props""#);
+    c.bench_function("Get multiple groups", move |b| {
+        b.iter(|| walker(&json, selector))
+    });
+}
+
 criterion_group!(
     benches,
     access_properties_benchmark,
     filter_array_benchmark,
     flatten_array_benchmark,
-    range_array_benchmark
+    range_array_benchmark,
+    group_benchmark
 );
 
 criterion_main!(benches);
