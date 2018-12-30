@@ -221,6 +221,32 @@ mod tests {
     }
 
     #[test]
+    fn get_indexes_of_array() {
+        let json: Value = serde_json::from_str(DATA).unwrap();
+        let selector = Some(r#""array".[3,2,1]"#);
+        assert_eq!(Ok(json!([null, 3, 2])), walker(&json, selector));
+    }
+
+    #[test]
+    fn get_indexes_of_array_without_index() {
+        let json: Value = serde_json::from_str(DATA).unwrap();
+        let selector = Some(r#""array".[].[3,2,1]"#);
+        assert_eq!(Ok(json!([null, 3, 2])), walker(&json, selector));
+    }
+
+    #[test]
+    fn get_out_of_bound_indexes_of_array() {
+        let json: Value = serde_json::from_str(DATA).unwrap();
+        let selector = Some(r#""array".[3,2,10]"#);
+        assert_eq!(
+            Err(String::from(
+                r#"Index [10] is out of bound, node "array" has a length of 4"#
+            )),
+            walker(&json, selector)
+        );
+    }
+
+    #[test]
     fn get_non_existing_node_on_root() {
         let json: Value = serde_json::from_str(DATA).unwrap();
         let selector = Some(r#""foo""#);

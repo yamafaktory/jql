@@ -1,7 +1,7 @@
 use crate::types::Selector;
 use crate::types::{Group, Groups};
 use lazy_static::lazy_static;
-use pest::Parser;
+use pest::{iterators as pest_iterators, Parser};
 use pest_derive::*;
 use regex::Regex;
 
@@ -9,30 +9,28 @@ use regex::Regex;
 #[grammar = "grammar.pest"]
 struct GroupsParser;
 
-/// Drop the enclosing double quotes of a span and convert it to a default
-/// selector.
-fn span_to_default(inner_span: &str) -> Selector {
-    Selector::Default(
-        String::from(&inner_span[1..inner_span.len() - 1])
-            .replace(r#"\""#, r#"""#),
-    )
+/// Convert a span to a default selector.
+fn span_to_default(inner_span: String) -> Selector {
+    Selector::Default(inner_span)
 }
 
 /// Convert a span to an index selector.
 fn span_to_index(inner_span: &str) -> Selector {
-    let index = inner_span.replace(r#"["#, "").replace(r#"]"#, "");
-
-    if index.is_empty() {
-        Selector::Array
-    } else {
-        Selector::Index(
-            inner_span
-                .replace(r#"["#, "")
-                .replace(r#"]"#, "")
-                .parse::<usize>()
-                .unwrap(),
-        )
+    if inner_span.is_empty() {
+        return Selector::Array;
     }
+
+    Selector::Index(
+        inner_span
+            .split(',')
+            .map(|index| index.parse::<usize>().unwrap())
+            .collect::<Vec<usize>>(),
+    )
+}
+
+/// Convert a span to an object selector.
+fn span_to_object(inner_span: Vec<String>) -> Selector {
+    Selector::Object(inner_span)
 }
 
 /// Convert a span to a range selector.
@@ -64,6 +62,35 @@ fn span_to_range(inner_span: &str) -> Selector {
     }
 }
 
+/// Return a vector of chars found inside a default pair.
+fn get_chars_from_default_pair(
+    pair: pest_iterators::Pair<'_, Rule>,
+) -> Vec<String> {
+    pair.into_inner()
+        .fold(Vec::new(), |mut acc: Vec<String>, inner_pair| {
+            if inner_pair.as_rule() == Rule::char {
+                acc.push(String::from(inner_pair.clone().as_span().as_str()));
+            }
+            acc
+        })
+}
+
+/// Return a vector of nested chars found inside a given pair.
+fn get_nested_chars_from_default_pair(
+    pair: pest_iterators::Pair<'_, Rule>,
+) -> Vec<String> {
+    pair.into_inner()
+        .fold(Vec::new(), |mut acc: Vec<Vec<String>>, inner_pair| {
+            if inner_pair.as_rule() == Rule::default {
+                acc.push(get_chars_from_default_pair(inner_pair));
+            }
+            acc
+        })
+        .into_iter()
+        .flatten()
+        .collect::<Vec<String>>()
+}
+
 /// Parse the provided selectors and returns a set of groups or an error.
 pub fn selectors_parser(selectors: &str) -> Result<Groups, String> {
     match GroupsParser::parse(Rule::groups, selectors) {
@@ -76,25 +103,28 @@ pub fn selectors_parser(selectors: &str) -> Result<Groups, String> {
                 // Loop over the pairs converted as an iterator of the tokens
                 // which composed it.
                 for inner_pair in pair.into_inner() {
-                    let inner_span = inner_pair.clone().into_span().as_str();
+                    let inner_span = inner_pair.clone().as_span().as_str();
 
                     // Populate the group based on the rules found by the
                     // parser.
                     match inner_pair.as_rule() {
-                        Rule::default => {
-                            group.2.push(span_to_default(inner_span))
-                        }
-                        Rule::filterDefault => {
-                            group.3.push(span_to_default(inner_span))
-                        }
+                        Rule::default => group.2.push(span_to_default(
+                            get_chars_from_default_pair(inner_pair)[0].clone(),
+                        )),
+                        Rule::filter_default => group.3.push(span_to_default(
+                            get_chars_from_default_pair(inner_pair)[0].clone(),
+                        )),
                         Rule::index => group.2.push(span_to_index(inner_span)),
-                        Rule::filterIndex => {
+                        Rule::filter_index => {
                             group.3.push(span_to_index(inner_span))
                         }
                         Rule::range => group.2.push(span_to_range(inner_span)),
-                        Rule::filterRange => {
+                        Rule::filter_range => {
                             group.3.push(span_to_range(inner_span))
                         }
+                        Rule::property => group.2.push(span_to_object(
+                            get_nested_chars_from_default_pair(inner_pair),
+                        )),
                         Rule::root => group.1 = Some(()),
                         Rule::spread => group.0 = Some(()),
                         _ => (),

@@ -6,9 +6,10 @@ use serde_json::Value;
 
 #[derive(Debug)]
 pub enum Selector {
-    Default(String),
     Array,
-    Index(usize),
+    Default(String),
+    Index(Vec<usize>),
+    Object(Vec<String>),
     Range((usize, usize)),
 }
 
@@ -28,7 +29,12 @@ impl Display for Selector {
                 display_range_selector(*range, capitalized)
             }
             Selector::Index(index) => {
-                display_index_selector(*index, capitalized)
+                "".to_string()
+                // display_index_selector(*index, capitalized)
+            }
+            Selector::Object(properties) => {
+                // TODO
+                "".to_string()
             }
         }
     }

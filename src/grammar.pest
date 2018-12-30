@@ -4,7 +4,12 @@ groups = _{ selection ~ ("," ~ selection)* }
 
         spread = { ".." }
 
-        selector = _{ range | index | default }
+        selector = _{ array | object | default }
+            array = _{ "[" ~ (range | index) ~ "]" }
+                range = { ASCII_DIGIT+ ~ ":" ~ ASCII_DIGIT+ }
+                index = { (ASCII_DIGIT+)? ~ ("," ~ ASCII_DIGIT+)* }
+            object = _{ "{" ~ property ~ "}" }
+                property = { default ~ ("," ~ default)* }
             default = { quote ~ char* ~ quote }
                 char = {
                     !("\"" | "\\") ~ ANY
@@ -12,12 +17,11 @@ groups = _{ selection ~ ("," ~ selection)* }
                     | "\\" ~ ("u" ~ ASCII_HEX_DIGIT{4})
                 }
                 quote = { "\"" }
-            range = { "[" ~ ASCII_DIGIT+ ~ ":" ~ ASCII_DIGIT+ ~ "]" }
-            index = { "[" ~ (ASCII_DIGIT+)? ~ "]" }
 
         filters = _{ pipe ~ filter ~ ("."? ~ filter)* }
             pipe = _{ "|" }
-            filter = _{ filterRange | filterIndex | filterDefault }
-                filterDefault = { default }
-                filterRange = { range }
-                filterIndex = { index }
+            filter = _{ filter_array | filter_default }
+                filter_array = _{ "[" ~ (filter_range | filter_index) ~ "]" }
+                    filter_range = { range }
+                    filter_index = { index }
+                filter_default = { default }
