@@ -18,13 +18,64 @@ pub fn display_default_selector(value: &str, capitalized: bool) -> String {
 }
 
 /// Convert an index selector to a readable string.
-pub fn display_index_selector(index: usize, capitalized: bool) -> String {
-    [
-        if capitalized { "Index [" } else { "index [" },
-        index.to_string().as_str(),
-        "]",
-    ]
-    .join("")
+pub fn display_index_selector(
+    indexes: &Vec<usize>,
+    capitalized: bool,
+) -> String {
+    if indexes.len() == 1 {
+        [
+            if capitalized { "Index [" } else { "index [" },
+            indexes[0].to_string().as_str(),
+            "]",
+        ]
+        .join("")
+    } else {
+        [
+            if capitalized {
+                "Indexes ["
+            } else {
+                "indexes ["
+            },
+            indexes
+                .iter()
+                .map(|index| index.to_string())
+                .collect::<Vec<String>>()
+                .join(",")
+                .as_str(),
+            "]",
+        ]
+        .join("")
+    }
+}
+
+/// Convert an object selector to a readable string.
+pub fn display_object_selector(
+    properties: &Vec<String>,
+    capitalized: bool,
+) -> String {
+    if properties.len() == 1 {
+        [
+            if capitalized {
+                "Property {"
+            } else {
+                "property {"
+            },
+            properties[0].to_string().as_str(),
+            "}",
+        ]
+        .join("")
+    } else {
+        [
+            if capitalized {
+                "Properties {"
+            } else {
+                "properties {"
+            },
+            properties.join(",").as_str(),
+            "}",
+        ]
+        .join("")
+    }
 }
 
 /// Convert a range selector to a readable string.

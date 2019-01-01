@@ -47,6 +47,8 @@ mod tests {
 
     const ARRAY_DATA: &str = r#"[1, 2, 3, null]"#;
 
+    const OBJECT_DATA: &str = r#"{ "a": 7, "b": 11 }"#;
+
     const DATA: &str = r#"{
         "array": [1, 2, 3, null],
         "nested": {
@@ -344,6 +346,20 @@ mod tests {
     }
 
     #[test]
+    fn get_range_with_no_start() {
+        let json: Value = serde_json::from_str(DATA).unwrap();
+        let selector = Some(r#""range".[:5]"#);
+        assert_eq!(Ok(json!([1, 2, 3, 4, 5, 6])), walker(&json, selector));
+    }
+
+    #[test]
+    fn get_range_with_no_end() {
+        let json: Value = serde_json::from_str(DATA).unwrap();
+        let selector = Some(r#""range".[2:]"#);
+        assert_eq!(Ok(json!([3, 4, 5, 6, 7])), walker(&json, selector));
+    }
+
+    #[test]
     fn get_one_item_range() {
         let json: Value = serde_json::from_str(DATA).unwrap();
         let selector = Some(r#""range".[2:2]"#);
@@ -555,6 +571,45 @@ mod tests {
             Ok(json!([
                 "c", "g", "a", "t", "c", "a", "c", "g", "t", "a", "t"
             ])),
+            walker(&json, selector)
+        );
+    }
+
+    #[test]
+    fn get_properties_root() {
+        let json: Value = serde_json::from_str(OBJECT_DATA).unwrap();
+        let selector = Some(r#"{"a","b"}"#);
+        assert_eq!(Ok(json!({ "a": 7, "b": 11 })), walker(&json, selector));
+    }
+
+    #[test]
+    fn get_properties_child_node() {
+        let json: Value = serde_json::from_str(DATA).unwrap();
+        let selector = Some(r#""nested".{"a","b"}"#);
+        assert_eq!(
+            Ok(json!({ "a": "one", "b": "two" })),
+            walker(&json, selector)
+        );
+    }
+
+    #[test]
+    fn get_non_existing_properties_root() {
+        let json: Value = serde_json::from_str(OBJECT_DATA).unwrap();
+        let selector = Some(r#"{"x","b"}"#);
+        assert_eq!(
+            Err(String::from(r#"Node "x" not found on the parent element"#)),
+            walker(&json, selector)
+        );
+    }
+
+    #[test]
+    fn get_non_existing_properties_child_node() {
+        let json: Value = serde_json::from_str(DATA).unwrap();
+        let selector = Some(r#""nested".{"x","b"}"#);
+        assert_eq!(
+            Err(String::from(
+                r#"Node "x" not found on parent node "nested""#
+            )),
             walker(&json, selector)
         );
     }

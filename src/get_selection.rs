@@ -1,7 +1,7 @@
 use crate::array_walker::array_walker;
 use crate::range_selector::range_selector;
 use crate::types::{Display, Selection, Selector, Selectors};
-use serde_json::Value;
+use serde_json::{json, Value};
 
 fn apply_selector(
     inner_json: &Value,
@@ -33,6 +33,21 @@ fn apply_selector(
     }
 }
 
+/// Merge two JSON objects.
+/// https://github.com/serde-rs/json/issues/377#issuecomment-341490464
+fn merge(a: &mut Value, b: &Value) {
+    match (a, b) {
+        (&mut Value::Object(ref mut a), &Value::Object(ref b)) => {
+            for (key, value) in b {
+                merge(a.entry(key.clone()).or_insert(Value::Null), value);
+            }
+        }
+        (a, b) => {
+            *a = b.clone();
+        }
+    }
+}
+
 /// Returns a selection based on selectors and a JSON content as a Result of
 /// values or an Err early on, stopping the iteration as soon as the latter is
 /// encountered.
@@ -46,26 +61,33 @@ pub fn get_selection(selectors: &Selectors, json: &Value) -> Selection {
         .map(|(map_index, current_selector)| -> Result<Value, String> {
             match current_selector {
                 // Object selector.
-                Selector::Object(properties) => {
-                    println!("Props before -> {:?}", properties);
-                    let results: Result<Vec<Value>, String> = properties
-                        .iter()
-                        .map(|raw_selector| {
-                            apply_selector(
-                                &inner_json,
-                                map_index,
-                                raw_selector,
-                                selectors,
-                            )
-                        })
-                        .collect();
-                    println!("Prop -> {:?}", results);
-                    Ok(inner_json.clone())
-                }
+                Selector::Object(properties) => properties.iter().fold(
+                    Ok(Value::Null),
+                    |acc: Result<Value, String>, property| {
+                        let value = apply_selector(
+                            &inner_json,
+                            map_index,
+                            property,
+                            selectors,
+                        );
+                        match value {
+                            Ok(value) => match acc {
+                                Ok(mut current) => {
+                                    merge(
+                                        &mut current,
+                                        &json!({ property.as_str(): value }),
+                                    );
+                                    Ok(current)
+                                }
+                                Err(error) => Err(error),
+                            },
+                            Err(error) => Err(error),
+                        }
+                    },
+                ),
 
                 // Default selector.
                 Selector::Default(raw_selector) => {
-                    println!("Default -> {}", raw_selector);
                     match apply_selector(
                         &inner_json,
                         map_index,

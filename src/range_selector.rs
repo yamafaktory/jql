@@ -53,7 +53,6 @@ pub fn range_selector(
             }
 
             Ok(if is_default {
-                println!("sdfs");
                 json!(json_array[start..=end])
             } else {
                 // Get the normalized slice selection, i.e. from end to start.
