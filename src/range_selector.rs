@@ -6,13 +6,17 @@ use serde_json::Value;
 pub fn range_selector(
     map_index: usize,
     inner_json: &Value,
-    start: usize,
+    start: Option<usize>,
     end: Option<usize>,
     selectors: &Selectors,
     previous_selector: Option<&Selector>,
 ) -> Result<Value, String> {
     match inner_json.as_array() {
         Some(json_array) => {
+            let start = match start {
+                Some(start) => start,
+                None => 0,
+            };
             let end = match end {
                 Some(end) => end,
                 None => json_array.len() - 1,

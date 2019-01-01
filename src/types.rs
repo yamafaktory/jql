@@ -10,7 +10,7 @@ pub enum Selector {
     Default(String),
     Index(Vec<usize>),
     Object(Vec<String>),
-    Range((usize, usize)),
+    Range((Option<usize>, Option<usize>)),
 }
 
 pub trait Display {

@@ -6,16 +6,20 @@ groups = _{ selection ~ ("," ~ selection)* }
 
         selector = _{ array | object | default }
             array = _{ "[" ~ (range | index) ~ "]" }
-                range = { ASCII_DIGIT+ ~ ":" ~ ASCII_DIGIT+ }
-                index = { (ASCII_DIGIT+)? ~ ("," ~ ASCII_DIGIT+)* }
+                range = { start? ~ ":" ~ end? }
+                index = { number? ~ ("," ~ number)* }
+                    number = { ASCII_DIGIT+ }
+                    start = { number }
+                    end = { number}
             object = _{ "{" ~ property ~ "}" }
                 property = { default ~ ("," ~ default)* }
-            default = { quote ~ char* ~ quote }
-                char = {
-                    !("\"" | "\\") ~ ANY
-                    | "\\" ~ ("\"" | "\\" | "/" | "b" | "f" | "n" | "r" | "t")
-                    | "\\" ~ ("u" ~ ASCII_HEX_DIGIT{4})
-                }
+            default = { quote ~ chars ~ quote }
+                chars = { char* }
+                    char = _{
+                        !("\"" | "\\") ~ ANY
+                        | "\\" ~ ("\"" | "\\" | "/" | "b" | "f" | "n" | "r" | "t")
+                        | "\\" ~ ("u" ~ ASCII_HEX_DIGIT{4})
+                    }
                 quote = { "\"" }
 
         filters = _{ pipe ~ filter ~ ("."? ~ filter)* }

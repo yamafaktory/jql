@@ -85,7 +85,7 @@ pub fn get_selection(selectors: &Selectors, json: &Value) -> Selection {
                     map_index,
                     &inner_json.clone(),
                     *start,
-                    Some(*end),
+                    *end,
                     &selectors,
                     if map_index == 0 {
                         None
@@ -104,7 +104,7 @@ pub fn get_selection(selectors: &Selectors, json: &Value) -> Selection {
                 Selector::Array => match range_selector(
                     map_index,
                     &inner_json.clone(),
-                    0,
+                    Some(0),
                     None,
                     &selectors,
                     if map_index == 0 {

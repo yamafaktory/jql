@@ -24,8 +24,7 @@ lazy_static = "1.2.0"
 pest = "2.1.0"
 pest_derive = "2.1.0"
 rayon = "1.0.3"
-regex= "1.1.0"
-serde_json = "1.0.33"
+serde_json = "1.0.34"
 
 [[bench]]
 name = "benchmark"

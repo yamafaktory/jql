@@ -29,14 +29,25 @@ pub fn display_index_selector(index: usize, capitalized: bool) -> String {
 
 /// Convert a range selector to a readable string.
 pub fn display_range_selector(
-    (start, end): (usize, usize),
+    (start, end): (Option<usize>, Option<usize>),
     capitalized: bool,
 ) -> String {
+    let (start, end) = (
+        match start {
+            Some(value) => value.to_string(),
+            None => String::from(""),
+        },
+        match end {
+            Some(value) => value.to_string(),
+            None => String::from(""),
+        },
+    );
+
     [
         if capitalized { "Range [" } else { "range [" },
-        start.to_string().as_str(),
+        start.as_str(),
         ":",
-        end.to_string().as_str(),
+        end.as_str(),
         "]",
     ]
     .join("")
