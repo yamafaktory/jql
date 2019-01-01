@@ -83,16 +83,11 @@ pub fn display_range_selector(
     (start, end): (Option<usize>, Option<usize>),
     capitalized: bool,
 ) -> String {
-    let (start, end) = (
-        match start {
-            Some(value) => value.to_string(),
-            None => String::from(""),
-        },
-        match end {
-            Some(value) => value.to_string(),
-            None => String::from(""),
-        },
-    );
+    let position_to_string = |position: Option<usize>| match position {
+        Some(value) => value.to_string(),
+        None => String::from(""),
+    };
+    let (start, end) = (position_to_string(start), position_to_string(end));
 
     [
         if capitalized { "Range [" } else { "range [" },
