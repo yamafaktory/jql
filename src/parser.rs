@@ -33,10 +33,21 @@ fn span_to_object(inner_span: Vec<String>) -> Selector {
 
 /// Convert a span to a range selector.
 fn span_to_range(pair: pest_iterators::Pair<'_, Rule>) -> Selector {
-    let (start, end) = (
-        pair.clone().into_inner().nth(0),
-        pair.clone().into_inner().nth(1),
+    let (start, end) = pair.into_inner().fold(
+        (None, None),
+        |acc: (
+            Option<pest_iterators::Pair<'_, Rule>>,
+            Option<pest_iterators::Pair<'_, Rule>>,
+        ),
+         inner_pair| {
+            match inner_pair.as_rule() {
+                Rule::start => (Some(inner_pair.clone()), acc.1),
+                Rule::end => (acc.0, Some(inner_pair.clone())),
+                _ => (None, None),
+            }
+        },
     );
+
     let position_to_usize =
         |value: Option<pest_iterators::Pair<'_, Rule>>| match value {
             Some(pair) => Some(

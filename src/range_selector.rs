@@ -13,14 +13,16 @@ pub fn range_selector(
 ) -> Result<Value, String> {
     match inner_json.as_array() {
         Some(json_array) => {
-            let start = match start {
-                Some(start) => start,
-                None => 0,
-            };
-            let end = match end {
-                Some(end) => end,
-                None => json_array.len() - 1,
-            };
+            let (start, end) = (
+                match start {
+                    Some(start) => start,
+                    None => 0,
+                },
+                match end {
+                    Some(end) => end,
+                    None => json_array.len() - 1,
+                },
+            );
             let is_default = start < end;
 
             // Check the range validity.
@@ -51,6 +53,7 @@ pub fn range_selector(
             }
 
             Ok(if is_default {
+                println!("sdfs");
                 json!(json_array[start..=end])
             } else {
                 // Get the normalized slice selection, i.e. from end to start.
