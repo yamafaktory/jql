@@ -7,6 +7,8 @@ use pest_derive::*;
 #[grammar = "grammar.pest"]
 struct GroupsParser;
 
+type PestPair<'a> = pest_iterators::Pair<'a, Rule>;
+
 /// Convert a span to a default selector.
 fn span_to_default(inner_span: &str) -> Selector {
     Selector::Default(inner_span.replace(r#"\""#, r#"""#))
@@ -32,14 +34,10 @@ fn span_to_object(inner_span: Vec<String>) -> Selector {
 }
 
 /// Convert a span to a range selector.
-fn span_to_range(pair: pest_iterators::Pair<'_, Rule>) -> Selector {
+fn span_to_range(pair: PestPair<'_>) -> Selector {
     let (start, end) = pair.into_inner().fold(
         (None, None),
-        |acc: (
-            Option<pest_iterators::Pair<'_, Rule>>,
-            Option<pest_iterators::Pair<'_, Rule>>,
-        ),
-         inner_pair| {
+        |acc: (Option<PestPair<'_>>, Option<PestPair<'_>>), inner_pair| {
             match inner_pair.as_rule() {
                 Rule::start => (Some(inner_pair.clone()), acc.1),
                 Rule::end => (acc.0, Some(inner_pair.clone())),
@@ -48,21 +46,18 @@ fn span_to_range(pair: pest_iterators::Pair<'_, Rule>) -> Selector {
         },
     );
 
-    let position_to_usize =
-        |value: Option<pest_iterators::Pair<'_, Rule>>| match value {
-            Some(pair) => Some(
-                usize::from_str_radix(pair.as_span().as_str(), 10).unwrap(),
-            ),
-            None => None,
-        };
+    let position_to_usize = |value: Option<PestPair<'_>>| match value {
+        Some(pair) => {
+            Some(usize::from_str_radix(pair.as_span().as_str(), 10).unwrap())
+        }
+        None => None,
+    };
 
     Selector::Range((position_to_usize(start), position_to_usize(end)))
 }
 
 /// Return a vector of chars found inside a default pair.
-fn get_chars_from_default_pair(
-    pair: pest_iterators::Pair<'_, Rule>,
-) -> Vec<String> {
+fn get_chars_from_default_pair(pair: PestPair<'_>) -> Vec<String> {
     pair.into_inner()
         .fold(Vec::new(), |mut acc: Vec<String>, inner_pair| {
             if inner_pair.as_rule() == Rule::chars {
@@ -73,9 +68,7 @@ fn get_chars_from_default_pair(
 }
 
 /// Return a vector of nested chars found inside a given pair.
-fn get_nested_chars_from_default_pair(
-    pair: pest_iterators::Pair<'_, Rule>,
-) -> Vec<String> {
+fn get_nested_chars_from_default_pair(pair: PestPair<'_>) -> Vec<String> {
     pair.into_inner()
         .fold(Vec::new(), |mut acc: Vec<Vec<String>>, inner_pair| {
             if inner_pair.as_rule() == Rule::default {
