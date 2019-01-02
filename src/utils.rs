@@ -19,7 +19,7 @@ pub fn display_default_selector(value: &str, capitalized: bool) -> String {
 
 /// Convert an index selector to a readable string.
 pub fn display_index_selector(
-    indexes: &Vec<usize>,
+    indexes: &[usize],
     capitalized: bool,
 ) -> String {
     if indexes.len() == 1 {
@@ -50,7 +50,7 @@ pub fn display_index_selector(
 
 /// Convert an object selector to a readable string.
 pub fn display_object_selector(
-    properties: &Vec<String>,
+    properties: &[String],
     capitalized: bool,
 ) -> String {
     if properties.len() == 1 {

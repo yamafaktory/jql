@@ -8,7 +8,7 @@ use pest_derive::*;
 struct GroupsParser;
 
 /// Convert a span to a default selector.
-fn span_to_default(inner_span: String) -> Selector {
+fn span_to_default(inner_span: &str) -> Selector {
     Selector::Default(inner_span.replace(r#"\""#, r#"""#))
 }
 
@@ -106,10 +106,10 @@ pub fn selectors_parser(selectors: &str) -> Result<Groups, String> {
                     // parser.
                     match inner_pair.as_rule() {
                         Rule::default => group.2.push(span_to_default(
-                            get_chars_from_default_pair(inner_pair)[0].clone(),
+                            &get_chars_from_default_pair(inner_pair)[0].clone(),
                         )),
                         Rule::filter_default => group.3.push(span_to_default(
-                            get_chars_from_default_pair(
+                            &get_chars_from_default_pair(
                                 inner_pair.into_inner().nth(0).unwrap(),
                             )[0]
                             .clone(),
