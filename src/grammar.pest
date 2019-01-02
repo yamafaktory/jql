@@ -1,3 +1,5 @@
+WHITESPACE = _{ " " }
+
 groups = _{ selection ~ ("," ~ selection)* }
     selection = { (spread? ~ root? ~ (selector ~ ("."? ~ selector)*)?)? ~ filters* }
         root = { "." }
@@ -13,7 +15,7 @@ groups = _{ selection ~ ("," ~ selection)* }
                     end = { number}
             object = _{ "{" ~ property ~ "}" }
                 property = { default ~ ("," ~ default)* }
-            default = { quote ~ chars ~ quote }
+            default = ${ quote ~ chars ~ quote }
                 chars = { char* }
                     char = _{
                         !("\"" | "\\") ~ ANY

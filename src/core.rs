@@ -613,4 +613,19 @@ mod tests {
             walker(&json, selector)
         );
     }
+
+    #[test]
+    fn check_whitespace() {
+        let json: Value = serde_json::from_str(DATA).unwrap();
+        let space_selector = Some(r#"" ""#);
+        let selector_with_spaces = Some(r#""nested" .   "a""#);
+        assert_eq!(
+            Ok(json!("Yup, this too 🐼!")),
+            walker(&json, space_selector)
+        );
+        assert_eq!(
+            Ok(json["nested"]["a"].clone()),
+            walker(&json, selector_with_spaces)
+        );
+    }
 }
