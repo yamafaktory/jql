@@ -1,23 +1,33 @@
+WHITESPACE = _{ " " }
+
 groups = _{ selection ~ ("," ~ selection)* }
     selection = { (spread? ~ root? ~ (selector ~ ("."? ~ selector)*)?)? ~ filters* }
         root = { "." }
 
         spread = { ".." }
 
-        selector = _{ range | index | default }
-            default = { quote ~ char* ~ quote }
-                char = {
-                    !("\"" | "\\") ~ ANY
-                    | "\\" ~ ("\"" | "\\" | "/" | "b" | "f" | "n" | "r" | "t")
-                    | "\\" ~ ("u" ~ ASCII_HEX_DIGIT{4})
-                }
+        selector = _{ array | object | default }
+            array = _{ "[" ~ (range | index) ~ "]" }
+                range = { start? ~ ":" ~ end? }
+                index = { number? ~ ("," ~ number)* }
+                    number = { ASCII_DIGIT+ }
+                    start = { number }
+                    end = { number}
+            object = _{ "{" ~ property ~ "}" }
+                property = { default ~ ("," ~ default)* }
+            default = ${ quote ~ chars ~ quote }
+                chars = { char* }
+                    char = _{
+                        !("\"" | "\\") ~ ANY
+                        | "\\" ~ ("\"" | "\\" | "/" | "b" | "f" | "n" | "r" | "t")
+                        | "\\" ~ ("u" ~ ASCII_HEX_DIGIT{4})
+                    }
                 quote = { "\"" }
-            range = { "[" ~ ASCII_DIGIT+ ~ ":" ~ ASCII_DIGIT+ ~ "]" }
-            index = { "[" ~ (ASCII_DIGIT+)? ~ "]" }
 
         filters = _{ pipe ~ filter ~ ("."? ~ filter)* }
             pipe = _{ "|" }
-            filter = _{ filterRange | filterIndex | filterDefault }
-                filterDefault = { default }
-                filterRange = { range }
-                filterIndex = { index }
+            filter = _{ filter_array | filter_default }
+                filter_array = _{ "[" ~ (filter_range | filter_index) ~ "]" }
+                    filter_range = { range }
+                    filter_index = { index }
+                filter_default = { default }

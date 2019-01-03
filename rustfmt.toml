@@ -2,6 +2,7 @@ fn_single_line = true
 format_strings = true
 imports_indent = "Block"
 max_width = 80
+merge_imports = true
 use_try_shorthand = true
 wrap_comments = true
 write_mode = "Replace"

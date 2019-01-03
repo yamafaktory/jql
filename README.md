@@ -18,7 +18,7 @@ cargo install jql
 
 If you find some of the following examples confusing, please have a look at [The JavaScript Object Notation (JSON) Data Interchange Format](https://tools.ietf.org/html/rfc8259#section-13).
 
-### Accessing the root
+### Root selection
 
 ```json
 "This is a valid JSON text with one value"
@@ -32,7 +32,7 @@ jql '.' example.json
 "This is a valid JSON text with one value"
 ```
 
-### Accessing a child
+### Child selection
 
 ```json
 {
@@ -50,7 +50,7 @@ jql '"some"."property"' example.json
 "yay!"
 ```
 
-### Accessing an index
+### Index selection
 
 ```json
 {
@@ -76,7 +76,20 @@ jql '"primes"[0]"' example.json
 7
 ```
 
-### Accessing a range
+You can also select a set of indexes:
+
+```sh
+jql '"primes".[2,0]' example.json
+```
+
+```json
+[
+  13,
+  7
+]
+```
+
+### Range selection
 
 ```json
 {
@@ -143,7 +156,39 @@ jql '"cats".[2:1].[0]."third"' example.json
 "Misty"
 ```
 
-### Accessing an array
+You can also use the start or the end position as a range selector:
+
+```sh
+jql '"cats".[1:]' example.json
+```
+
+```json
+[
+  {
+    "second": "Kitkat"
+  },
+  {
+    "third": "Misty"
+  }
+]
+```
+
+```sh
+jql '"cats".[:1]' example.json
+```
+
+```json
+[
+  {
+    "first": "Pixie"
+  },
+  {
+    "second": "Kitkat"
+  }
+]
+```
+
+### Array selection
 
 ```json
 {
@@ -167,6 +212,25 @@ Please note that this is basically an alias for a full range selection:
 
 ```sh
 jql '"primes".[0:2]' example.json
+```
+
+### Property selection
+
+```json
+{
+  "object": { "a": 1, "b": 2, "c": 3 }
+}
+```
+
+```sh
+jql '"object".{"a","c"}' example.json
+```
+
+```json
+{
+  "a": 1,
+  "c": 3
+}
 ```
 
 ### Multi-selection
@@ -367,8 +431,8 @@ jql --version
 #### Inlining the JSON output
 
 ```sh
-jql -i 'some.selector' example.json
-jql --inline 'some.selector' example.json
+jql -i '"some"."selector"' example.json
+jql --inline '"some"."selector"' example.json
 ```
 
 ## 🍿 Library
