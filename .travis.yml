@@ -10,6 +10,9 @@ matrix:
     - rust: nightly
   fast_finish: true
 
+git:
+  depth: 10
+
 before_script:
   - rustup component add clippy
 

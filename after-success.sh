@@ -3,7 +3,7 @@
 # Clone the repository
 REMOTE_URL="$(git config --get remote.origin.url)";
 cd ${TRAVIS_BUILD_DIR}/.. && \
-git clone ${REMOTE_URL} "${TRAVIS_REPO_SLUG}-bench" --depth 10 && \
+git clone ${REMOTE_URL} "${TRAVIS_REPO_SLUG}-bench" && \
 cd  "${TRAVIS_REPO_SLUG}-bench" && \
 
 # Bench master
