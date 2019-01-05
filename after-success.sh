@@ -18,4 +18,4 @@ cargo bench --bench benchmark -- --noplot --save-baseline after && \
 cargo install critcmp --force && \
 
 # Compare the two generated benches
-cargo critcmp benches-control benches-variable;
+critcmp benches-control benches-variable;
