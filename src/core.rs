@@ -583,11 +583,28 @@ mod tests {
     }
 
     #[test]
+    fn get_unordered_properties_root() {
+        let json: Value = serde_json::from_str(OBJECT_DATA).unwrap();
+        let selector = Some(r#"{"b","a"}"#);
+        assert_eq!(Ok(json!({ "b": 11, "a": 7 })), walker(&json, selector));
+    }
+
+    #[test]
     fn get_properties_child_node() {
         let json: Value = serde_json::from_str(DATA).unwrap();
         let selector = Some(r#""nested".{"a","b"}"#);
         assert_eq!(
             Ok(json!({ "a": "one", "b": "two" })),
+            walker(&json, selector)
+        );
+    }
+
+    #[test]
+    fn get_unordered_properties_child_node() {
+        let json: Value = serde_json::from_str(DATA).unwrap();
+        let selector = Some(r#""nested".{"b","a"}"#);
+        assert_eq!(
+            Ok(json!({ "b": "two", "a": "one" })),
             walker(&json, selector)
         );
     }
