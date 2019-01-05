@@ -24,7 +24,11 @@ lazy_static = "1.2.0"
 pest = "2.1.0"
 pest_derive = "2.1.0"
 rayon = "1.0.3"
-serde_json = "1.0.34"
+
+[dependencies.serde_json]
+version = "1.0.34"
+default-features = false
+features = ["preserve_order"]
 
 [[bench]]
 name = "benchmark"
