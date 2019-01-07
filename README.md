@@ -2,7 +2,7 @@
 
 > A JSON Query Language CLI tool
 
-## 📜 Core philosophy of jql:
+## 📜 Core philosophy
 - 🎮 Keep its features as simple as possible
 - 🧠 Avoid redundancy
 - 💡 Provide meaningful error messages
