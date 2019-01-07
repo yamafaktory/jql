@@ -1,3 +1,4 @@
+edition = "2018"
 fn_single_line = true
 format_strings = true
 imports_indent = "Block"
