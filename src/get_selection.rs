@@ -49,7 +49,6 @@ pub fn get_selection(selectors: &Selectors, json: &Value) -> Selection {
                 Selector::Object(properties) => properties.iter().fold(
                     Ok(json!({})),
                     |acc: Result<Value, String>, property| {
-                        println!("{}", property);
                         let value = apply_selector(
                             &inner_json,
                             map_index,
