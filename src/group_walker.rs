@@ -1,7 +1,7 @@
 use crate::apply_filter::apply_filter;
 use crate::flatten_json_array::flatten_json_array;
 use crate::get_selection::get_selection;
-use crate::types::{Group, MaybeArray};
+use crate::types::{Group, MaybeArray, Selection};
 use serde_json::json;
 use serde_json::Value;
 
@@ -9,7 +9,7 @@ use serde_json::Value;
 pub fn group_walker(
     (spread, root, selectors, filters): &Group,
     json: &Value,
-) -> Result<Value, String> {
+) -> Selection {
     // Empty group, return early.
     if selectors.is_empty() && root.is_none() {
         return Err(String::from("Empty group"));

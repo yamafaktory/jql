@@ -1,4 +1,4 @@
-use crate::types::{Display, Selector, Selectors};
+use crate::types::{Display, Selector, Selection, Selectors};
 use serde_json::json;
 use serde_json::Value;
 
@@ -10,7 +10,7 @@ pub fn range_selector(
     end: Option<usize>,
     selectors: &Selectors,
     previous_selector: Option<&Selector>,
-) -> Result<Value, String> {
+) -> Selection {
     match inner_json.as_array() {
         Some(json_array) => {
             let (start, end) = (

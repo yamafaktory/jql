@@ -13,6 +13,7 @@ mod range_selector;
 mod types;
 mod utils;
 
+use crate::types::Selection;
 use serde_json::Value;
 
 /// Process a Serde JSON Value based on the provided selectors.
@@ -26,6 +27,6 @@ use serde_json::Value;
 ///
 /// assert_eq!(jql::walker(&json_array, Some("[4]")), Ok(json!(11)));
 /// ```
-pub fn walker(json: &Value, selectors: Option<&str>) -> Result<Value, String> {
+pub fn walker(json: &Value, selectors: Option<&str>) -> Selection {
     core::walker(&json, selectors)
 }

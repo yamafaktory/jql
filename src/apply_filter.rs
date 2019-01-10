@@ -1,5 +1,5 @@
 use crate::get_selection::get_selection;
-use crate::types::{ExtendedSelection, MaybeArray, Selection, Selector};
+use crate::types::{ExtendedSelections, MaybeArray, Selections, Selector};
 use serde_json::json;
 use serde_json::Value;
 use rayon::prelude::*;
@@ -8,14 +8,14 @@ use rayon::prelude::*;
 pub fn apply_filter(
     json: &Value,
     filter_selectors: &[Selector],
-) -> ExtendedSelection {
+) -> ExtendedSelections {
     // Apply the filter iff the provided JSON value is an array.
     match json.as_array() {
         Some(array) => {
-            let selections: Vec<Selection> = array
+            let selections: Vec<Selections> = array
                 .par_iter()
                 .cloned()
-                .map(|partial_json| -> Selection {
+                .map(|partial_json| -> Selections {
                     if filter_selectors.is_empty() {
                         Ok(vec![partial_json])
                     } else {

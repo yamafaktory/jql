@@ -1,6 +1,6 @@
 use crate::array_walker::array_walker;
 use crate::range_selector::range_selector;
-use crate::types::{Display, Selection, Selector, Selectors};
+use crate::types::{Display, Selection, Selections, Selector, Selectors};
 use serde_json::{json, Value};
 
 fn apply_selector(
@@ -8,7 +8,7 @@ fn apply_selector(
     map_index: usize,
     raw_selector: &str,
     selectors: &Selectors,
-) -> Result<Value, String> {
+) -> Selection {
     // No JSON value has been found.
     if inner_json.get(raw_selector).is_none() {
         if map_index == 0 {
@@ -36,19 +36,19 @@ fn apply_selector(
 /// Returns a selection based on selectors and a JSON content as a Result of
 /// values or an Err early on, stopping the iteration as soon as the latter is
 /// encountered.
-pub fn get_selection(selectors: &Selectors, json: &Value) -> Selection {
+pub fn get_selection(selectors: &Selectors, json: &Value) -> Selections {
     // Local copy of the original JSON that will be reused in the loop.
     let mut inner_json = json.clone();
 
     selectors
         .iter()
         .enumerate()
-        .map(|(map_index, current_selector)| -> Result<Value, String> {
+        .map(|(map_index, current_selector)| -> Selection {
             match current_selector {
                 // Object selector.
                 Selector::Object(properties) => properties.iter().fold(
                     Ok(json!({})),
-                    |acc: Result<Value, String>, property| {
+                    |acc: Selection, property| {
                         let value = apply_selector(
                             &inner_json,
                             map_index,

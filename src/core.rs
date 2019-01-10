@@ -1,18 +1,19 @@
 use crate::group_walker::group_walker;
 use crate::parser::selectors_parser;
+use crate::types::{Selection, Selections};
 use rayon::prelude::*;
 use serde_json::json;
 use serde_json::Value;
 
 /// Given some selectors walk over the JSON file.
-pub fn walker(json: &Value, selectors: Option<&str>) -> Result<Value, String> {
+pub fn walker(json: &Value, selectors: Option<&str>) -> Selection {
     // A Selector has been found.
     if let Some(selectors) = selectors {
         return match selectors_parser(selectors) {
             Ok(groups) => {
                 // Capture groups separated by commas, return a Result of values
                 // or an Err early on.
-                let inner_groups: Result<Vec<Value>, String> = groups
+                let inner_groups: Selections = groups
                     .par_iter()
                     .map(|group| group_walker(group, json))
                     .collect();
