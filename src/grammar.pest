@@ -26,8 +26,10 @@ groups = _{ selection ~ ("," ~ selection)* }
 
         filters = _{ pipe ~ filter ~ ("."? ~ filter)* }
             pipe = _{ "|" }
-            filter = _{ filter_array | filter_default }
+            filter = _{ filter_array | filter_object | filter_default }
                 filter_array = _{ "[" ~ (filter_range | filter_index) ~ "]" }
                     filter_range = { range }
                     filter_index = { index }
                 filter_default = { default }
+                filter_object = _{ "{" ~ filter_property ~ "}" }
+                    filter_property = { default ~ ("," ~ default)* }

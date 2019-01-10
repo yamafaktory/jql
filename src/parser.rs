@@ -98,6 +98,7 @@ pub fn selectors_parser(selectors: &str) -> Result<Groups, String> {
                     // Populate the group based on the rules found by the
                     // parser.
                     match inner_pair.as_rule() {
+                        // Default
                         Rule::default => group.2.push(span_to_default(
                             &get_chars_from_default_pair(inner_pair)[0].clone(),
                         )),
@@ -107,18 +108,26 @@ pub fn selectors_parser(selectors: &str) -> Result<Groups, String> {
                             )[0]
                             .clone(),
                         )),
+                        // Index
                         Rule::index => group.2.push(span_to_index(inner_span)),
                         Rule::filter_index => {
                             group.3.push(span_to_index(inner_span))
                         }
+                        // Range
                         Rule::range => group.2.push(span_to_range(inner_pair)),
                         Rule::filter_range => group.3.push(span_to_range(
                             inner_pair.into_inner().nth(0).unwrap(),
                         )),
+                        // Property
                         Rule::property => group.2.push(span_to_object(
                             get_nested_chars_from_default_pair(inner_pair),
                         )),
+                        Rule::filter_property => group.3.push(span_to_object(
+                            get_nested_chars_from_default_pair(inner_pair),
+                        )),
+                        // Root
                         Rule::root => group.1 = Some(()),
+                        // Spread
                         Rule::spread => group.0 = Some(()),
                         _ => (),
                     };

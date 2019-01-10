@@ -74,13 +74,15 @@ mod tests {
             {
                 "laptop": {
                     "brand": "Apple",
-                    "options": ["a", "b", "c"]
+                    "options": ["a", "b", "c"],
+                    "price": 9999
                 }
             },
             {
                 "laptop": {
                     "brand": "Asus",
-                    "options": ["d", "e", "f"]
+                    "options": ["d", "e", "f"],
+                    "price": 999
                 }
             }
         ],
@@ -627,6 +629,18 @@ mod tests {
             Err(String::from(
                 r#"Node "x" not found on parent node "nested""#
             )),
+            walker(&json, selector)
+        );
+    }
+
+    #[test]
+    fn get_properties_in_filter() {
+        let json: Value = serde_json::from_str(DATA).unwrap();
+        let selector = Some(r#""nested-filter"|"laptop"|{"price","brand"}"#);
+        assert_eq!(
+            Ok(
+                json!([{"price": 9999, "brand": "Apple"}, {"price": 999, "brand": "Asus"}])
+            ),
             walker(&json, selector)
         );
     }
