@@ -4,12 +4,12 @@ use serde_json::Value;
 
 /// Returns a range selection or an error.
 pub fn range_selector(
-    map_index: usize,
-    inner_json: &Value,
-    start: Option<usize>,
     end: Option<usize>,
-    selectors: &Selectors,
+    inner_json: &Value,
+    map_index: usize,
     previous_selector: Option<&Selector>,
+    selectors: &Selectors,
+    start: Option<usize>,
 ) -> Selection {
     match inner_json.as_array() {
         Some(json_array) => {

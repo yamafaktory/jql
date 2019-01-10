@@ -5,9 +5,9 @@ use serde_json::Value;
 /// Walks through a JSON array. Iterate over the indexes of the array, returns
 /// a Result of one value or an Err early on.
 pub fn array_walker(
-    map_index: usize,
     array_indexes: &[usize],
     inner_json: &Value,
+    map_index: usize,
     selectors: &Selectors,
 ) -> Selection {
     let results: Selections = array_indexes

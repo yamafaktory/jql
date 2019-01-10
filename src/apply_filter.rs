@@ -6,8 +6,8 @@ use rayon::prelude::*;
 
 /// Apply the filter selectors to a JSON value and returns a selection.
 pub fn apply_filter(
-    json: &Value,
     filter_selectors: &[Selector],
+    json: &Value,
 ) -> ExtendedSelections {
     // Apply the filter iff the provided JSON value is an array.
     match json.as_array() {

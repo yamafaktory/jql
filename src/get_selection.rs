@@ -91,16 +91,16 @@ pub fn get_selection(selectors: &Selectors, json: &Value) -> Selections {
 
                 // Range selector.
                 Selector::Range((start, end)) => match range_selector(
-                    map_index,
-                    &inner_json.clone(),
-                    *start,
                     *end,
-                    &selectors,
+                    &inner_json.clone(),
+                    map_index,
                     if map_index == 0 {
                         None
                     } else {
                         Some(&selectors[map_index - 1])
                     },
+                    &selectors,
+                    *start,
                 ) {
                     Ok(json) => {
                         inner_json = json.clone();
@@ -111,16 +111,16 @@ pub fn get_selection(selectors: &Selectors, json: &Value) -> Selections {
 
                 // Array selector.
                 Selector::Array => match range_selector(
-                    map_index,
-                    &inner_json.clone(),
-                    Some(0),
                     None,
-                    &selectors,
+                    &inner_json.clone(),
+                    map_index,
                     if map_index == 0 {
                         None
                     } else {
                         Some(&selectors[map_index - 1])
                     },
+                    &selectors,
+                    Some(0),
                 ) {
                     Ok(json) => {
                         inner_json = json.clone();
@@ -131,9 +131,9 @@ pub fn get_selection(selectors: &Selectors, json: &Value) -> Selections {
 
                 // Index selector.
                 Selector::Index(array_indexes) => match array_walker(
-                    map_index,
                     &array_indexes,
                     &inner_json,
+                    map_index,
                     &selectors,
                 ) {
                     Ok(json) => {
