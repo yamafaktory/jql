@@ -38,16 +38,6 @@ impl Display for Selector {
     }
 }
 
-#[derive(Debug)]
-pub enum MaybeArray {
-    Array(Vec<Value>),
-    NonArray(Vec<Value>),
-}
-
-pub type Selection = Result<Vec<Value>, String>;
-
-pub type ExtendedSelection = Result<MaybeArray, String>;
-
 pub type Selectors = [Selector];
 
 pub type Group = (
@@ -62,3 +52,16 @@ pub type Group = (
 );
 
 pub type Groups = Vec<Group>;
+
+#[derive(Debug)]
+pub enum MaybeArray {
+    Array(Vec<Value>),
+    NonArray(Vec<Value>),
+}
+
+pub type Selection = Result<Value, String>;
+
+pub type Selections = Result<Vec<Value>, String>;
+
+pub type ExtendedSelections = Result<MaybeArray, String>;
+

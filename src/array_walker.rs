@@ -1,16 +1,16 @@
-use crate::types::{Display, Selectors};
+use crate::types::{Display, Selection, Selections, Selectors};
 use serde_json::json;
 use serde_json::Value;
 
 /// Walks through a JSON array. Iterate over the indexes of the array, returns
-/// a Result of values or an Err early on.
+/// a Result of one value or an Err early on.
 pub fn array_walker(
-    map_index: usize,
     array_indexes: &[usize],
     inner_json: &Value,
+    map_index: usize,
     selectors: &Selectors,
-) -> Result<Value, String> {
-    let results: Result<Vec<Value>, String> = array_indexes
+) -> Selection {
+    let results: Selections = array_indexes
         .iter()
         .map(|index| {
             // No JSON value has been found (array).
