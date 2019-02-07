@@ -3,6 +3,7 @@ mod cli;
 use clap::ArgMatches;
 use colored_json::{ColoredFormatter, CompactFormatter, PrettyFormatter};
 use jql::walker;
+use serde_json::{Deserializer, Value};
 use std::error::Error;
 use std::fs::File;
 use std::io;
@@ -17,28 +18,30 @@ fn output(json_content: &str, cli: &ArgMatches<'_>) {
     let inline = cli.is_present("inline");
     let selectors = cli.value_of("selectors");
 
-    match serde_json::from_str(&json_content) {
-        Ok(valid_json) => {
-            // Walk through the JSON content with the provided selectors as
-            // input.
-            match walker(&valid_json, selectors) {
-                Ok(selection) => println!(
-                    "{}",
-                    // Inline or pretty output.
-                    (if inline {
-                        ColoredFormatter::new(CompactFormatter {})
-                            .to_colored_json_auto(&selection)
-                    } else {
-                        ColoredFormatter::new(PrettyFormatter::new())
-                            .to_colored_json_auto(&selection)
-                    })
-                    .unwrap()
-                ),
-                Err(error) => eprintln!("{}", error),
+    Deserializer::from_str(json_content)
+        .into_iter::<Value>()
+        .for_each(|value| match value {
+            Ok(valid_json) => {
+                // Walk through the JSON content with the provided selectors as
+                // input.
+                match walker(&valid_json, selectors) {
+                    Ok(selection) => println!(
+                        "{}",
+                        // Inline or pretty output.
+                        (if inline {
+                            ColoredFormatter::new(CompactFormatter {})
+                                .to_colored_json_auto(&selection)
+                        } else {
+                            ColoredFormatter::new(PrettyFormatter::new())
+                                .to_colored_json_auto(&selection)
+                        })
+                        .unwrap()
+                    ),
+                    Err(error) => eprintln!("{}", error),
+                }
             }
-        }
-        Err(_) => eprintln!("Invalid JSON file or content"),
-    }
+            Err(_) => eprintln!("Invalid JSON file or content"),
+        });
 }
 
 fn main() {
