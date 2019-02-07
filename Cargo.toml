@@ -19,14 +19,14 @@ criterion = "0.2"
 
 [dependencies]
 clap = "2.32.0"
-colored_json = "1"
+colored_json = "2.0.0"
 lazy_static = "1.2.0"
 pest = "2.1.0"
 pest_derive = "2.1.0"
 rayon = "1.0.3"
 
 [dependencies.serde_json]
-version = "1.0.34"
+version = "1.0.38"
 default-features = false
 features = ["preserve_order"]
 
