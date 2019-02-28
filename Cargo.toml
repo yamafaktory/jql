@@ -9,7 +9,7 @@ license = "MIT"
 name = "jql"
 readme = "README.md"
 repository = "https://github.com/yamafaktory/jql"
-version = "2.4.0"
+version = "2.4.1"
 
 [badges]
 travis-ci = { repository = "yamafaktory/jql" }
@@ -20,13 +20,12 @@ criterion = "0.2"
 [dependencies]
 clap = "2.32.0"
 colored_json = "2.0.0"
-lazy_static = "1.2.0"
 pest = "2.1.0"
 pest_derive = "2.1.0"
 rayon = "1.0.3"
 
 [dependencies.serde_json]
-version = "1.0.38"
+version = "1.0.39"
 default-features = false
 features = ["preserve_order"]
 
@@ -41,3 +40,9 @@ path = "src/lib.rs"
 [[bin]]
 name = "jql"
 path = "src/bin.rs"
+
+[profile.release]
+codegen-units = 1
+lto = true
+opt-level = 'z'
+panic = 'abort'

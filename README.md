@@ -3,7 +3,7 @@
 > A JSON Query Language CLI tool built with Rust 🦀
 
 ## 📜 Core philosophy
-- 📦 Stay lightweight (12kB only!)
+- 📦 Stay lightweight
 - 🎮 Keep its features as simple as possible
 - 🧠 Avoid redundancy
 - 💡 Provide meaningful error messages
