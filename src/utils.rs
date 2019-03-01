@@ -18,10 +18,7 @@ pub fn display_default_selector(value: &str, capitalized: bool) -> String {
 }
 
 /// Convert an index selector to a readable string.
-pub fn display_index_selector(
-    indexes: &[usize],
-    capitalized: bool,
-) -> String {
+pub fn display_index_selector(indexes: &[usize], capitalized: bool) -> String {
     if indexes.len() == 1 {
         [
             if capitalized { "Index [" } else { "index [" },
@@ -38,7 +35,7 @@ pub fn display_index_selector(
             },
             indexes
                 .iter()
-                .map(|index| index.to_string())
+                .map(std::string::ToString::to_string)
                 .collect::<Vec<String>>()
                 .join(",")
                 .as_str(),
