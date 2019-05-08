@@ -18,9 +18,9 @@ travis-ci = { repository = "yamafaktory/jql" }
 criterion = "0.2"
 
 [dependencies]
-clap = "2.32.0"
+clap = "2.33.0"
 colored_json = "2.0.0"
-pest = "2.1.0"
+pest = "2.1.1"
 pest_derive = "2.1.0"
 rayon = "1.0.3"
 
