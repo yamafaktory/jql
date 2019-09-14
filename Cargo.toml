@@ -9,23 +9,23 @@ license = "MIT"
 name = "jql"
 readme = "README.md"
 repository = "https://github.com/yamafaktory/jql"
-version = "2.4.4"
+version = "2.4.5"
 
 [badges]
 travis-ci = { repository = "yamafaktory/jql" }
 
 [dev-dependencies]
-criterion = "0.2"
+criterion = "0.3.0"
 
 [dependencies]
 clap = "2.33.0"
 colored_json = "2.0.0"
-pest = "2.1.1"
+pest = "2.1.2"
 pest_derive = "2.1.0"
-rayon = "1.0.3"
+rayon = "1.2.0"
 
 [dependencies.serde_json]
-version = "1.0.39"
+version = "1.0.40"
 default-features = false
 features = ["preserve_order"]
 
