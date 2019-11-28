@@ -1,6 +1,5 @@
-use crate::types::{Display, Selector, Selection, Selectors};
-use serde_json::json;
-use serde_json::Value;
+use crate::types::{Display, Selection, Selector, Selectors};
+use serde_json::{json, Value};
 
 /// Returns a range selection or an error.
 pub fn range_selector(
@@ -13,6 +12,10 @@ pub fn range_selector(
 ) -> Selection {
     match inner_json.as_array() {
         Some(json_array) => {
+            if json_array.is_empty() {
+                return Ok(json!([]));
+            }
+
             let (start, end) = (
                 match start {
                     Some(start) => start,

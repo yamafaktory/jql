@@ -22,7 +22,7 @@ pub fn group_walker(
             let output_json = if items.is_empty() {
                 json.clone()
             } else {
-                json!(items.last()).clone()
+                json!(items.last())
             };
 
             let is_spreading = spread.is_some();
