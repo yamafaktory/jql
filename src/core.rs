@@ -52,6 +52,7 @@ mod tests {
 
     const DATA: &str = r#"{
         "array": [1, 2, 3, null],
+        "empty-array": [],
         "nested": {
             "a": "one",
             "b": "two",
@@ -133,6 +134,13 @@ mod tests {
     }
 
     #[test]
+    fn get_empty_array() {
+        let json: Value = serde_json::from_str(DATA).unwrap();
+        let selector = Some(r#""empty-array""#);
+        assert_eq!(Ok(json["empty-array"].clone()), walker(&json, selector));
+    }
+
+    #[test]
     fn get_item_in_array() {
         let json: Value = serde_json::from_str(DATA).unwrap();
         let selector = Some(r#""array".[0]"#);
@@ -209,6 +217,13 @@ mod tests {
         let json: Value = serde_json::from_str(DATA).unwrap();
         let selector = Some(r#""array".[]"#);
         assert_eq!(Ok(json!([1, 2, 3, null])), walker(&json, selector));
+    }
+
+    #[test]
+    fn get_empty_array_without_index() {
+        let json: Value = serde_json::from_str(DATA).unwrap();
+        let selector = Some(r#""empty-array".[]"#);
+        assert_eq!(Ok(json!([])), walker(&json, selector));
     }
 
     #[test]

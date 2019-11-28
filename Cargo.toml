@@ -5,7 +5,7 @@ description = "A JSON query language CLI tool"
 edition = "2018"
 exclude = [".travis.yml", "after-success.sh", "benches/**/*", "rustfmt.toml"]
 keywords = ["CLI", "JSON", "tool", "query"]
-license = "MIT"
+license-file = "LICENSE-MIT"
 name = "jql"
 readme = "README.md"
 repository = "https://github.com/yamafaktory/jql"
@@ -19,19 +19,20 @@ criterion = "0.3.0"
 
 [dependencies]
 clap = "2.33.0"
-colored_json = "2.0.0"
+colored_json = "2.1.0"
 pest = "2.1.2"
 pest_derive = "2.1.0"
-rayon = "1.2.0"
+rayon = "1.2.1"
 
 [dependencies.serde_json]
-version = "1.0.41"
+version = "1.0.42"
 default-features = false
 features = ["preserve_order"]
 
 [[bench]]
 name = "benchmark"
 harness = false
+path = ""
 
 [lib]
 name = "jql"
