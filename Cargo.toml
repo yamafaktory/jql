@@ -25,7 +25,7 @@ pest_derive = "2.1.0"
 rayon = "1.2.1"
 
 [dependencies.serde_json]
-version = "1.0.41"
+version = "1.0.42"
 default-features = false
 features = ["preserve_order"]
 
