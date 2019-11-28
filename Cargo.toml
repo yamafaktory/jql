@@ -9,7 +9,7 @@ license-file = "LICENSE-MIT"
 name = "jql"
 readme = "README.md"
 repository = "https://github.com/yamafaktory/jql"
-version = "2.4.6"
+version = "2.4.7"
 
 [badges]
 travis-ci = { repository = "yamafaktory/jql" }
