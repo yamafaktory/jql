@@ -104,7 +104,7 @@ pub fn get_selection(selectors: &Selectors, json: &Value) -> Selections {
                 ) {
                     Ok(json) => {
                         inner_json = json.clone();
-                        Ok(json.clone())
+                        Ok(json)
                     }
                     Err(error) => Err(error),
                 },
@@ -124,7 +124,7 @@ pub fn get_selection(selectors: &Selectors, json: &Value) -> Selections {
                 ) {
                     Ok(json) => {
                         inner_json = json.clone();
-                        Ok(json.clone())
+                        Ok(json)
                     }
                     Err(error) => Err(error),
                 },
@@ -138,7 +138,7 @@ pub fn get_selection(selectors: &Selectors, json: &Value) -> Selections {
                 ) {
                     Ok(json) => {
                         inner_json = json.clone();
-                        Ok(json.clone())
+                        Ok(json)
                     }
                     Err(error) => Err(error),
                 },

@@ -18,7 +18,7 @@ before_script:
 
 script:
   - cargo check
-  - cargo clippy --all-targets --all-features -- -D warnings
+  - cargo clippy --all-features -- -D warnings
   - cargo test
   - echo "{\"a\":4}" | cargo run '"a"'
   - |
