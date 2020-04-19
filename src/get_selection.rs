@@ -44,7 +44,6 @@ pub fn get_selection(selectors: &Selectors, json: &Value) -> Selections {
         .iter()
         .enumerate()
         .map(|(map_index, current_selector)| -> Selection {
-            dbg!(current_selector);
             match current_selector {
                 // Object selector.
                 Selector::Object(properties) => properties.iter().fold(
