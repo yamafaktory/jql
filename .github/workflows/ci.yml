@@ -59,3 +59,26 @@ jobs:
             "three": 3
           }
           EOF
+
+  bench:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+        rust: [stable, beta, nightly]
+      steps:
+        - uses: hecrj/setup-rust-action@v1
+          with:
+            rust-version: ${{ matrix.rust }}
+        - uses: actions/checkout@v2
+        - name: Run bench against current branch
+          run: cargo bench --bench benchmark -- --noplot --save-baseline after
+        - uses: actions/checkout@v2
+          with:
+            ref: master
+        - name: Run bench against master branch
+          run: cargo bench --bench benchmark -- --noplot --save-baseline before
+        - name: Install https://github.com/BurntSushi/critcmp
+          run: cargo install critcmp --force
+        - name: Compare before and after benches
+          run: critcmp before after
