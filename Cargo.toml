@@ -33,7 +33,6 @@ features = ["preserve_order"]
 [[bench]]
 name = "benchmark"
 harness = false
-path = ""
 
 [lib]
 name = "jql"
