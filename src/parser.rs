@@ -104,7 +104,7 @@ pub fn selectors_parser(selectors: &str) -> Result<Groups, String> {
                         )),
                         Rule::filter_default => group.3.push(span_to_default(
                             &get_chars_from_default_pair(
-                                inner_pair.into_inner().nth(0).unwrap(),
+                                inner_pair.into_inner().next().unwrap(),
                             )[0]
                             .clone(),
                         )),
@@ -116,7 +116,7 @@ pub fn selectors_parser(selectors: &str) -> Result<Groups, String> {
                         // Range
                         Rule::range => group.2.push(span_to_range(inner_pair)),
                         Rule::filter_range => group.3.push(span_to_range(
-                            inner_pair.into_inner().nth(0).unwrap(),
+                            inner_pair.into_inner().next().unwrap(),
                         )),
                         // Property
                         Rule::property => group.2.push(span_to_object(

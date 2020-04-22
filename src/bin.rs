@@ -4,7 +4,6 @@ use clap::ArgMatches;
 use colored_json::{ColoredFormatter, CompactFormatter, PrettyFormatter};
 use jql::walker;
 use serde_json::{Deserializer, Value};
-use std::error::Error;
 use std::fs::File;
 use std::io;
 use std::io::prelude::Read;
@@ -66,7 +65,7 @@ fn main() {
                 Err(error) => panic!(
                     "Couldn't read {}: {}",
                     path.display(),
-                    error.description()
+                    error.to_string()
                 ),
             }
         }

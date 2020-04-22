@@ -1,0 +1,84 @@
+name: Continuous Integration
+
+on:
+  pull_request:
+  push:
+  schedule:
+    - cron: "00 01 * * *"
+
+jobs:
+  clippy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: hecrj/setup-rust-action@v1
+        with:
+          rust-version: stable
+          components: clippy
+      - uses: actions/checkout@v2
+      - name: Clippy
+        run: cargo clippy --all-features -- -D warnings
+
+  test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macOS-latest]
+        rust: [stable, beta, nightly]
+    steps:
+      - uses: hecrj/setup-rust-action@v1
+        with:
+          rust-version: ${{ matrix.rust }}
+      - uses: actions/checkout@v2
+      - name: Run cargo tests
+        run: cargo test --all-features --verbose
+
+  shell-tests:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macOS-latest]
+        rust: [stable, beta, nightly]
+    steps:
+      - uses: hecrj/setup-rust-action@v1
+        with:
+          rust-version: ${{ matrix.rust }}
+      - uses: actions/checkout@v2
+      - name: Test pipe
+        run: if ! echo "{\"a\":4}" | cargo run '"a"' | grep -q "4"; then exit 1; fi
+      - name: Test heredoc
+        run: |
+          cargo run -q -- '"one".[2:0],"two","three"' <<EOF
+          {
+            "one": [1, 2, 3],
+            "two": 2,
+            "three": 3
+          }
+          {
+            "one": [4, 5, 6],
+            "two": 2,
+            "three": 3
+          }
+          EOF
+
+  bench:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+        rust: [stable, beta, nightly]
+    steps:
+      - uses: hecrj/setup-rust-action@v1
+        with:
+          rust-version: ${{ matrix.rust }}
+      - uses: actions/checkout@v2
+      - name: Run bench against current branch
+        run: cargo bench --bench benchmark -- --noplot --save-baseline after
+      - uses: actions/checkout@v2
+        with:
+          ref: master
+      - name: Run bench against master branch
+        run: cargo bench --bench benchmark -- --noplot --save-baseline before
+      - name: Install https://github.com/BurntSushi/critcmp
+        run: cargo install critcmp --force
+      - name: Compare before and after benches
+        run: critcmp before after

@@ -12,14 +12,14 @@ fn apply_selector(
     // No JSON value has been found.
     if inner_json.get(raw_selector).is_none() {
         if map_index == 0 {
-            Err([
+            return Err([
                 r#"Node ""#,
                 raw_selector,
                 r#"" not found on the parent element"#,
             ]
             .join(""))
         } else {
-            Err([
+            return Err([
                 r#"Node ""#,
                 raw_selector,
                 r#"" not found on parent "#,
@@ -27,10 +27,10 @@ fn apply_selector(
             ]
             .join(""))
         }
-    // Default case.
-    } else {
-        Ok(inner_json[raw_selector].clone())
     }
+
+    // Default case.
+    Ok(inner_json[raw_selector].clone())
 }
 
 /// Returns a selection based on selectors and a JSON content as a Result of
