@@ -72,9 +72,8 @@ jobs:
           rust-version: ${{ matrix.rust }}
       - uses: actions/checkout@v2
       - run: git fetch --no-tags --depth=1 origin master
+      - run: cargo bench --bench benchmark -- --noplot --save-baseline current
       - run: git checkout -b master
       - run: cargo bench --bench benchmark -- --noplot --save-baseline master
-      - run: git checkout ${{ github.event.pull_request.head.sha }}
-      - run: cargo bench --bench benchmark -- --noplot --save-baseline current
       - run: cargo install critcmp --force
       - run: critcmp master current
