@@ -1,4 +1,4 @@
-# JQL
+# JQL ![Build Status](https://github.com/yamafaktory/jql/workflows/ci/badge.svg)
 
 > A JSON Query Language CLI tool built with Rust 🦀
 
