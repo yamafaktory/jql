@@ -61,7 +61,7 @@ jobs:
           EOF
 
   bench:
-    if: contains(github.ref, "ref/head/master") == false
+    if: "!contains(github.ref, 'ref/head/master')"
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
