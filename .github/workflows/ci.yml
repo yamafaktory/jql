@@ -61,8 +61,8 @@ jobs:
           EOF
 
   bench:
-    if: "!contains(github.ref, 'ref/head/master')"
     runs-on: ${{ matrix.os }}
+    if: "!contains(github.ref, 'ref/head/master')"
     strategy:
       matrix:
         os: [ubuntu-latest]
