@@ -11,7 +11,7 @@ pub fn truncate_json(value: Value) -> Value {
         _ => value.to_owned(),
     };
 
-    match value.clone() {
+    match value {
         _ if value.is_array() => value
             .clone()
             .as_array_mut()
