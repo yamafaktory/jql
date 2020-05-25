@@ -88,7 +88,8 @@ pub fn selectors_parser(selectors: &str) -> Result<Groups, String> {
             let mut groups: Groups = Vec::new();
 
             for pair in pairs {
-                let mut group: Group = (None, None, Vec::new(), Vec::new());
+                let mut group: Group =
+                    (None, None, Vec::new(), Vec::new(), None);
 
                 // Loop over the pairs converted as an iterator of the tokens
                 // which composed it.
@@ -129,6 +130,8 @@ pub fn selectors_parser(selectors: &str) -> Result<Groups, String> {
                         Rule::root => group.1 = Some(()),
                         // Spread
                         Rule::spread => group.0 = Some(()),
+                        // Truncate
+                        Rule::truncate => group.4 = Some(()),
                         _ => (),
                     };
                 }

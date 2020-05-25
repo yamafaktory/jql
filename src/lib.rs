@@ -10,6 +10,7 @@ mod get_selection;
 mod group_walker;
 mod parser;
 mod range_selector;
+mod truncate;
 mod types;
 mod utils;
 

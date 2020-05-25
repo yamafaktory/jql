@@ -1,13 +1,15 @@
 use crate::apply_filter::apply_filter;
 use crate::flatten_json_array::flatten_json_array;
 use crate::get_selection::get_selection;
+use crate::truncate::truncate_json;
 use crate::types::{Group, MaybeArray, Selection};
 use serde_json::json;
+
 use serde_json::Value;
 
 /// Walks through a group.
 pub fn group_walker(
-    (spread, root, selectors, filters): &Group,
+    (spread, root, selectors, filters, truncate): &Group,
     json: &Value,
 ) -> Selection {
     // Empty group, return early.
@@ -27,7 +29,7 @@ pub fn group_walker(
 
             let is_spreading = spread.is_some();
 
-            match apply_filter(&filters, &output_json) {
+            let output = match apply_filter(&filters, &output_json) {
                 Ok(filtered) => match filtered {
                     MaybeArray::Array(array) => Ok(if is_spreading {
                         flatten_json_array(&json!(array))
@@ -46,6 +48,14 @@ pub fn group_walker(
                     }
                 },
                 Err(error) => Err(error),
+            };
+
+            match truncate {
+                Some(_) => match output {
+                    Ok(value) => Ok(truncate_json(value)),
+                    Err(error) => Err(error),
+                },
+                None => output,
             }
         }
         Err(items) => Err(items),

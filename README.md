@@ -341,7 +341,7 @@ jql '"laptops".[1:0]|"laptop"|"brand","laptops"|"laptop"|"brand"' example.json
 ]
 ```
 
-### Flattening arrays
+### Flatten arrays
 
 ```json
 {
@@ -364,6 +364,10 @@ jql '.."dna"' example.json
   "t"
 ]
 ```
+
+### Truncate
+
+TODO
 
 ### Special characters
 
