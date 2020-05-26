@@ -1,9 +1,7 @@
-use serde_json::json;
-use serde_json::Map;
-use serde_json::Value;
+use serde_json::{json, Map, Value};
 
 /// Truncate a JSON value.
-pub fn truncate_json(value: Value) -> Value {
+pub fn truncate_json(mut value: Value) -> Value {
     // Closure that returns the primitive of a given value.
     let to_primitive = |value: &Value| match value {
         _ if value.is_array() => json!([]),
@@ -13,7 +11,7 @@ pub fn truncate_json(value: Value) -> Value {
 
     match value {
         _ if value.is_array() => value
-            .clone()
+            // .clone() 
             .as_array_mut()
             .unwrap()
             .iter()
