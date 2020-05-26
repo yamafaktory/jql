@@ -1,9 +1,10 @@
-use crate::group_walker::group_walker;
-use crate::parser::selectors_parser;
-use crate::types::{Selection, Selections};
+use crate::{
+    group_walker::group_walker,
+    parser::selectors_parser,
+    types::{Selection, Selections},
+};
 use rayon::prelude::*;
-use serde_json::json;
-use serde_json::Value;
+use serde_json::{json, Value};
 
 /// Given some selectors walk over the JSON file.
 pub fn walker(json: &Value, selectors: Option<&str>) -> Selection {
@@ -680,7 +681,7 @@ mod tests {
     }
 
     #[test]
-    fn check_truncate() {
+    fn check_truncate_on_root() {
         let json: Value = serde_json::from_str(DATA).unwrap();
         let selector = Some(r#".!"#);
         assert_eq!(
@@ -704,5 +705,39 @@ mod tests {
             })),
             walker(&json, selector)
         );
+    }
+
+    #[test]
+    fn check_truncate_on_nested_value() {
+        let json: Value = serde_json::from_str(DATA).unwrap();
+        let selector = Some(r#""nested-filter".[0]."laptop"!"#);
+        assert_eq!(
+            Ok(json!({
+                "brand": "Apple",
+                "options": [],
+                "price": 9999
+            })),
+            walker(&json, selector)
+        );
+    }
+
+    #[test]
+    fn check_truncate_on_groups() {
+        let json: Value = serde_json::from_str(DATA).unwrap();
+        let selector = Some(r#""nested-filter".[0]."laptop"!, "filter"!"#);
+        assert_eq!(
+            Ok(json!([
+                {"brand": "Apple", "options": [], "price": 9999 },
+                [{},{},{}]
+            ])),
+            walker(&json, selector)
+        );
+    }
+
+    #[test]
+    fn check_truncate_with_filter() {
+        let json: Value = serde_json::from_str(DATA).unwrap();
+        let selector = Some(r#""nested-filter-to-flatten"|"fruit"!"#);
+        assert_eq!(Ok(json!([{}, {}])), walker(&json, selector));
     }
 }

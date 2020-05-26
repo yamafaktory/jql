@@ -367,7 +367,56 @@ jql '.."dna"' example.json
 
 ### Truncate
 
-TODO
+The truncate selector `!` can be used to stop walking the children's values and to explore an unknown JSON file / structure.
+Each children is then transformed into a JSON primitive for convenience, e.g.:
+
+primitive | value                        | result
+--------- | ---------------------------- | -------
+object    | `{ "a": 1, "b": 2, "c": 3 }` | `{}`
+array     | `[1, 2, 3]`                  | `[]`
+string    | `"foo"`                      | `"foo"`
+number    | `666`                        | `666`
+null      | `null`                       | `null`
+
+```json
+{
+  "foo": {
+    "a": null,
+    "b": "bar",
+    "c": 1337,
+    "d": {
+      "woot": [
+        1,
+        2,
+        3
+      ]
+    }
+  }
+}
+```
+
+```sh
+jql '.!' example.json
+```
+
+```json
+{
+  "foo": {}
+}
+```
+
+```sh
+jql '"foo"!' example.json
+```
+
+```json
+{
+  "a": null,
+  "b": "bar",
+  "c": 1337,
+  "d": {}
+}
+```
 
 ### Special characters
 

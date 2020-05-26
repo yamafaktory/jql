@@ -1,3 +1,7 @@
+#![forbid(rust_2018_idioms)]
+#![deny(nonstandard_style)]
+#![warn(missing_debug_implementations, missing_docs)]
+
 //! # A JSON query language library
 //!
 //! This crate is used by `jql`, the `JSON query language CLI tool`.

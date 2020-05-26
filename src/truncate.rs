@@ -11,7 +11,6 @@ pub fn truncate_json(mut value: Value) -> Value {
 
     match value {
         _ if value.is_array() => value
-            // .clone() 
             .as_array_mut()
             .unwrap()
             .iter()
