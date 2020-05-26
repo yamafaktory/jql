@@ -5,7 +5,7 @@ use serde_json::Value;
 use rayon::prelude::*;
 
 /// Apply the filter selectors to a JSON value and returns a selection.
-pub fn apply_filter(
+pub fn apply_filter( 
     filter_selectors: &[Selector],
     json: &Value,
 ) -> ExtendedSelections {

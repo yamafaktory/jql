@@ -1,7 +1,7 @@
 WHITESPACE = _{ " " }
 
 groups = _{ selection ~ ("," ~ selection)* }
-    selection = { (spread? ~ root? ~ (selector ~ ("."? ~ selector)*)?)? ~ filters* }
+    selection = { (spread? ~ root? ~ (selector ~ ("."? ~ selector)*)?)? ~ filters* ~ truncate?}
         root = { "." }
 
         spread = { ".." }
@@ -33,3 +33,5 @@ groups = _{ selection ~ ("," ~ selection)* }
                 filter_default = { default }
                 filter_object = _{ "{" ~ filter_property ~ "}" }
                     filter_property = { default ~ ("," ~ default)* }
+
+        truncate = { "!" }

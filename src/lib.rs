@@ -1,3 +1,7 @@
+#![forbid(rust_2018_idioms)]
+#![deny(nonstandard_style)]
+#![warn(missing_debug_implementations, missing_docs)]
+
 //! # A JSON query language library
 //!
 //! This crate is used by `jql`, the `JSON query language CLI tool`.
@@ -10,6 +14,7 @@ mod get_selection;
 mod group_walker;
 mod parser;
 mod range_selector;
+mod truncate;
 mod types;
 mod utils;
 

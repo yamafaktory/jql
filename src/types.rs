@@ -49,6 +49,8 @@ pub type Group = (
     Vec<Selector>,
     // Filters part.
     Vec<Selector>,
+    // Truncate part.
+    Option<()>,
 );
 
 pub type Groups = Vec<Group>;
@@ -64,4 +66,3 @@ pub type Selection = Result<Value, String>;
 pub type Selections = Result<Vec<Value>, String>;
 
 pub type ExtendedSelections = Result<MaybeArray, String>;
-
