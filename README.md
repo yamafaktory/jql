@@ -11,8 +11,18 @@
 
 ## 🚀 Installation
 
+### Cargo
+
 ```sh
 cargo install jql
+```
+
+### Archlinux
+
+The AUR package is maintained by @frol.
+
+```sh
+yay -S jql
 ```
 
 ## 🛠️ Usage
