@@ -1,29 +1,35 @@
 
-PERFORMANCE_DIR=$(pwd)/performance
+REPORT=$(pwd)/PERFORMANCE.md
+PERFORMANCE_TMP_DIR=$(pwd)/performance_tmp
+MD_FILES="$PERFORMANCE_TMP_DIR/"*".md"
 
-echo $PERFORMANCE_DIR
+# Remove export file if present.
+rm -f $REPORT
 
-rm -R -f $PERFORMANCE_DIR
+# Create the directory.
+mkdir $PERFORMANCE_TMP_DIR
 
+# Run the benchmarks.
 hyperfine \
-    --export-markdown $PERFORMANCE_DIR/OBJECT.md \
-    --min-runs 1 \
+    --export-markdown "$PERFORMANCE_TMP_DIR/OBJECT.md" \
+    --min-runs 2 \
     "echo '{ \"foo\": \"bar\" }' | jq '.foo'" \
     "echo '{ \"foo\": \"bar\" }' | jql '."foo"'"
 
 hyperfine \
-    --export-markdown $PERFORMANCE_DIR/ARRAY_INDEX.md \
-    --min-runs 1 \
+    --export-markdown "$PERFORMANCE_TMP_DIR/ARRAY_INDEX.md" \
+    --min-runs 2 \
     "echo '[1, 2, 3]' | jq '.[0]'" \
     "echo '[1, 2, 3]' | jql '.[0]'"
 
 hyperfine \
-    --export-markdown $PERFORMANCE_DIR/ARRAY_FLATTEN.md \
-    --min-runs 1 \
+    --export-markdown "$PERFORMANCE_TMP_DIR/ARRAY_FLATTEN.md" \
+    --min-runs 2 \
     "echo '[1, [2], [[3]]]' | jq 'flatten'" \
     "echo '[1, [2], [[3]]]' | jql '...'"
 
-#echo | cat ARRAY.md - FLATTEN.md > PERFORMANCE.md
-echo | cat $PERFORMANCE_DIR/*.md > PERFORMANCE.md
+# Merge all the markdown files into the performance one.
+for md_file in $MD_FILES; do (cat "${md_file}"; echo) >> $REPORT; done
 
-#rm ARRAY.md FLATTEN.md
+# Remove the directory.
+rm -R -f $PERFORMANCE_TMP_DIR
