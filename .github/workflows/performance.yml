@@ -9,6 +9,11 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
+      - uses: hecrj/setup-rust-action@v1
+        with:
+          rust-version: stable
       - uses: actions/checkout@v2
+      - name: Install jq and jql
+        run: sudo apt-get install jq && cargo install jql
       - name: Run performance benchmarks
         run: ./performance.sh
