@@ -13,7 +13,7 @@ jobs:
         with:
           rust-version: stable
       - uses: actions/checkout@v2
-      - name: Install jq and jql
-        run: sudo apt-get install jq && cargo install jql
+      - name: Install hyperfine and jql - jq is already available!
+        run: cargo install hyperfine && cargo install jql
       - name: Run performance benchmarks
         run: ./performance.sh
