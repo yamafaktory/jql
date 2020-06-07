@@ -17,3 +17,5 @@ jobs:
         run: cargo install hyperfine && cargo install jql
       - name: Run performance benchmarks
         run: ./performance.sh
+      - name: test
+        run: git status
