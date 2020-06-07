@@ -1,0 +1,13 @@
+name: performance
+
+on:
+  pull_request:
+  schedule:
+    - cron: "00 01 * * *"
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run performance benchmarks
+        run: ./performance.sh

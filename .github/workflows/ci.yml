@@ -3,8 +3,8 @@ name: ci
 on:
   pull_request:
   push:
-  schedule:
-    - cron: "00 01 * * *"
+    branches:
+    - master
 
 jobs:
   clippy:
