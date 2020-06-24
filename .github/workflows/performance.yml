@@ -17,5 +17,9 @@ jobs:
         run: cargo install hyperfine && cargo install jql
       - name: Run performance benchmarks
         run: ./performance.sh
-      - name: test
-        run: git status
+      - name: Commit to pull-request branch
+        run: |
+          git config --global user.name 'yamafaktory'
+          git config --global user.email 'yamafaktory@gmail.com'
+          git commit -am "chore(performance): update benchmarks"
+          git push
