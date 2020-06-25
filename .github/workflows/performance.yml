@@ -7,7 +7,7 @@ on:
 
 jobs:
   performance:
-    if: "! contains(toJSON(github.event.commits.*.message), '[skip ci]')"
+    if: "!contains(toJSON(github.event.commits.*.message), '[skip ci]')"
     runs-on: ubuntu-latest
     steps:
       - uses: hecrj/setup-rust-action@v1
