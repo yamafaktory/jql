@@ -8,6 +8,7 @@ on:
 
 jobs:
   clippy:
+    if: "! contains(toJSON(github.event.commits.*.message), '[skip ci]')"
     runs-on: ubuntu-latest
     steps:
       - uses: hecrj/setup-rust-action@v1
@@ -19,6 +20,7 @@ jobs:
         run: cargo clippy --all-features -- -D warnings
 
   test:
+    if: "! contains(toJSON(github.event.commits.*.message), '[skip ci]')"
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -33,6 +35,7 @@ jobs:
         run: cargo test --all-features --verbose
 
   shell-tests:
+    if: "! contains(toJSON(github.event.commits.*.message), '[skip ci]')"
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -61,6 +64,7 @@ jobs:
           EOF
 
   bench:
+    if: "! contains(toJSON(github.event.commits.*.message), '[skip ci]')"
     runs-on: ${{ matrix.os }}
     if: "!contains(github.ref, 'refs/heads/master')"
     strategy:

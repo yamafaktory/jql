@@ -6,7 +6,8 @@ on:
     - cron: "00 01 * * *"
 
 jobs:
-  test:
+  performance:
+    if: "! contains(toJSON(github.event.commits.*.message), '[skip ci]')"
     runs-on: ubuntu-latest
     steps:
       - uses: hecrj/setup-rust-action@v1
@@ -24,5 +25,5 @@ jobs:
         run: |
           git config --global user.name 'yamafaktory'
           git config --global user.email 'yamafaktory@gmail.com'
-          git commit -am "chore(performance): update benchmarks"
+          git commit -am "chore(performance): update benchmarks [skip ci]"
           git push
