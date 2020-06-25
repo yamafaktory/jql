@@ -506,4 +506,4 @@ This crate is both a binary (the CLI tool) and a library that can be directly us
 
 ## ⚡ Performance
 
-See [performance](PERFORMANCE.md)
+On every pull-request some benchmarks are running in order to compare a set of similar functionalities provided by this tool and [jq](https://stedolan.github.io/jq/), please see [performance](PERFORMANCE.md).
