@@ -502,3 +502,8 @@ jql --inline '"some"."selector"' example.json
 ## 🍿 Library
 
 This crate is both a binary (the CLI tool) and a library that can be directly used https://docs.rs/crate/jql/.
+
+
+## ⚡ Performance
+
+Every night some benchmarks are running in order to compare a set of similar functionalities provided by this tool and [jq](https://stedolan.github.io/jq/), please see [performance](PERFORMANCE.md).
