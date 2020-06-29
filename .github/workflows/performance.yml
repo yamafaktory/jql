@@ -22,5 +22,5 @@ jobs:
         run: |
           git config --global user.name 'yamafaktory'
           git config --global user.email 'yamafaktory@gmail.com'
-          git commit -am "chore(performance): update benchmarks"
+          git commit -am "chore(performance): update benchmarks - [skip ci]"
           git push
