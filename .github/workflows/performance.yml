@@ -1,6 +1,9 @@
 name: performance
 
 on:
+  push:
+    branches:
+    - master
   schedule:
     - cron: "00 01 * * *"
 
