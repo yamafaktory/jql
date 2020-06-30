@@ -83,3 +83,25 @@ jobs:
           cargo bench --bench benchmark -- --noplot --save-baseline master
           cargo install critcmp --force
           critcmp master current
+
+  performance:
+    if: "!contains(github.ref, 'refs/heads/master') && !contains(toJSON(github.event.commits.*.message), '[skip ci]')"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: hecrj/setup-rust-action@v1
+        with:
+          rust-version: stable
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.ref }}
+      - name: Install hyperfine and jql - jq is already available!
+        run: cargo install hyperfine && cargo install jql
+      - name: Run performance benchmarks
+        run: ./performance.sh
+      - name: Commit directly to pull-request branch
+        run: |
+          git config --global user.name 'yamafaktory'
+          git config --global user.email 'yamafaktory@gmail.com'
+          git commit -am "chore(performance): update benchmarks - [skip ci]"
+          git push
