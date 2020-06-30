@@ -25,10 +25,5 @@ jobs:
         run: |
           git config --global user.name 'yamafaktory'
           git config --global user.email 'yamafaktory@gmail.com'
-          git commit -a -F- <<EOF
-          chore(performance): update benchmarks - [skip ci]
-
-
-          skip-checks: true
-          EOF
-          git push
+          git commit -am "chore(performance): update benchmarks - [skip ci]"
+          git push --force
