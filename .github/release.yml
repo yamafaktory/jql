@@ -1,0 +1,34 @@
+name: release
+
+on:
+  pull_request
+  #push:
+  #tags: ['[0-9]+.[0-9]+.[0-9]+*']
+
+jobs:
+  performance:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: hecrj/setup-rust-action@v1
+        with:
+          rust-version: stable
+      - uses: actions/checkout@v2
+        with:
+          ref: performance
+      - name: Install hyperfine and jql - jq is already available!
+        run: cargo install hyperfine && cargo install jql
+      - name: Run performance benchmarks
+        run: ./performance.sh
+      - name: Create pull-request
+        uses: peter-evans/create-pull-request@v2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: "chore(performance): update benchmarks"
+          committer: GitHub <noreply@github.com>
+          author: ${{ github.actor }} <${{ github.actor }}@users.noreply.github.com>
+          title: "[Performance] Update benchmarks"
+          body: Update PERFORMANCE.md file
+          labels: enhancement
+          assignees: yamafaktory
+          reviewers: yamafaktory
+          branch: performance
