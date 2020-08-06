@@ -15,7 +15,7 @@ version = "2.6.6-alpha.0"
 travis-ci = { repository = "yamafaktory/jql" }
 
 [dev-dependencies]
-criterion = "0.3.3"
+criterion = "=0.3.2"
 
 [dependencies]
 clap = "2.33.2"
