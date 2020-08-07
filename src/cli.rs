@@ -27,5 +27,11 @@ pub fn get_matches<'a>() -> ArgMatches<'a> {
                 .long("inline")
                 .short("i"),
         )
+        .arg(
+            Arg::with_name("raw-output")
+                .help("Writes raw string selection directly to standard output without JSON double-quotes")
+                .long("raw-output")
+                .short("r"),
+        )
         .get_matches()
 }
