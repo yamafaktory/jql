@@ -48,6 +48,8 @@ jobs:
       - uses: actions/checkout@v2
       - name: Test pipe
         run: if ! echo "{\"a\":4}" | cargo run '"a"' | grep -q "4"; then exit 1; fi
+      - name: Test raw-ouput flag
+        run: if echo "{\"foo\":\"bar\"}" | cargo run '"foo"' -r | grep -q \"bar\"; then exit 1; fi
       - name: Test heredoc
         run: |
           cargo run -q -- '"one".[2:0],"two","three"' <<EOF

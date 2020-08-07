@@ -15,6 +15,7 @@ use std::path::Path;
 /// error.
 fn output(json_content: &str, cli: &ArgMatches<'_>) {
     let inline = cli.is_present("inline");
+    let raw_output = cli.is_present("raw-output");
     let selectors = cli.value_of("selectors");
 
     Deserializer::from_str(json_content)
@@ -30,11 +31,20 @@ fn output(json_content: &str, cli: &ArgMatches<'_>) {
                         (if inline {
                             ColoredFormatter::new(CompactFormatter {})
                                 .to_colored_json_auto(&selection)
+                                .unwrap()
                         } else {
-                            ColoredFormatter::new(PrettyFormatter::new())
-                                .to_colored_json_auto(&selection)
+                            // If the selection is a string and the raw-output
+                            // flag is passed, directly return the raw string
+                            // without JSON double-quotes.
+                            // https://github.com/serde-rs/json/issues/367
+                            if raw_output && selection.is_string() {
+                                String::from(selection.as_str().unwrap())
+                            } else {
+                                ColoredFormatter::new(PrettyFormatter::new())
+                                    .to_colored_json_auto(&selection)
+                                    .unwrap()
+                            }
                         })
-                        .unwrap()
                     ),
                     Err(error) => eprintln!("{}", error),
                 }

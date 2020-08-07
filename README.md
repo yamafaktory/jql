@@ -499,6 +499,15 @@ jql -i '"some"."selector"' example.json
 jql --inline '"some"."selector"' example.json
 ```
 
+#### Raw output
+
+Use the `raw-output` flag on a string selection to directly return the raw string without JSON double-quotes:
+
+```sh
+echo "{\"foo\":\"bar\"}" | jql -r '"foo"'
+bar
+```
+
 ## 🍿 Library
 
 This crate is both a binary (the CLI tool) and a library that can be directly used https://docs.rs/crate/jql/.

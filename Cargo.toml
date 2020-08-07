@@ -3,7 +3,13 @@ authors = ["Davy Duperron <yamafaktory@gmail.com>"]
 categories = ["command-line-utilities"]
 description = "A JSON query language CLI tool"
 edition = "2018"
-exclude = [".github", ".travis.yml", "benches/**/*", "performance.sh", "rustfmt.toml"]
+exclude = [
+    ".github",
+    ".travis.yml",
+    "benches/**/*",
+    "performance.sh",
+    "rustfmt.toml"
+]
 keywords = ["cli", "json", "terminal", "tool", "query"]
 license = "MIT"
 name = "jql"
@@ -15,6 +21,7 @@ version = "2.6.7-alpha.0"
 travis-ci = { repository = "yamafaktory/jql" }
 
 [dev-dependencies]
+# Lock version until https://github.com/BurntSushi/critcmp/issues/5 is fixed.
 criterion = "=0.3.2"
 
 [dependencies]
