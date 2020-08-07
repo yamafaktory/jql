@@ -504,6 +504,8 @@ jql --inline '"some"."selector"' example.json
 Use the `raw-output` flag on a string selection to directly return the raw string without JSON double-quotes:
 
 ```sh
+echo "{\"foo\":\"bar\"}" | jql --raw-output '"foo"'
+bar
 echo "{\"foo\":\"bar\"}" | jql -r '"foo"'
 bar
 ```
