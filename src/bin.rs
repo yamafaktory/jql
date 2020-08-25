@@ -4,12 +4,12 @@ use clap::ArgMatches;
 use colored_json::{ColoredFormatter, CompactFormatter, PrettyFormatter};
 use jql::walker;
 use serde_json::{Deserializer, Value};
-use std::fs::File;
-use std::io;
-use std::io::prelude::Read;
-use std::io::prelude::*;
-use std::io::BufReader;
-use std::path::Path;
+use std::{
+    fs::File,
+    io::{prelude::*, stdin, BufReader},
+    path::Path,
+    process::exit,
+};
 
 /// Try to serialize the raw JSON content, output the selection or throw an
 /// error.
@@ -46,10 +46,16 @@ fn output(json_content: &str, cli: &ArgMatches<'_>) {
                             }
                         })
                     ),
-                    Err(error) => eprintln!("{}", error),
+                    Err(error) => {
+                        eprintln!("{}sdf", error);
+                        exit(1);
+                    }
                 }
             }
-            Err(_) => eprintln!("Invalid JSON file or content"),
+            Err(_) => {
+                eprintln!("Invalid JSON file or content");
+                exit(1);
+            }
         });
 }
 
@@ -64,7 +70,7 @@ fn main() {
                 Ok(file) => file,
                 Err(_) => {
                     eprintln!("File {:?} not found", &path);
-                    return;
+                    exit(1);
                 }
             };
             let mut buffer_reader = BufReader::new(file);
@@ -82,11 +88,14 @@ fn main() {
         // JSON content coming from the stdin.
         None => {
             let stdin: Result<String, std::io::Error> =
-                io::stdin().lock().lines().collect();
+                stdin().lock().lines().collect();
 
             match stdin {
                 Ok(json) => output(&json, &cli),
-                Err(error) => eprintln!("Error: {}", error),
+                Err(error) => {
+                    eprintln!("Error: {}", error);
+                    exit(1);
+                }
             }
         }
     }
