@@ -17,9 +17,6 @@ readme = "README.md"
 repository = "https://github.com/yamafaktory/jql"
 version = "2.7.2-alpha.0"
 
-[badges]
-travis-ci = { repository = "yamafaktory/jql" }
-
 [dev-dependencies]
 # Lock version until https://github.com/BurntSushi/critcmp/issues/5 is fixed.
 criterion = "=0.3.2"
