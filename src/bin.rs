@@ -47,7 +47,7 @@ fn output(json_content: &str, cli: &ArgMatches<'_>) {
                         })
                     ),
                     Err(error) => {
-                        eprintln!("{}sdf", error);
+                        eprintln!("{}", error);
                         exit(1);
                     }
                 }
