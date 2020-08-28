@@ -15,7 +15,7 @@ hyperfine \
     --export-markdown "$PERFORMANCE_TMP_DIR/OBJECT.md" \
     --min-runs $MIN_RUNS \
     "echo '{ \"foo\": \"bar\" }' | jq '.foo'" \
-    "echo '{ \"foo\": \"bar\" }' | jql '."foo"'"
+    "echo '{ \"foo\": \"bar\" }' | jql '.\"foo\"'"
 
 hyperfine \
     --export-markdown "$PERFORMANCE_TMP_DIR/ARRAY_INDEX.md" \
