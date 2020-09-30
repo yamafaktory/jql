@@ -313,7 +313,7 @@ checksum = "1306f3464951f30e30d12373d31c79fbd52d236e5e896fd92f96ec7babbbe60b"
 
 [[package]]
 name = "jql"
-version = "2.7.3-alpha.0"
+version = "2.7.3"
 dependencies = [
  "clap",
  "colored_json",
