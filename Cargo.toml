@@ -25,12 +25,12 @@ clap = "2.33.3"
 colored_json = "2.1.0"
 pest = "2.1.3"
 pest_derive = "2.1.0"
-rayon = "1.4.0"
+rayon = "1.4.1"
 
 [dependencies.serde_json]
 default-features = false
 features = ["preserve_order"]
-version = "1.0.57"
+version = "1.0.58"
 
 [[bench]]
 harness = false
