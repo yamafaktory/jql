@@ -16,18 +16,13 @@ pub fn truncate_json(mut value: Value) -> Value {
             .iter()
             .map(|element| to_primitive(element))
             .collect::<Value>(),
-        _ if value.is_object() => {
-            Value::Object(value.as_object().unwrap().iter().fold(
-                Map::new(),
-                |mut acc, property| {
-                    acc.insert(
-                        property.0.to_string(),
-                        to_primitive(property.1),
-                    );
-                    acc
-                },
-            ))
-        }
+        _ if value.is_object() => Value::Object(value.as_object().unwrap().iter().fold(
+            Map::new(),
+            |mut acc, property| {
+                acc.insert(property.0.to_string(), to_primitive(property.1));
+                acc
+            },
+        )),
         _ => value,
     }
 }

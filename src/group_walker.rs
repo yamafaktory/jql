@@ -3,6 +3,7 @@ use crate::flatten_json_array::flatten_json_array;
 use crate::get_selection::get_selection;
 use crate::truncate::truncate_json;
 use crate::types::{Group, MaybeArray, Selection};
+
 use serde_json::json;
 
 use serde_json::Value;

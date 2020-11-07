@@ -1,14 +1,12 @@
 use crate::get_selection::get_selection;
 use crate::types::{ExtendedSelections, MaybeArray, Selections, Selector};
+
+use rayon::prelude::*;
 use serde_json::json;
 use serde_json::Value;
-use rayon::prelude::*;
 
 /// Apply the filter selectors to a JSON value and returns a selection.
-pub fn apply_filter( 
-    filter_selectors: &[Selector],
-    json: &Value,
-) -> ExtendedSelections {
+pub fn apply_filter(filter_selectors: &[Selector], json: &Value) -> ExtendedSelections {
     // Apply the filter iff the provided JSON value is an array.
     match json.as_array() {
         Some(array) => {
@@ -35,12 +33,7 @@ pub fn apply_filter(
                 None => Ok(MaybeArray::Array(selections.iter().fold(
                     Vec::new(),
                     |mut acc: Vec<Value>, selection| {
-                        acc.push(json!(selection
-                            .clone()
-                            .unwrap()
-                            .last()
-                            .unwrap()
-                            .clone()));
+                        acc.push(json!(selection.clone().unwrap().last().unwrap().clone()));
 
                         acc
                     },

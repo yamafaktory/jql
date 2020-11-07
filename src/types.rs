@@ -2,6 +2,7 @@ use crate::utils::{
     display_array_selector, display_default_selector, display_index_selector,
     display_object_selector, display_range_selector,
 };
+
 use serde_json::Value;
 
 #[derive(Debug)]
@@ -22,18 +23,10 @@ impl Display for Selector {
     fn as_str(&self, capitalized: bool) -> String {
         match self {
             Selector::Array => display_array_selector(capitalized),
-            Selector::Default(value) => {
-                display_default_selector(&value.clone(), capitalized)
-            }
-            Selector::Range(range) => {
-                display_range_selector(*range, capitalized)
-            }
-            Selector::Index(indexes) => {
-                display_index_selector(indexes, capitalized)
-            }
-            Selector::Object(properties) => {
-                display_object_selector(properties, capitalized)
-            }
+            Selector::Default(value) => display_default_selector(&value.clone(), capitalized),
+            Selector::Range(range) => display_range_selector(*range, capitalized),
+            Selector::Index(indexes) => display_index_selector(indexes, capitalized),
+            Selector::Object(properties) => display_object_selector(properties, capitalized),
         }
     }
 }

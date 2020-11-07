@@ -1,5 +1,6 @@
 use crate::types::Selector;
 use crate::types::{Group, Groups};
+
 use pest::{iterators as pest_iterators, Parser};
 use pest_derive::*;
 
@@ -37,19 +38,15 @@ fn span_to_object(inner_span: Vec<String>) -> Selector {
 fn span_to_range(pair: PestPair<'_>) -> Selector {
     let (start, end) = pair.into_inner().fold(
         (None, None),
-        |acc: (Option<PestPair<'_>>, Option<PestPair<'_>>), inner_pair| {
-            match inner_pair.as_rule() {
-                Rule::start => (Some(inner_pair.clone()), acc.1),
-                Rule::end => (acc.0, Some(inner_pair.clone())),
-                _ => (None, None),
-            }
+        |acc: (Option<PestPair<'_>>, Option<PestPair<'_>>), inner_pair| match inner_pair.as_rule() {
+            Rule::start => (Some(inner_pair.clone()), acc.1),
+            Rule::end => (acc.0, Some(inner_pair.clone())),
+            _ => (None, None),
         },
     );
 
     let position_to_usize = |value: Option<PestPair<'_>>| match value {
-        Some(pair) => {
-            Some(usize::from_str_radix(pair.as_span().as_str(), 10).unwrap())
-        }
+        Some(pair) => Some(usize::from_str_radix(pair.as_span().as_str(), 10).unwrap()),
         None => None,
     };
 
@@ -88,8 +85,7 @@ pub fn selectors_parser(selectors: &str) -> Result<Groups, String> {
             let mut groups: Groups = Vec::new();
 
             for pair in pairs {
-                let mut group: Group =
-                    (None, None, Vec::new(), Vec::new(), None);
+                let mut group: Group = (None, None, Vec::new(), Vec::new(), None);
 
                 // Loop over the pairs converted as an iterator of the tokens
                 // which composed it.
@@ -104,28 +100,33 @@ pub fn selectors_parser(selectors: &str) -> Result<Groups, String> {
                             &get_chars_from_default_pair(inner_pair)[0].clone(),
                         )),
                         Rule::filter_default => group.3.push(span_to_default(
-                            &get_chars_from_default_pair(
-                                inner_pair.into_inner().next().unwrap(),
-                            )[0]
+                            &get_chars_from_default_pair(inner_pair.into_inner().next().unwrap())
+                                [0]
                             .clone(),
                         )),
                         // Index
                         Rule::index => group.2.push(span_to_index(inner_span)),
-                        Rule::filter_index => {
-                            group.3.push(span_to_index(inner_span))
-                        }
+                        Rule::filter_index => group.3.push(span_to_index(inner_span)),
                         // Range
                         Rule::range => group.2.push(span_to_range(inner_pair)),
-                        Rule::filter_range => group.3.push(span_to_range(
-                            inner_pair.into_inner().next().unwrap(),
-                        )),
+                        Rule::filter_range => group
+                            .3
+                            .push(span_to_range(inner_pair.into_inner().next().unwrap())),
                         // Property
-                        Rule::property => group.2.push(span_to_object(
-                            get_nested_chars_from_default_pair(inner_pair),
-                        )),
-                        Rule::filter_property => group.3.push(span_to_object(
-                            get_nested_chars_from_default_pair(inner_pair),
-                        )),
+                        Rule::property => {
+                            group
+                                .2
+                                .push(span_to_object(get_nested_chars_from_default_pair(
+                                    inner_pair,
+                                )))
+                        }
+                        Rule::filter_property => {
+                            group
+                                .3
+                                .push(span_to_object(get_nested_chars_from_default_pair(
+                                    inner_pair,
+                                )))
+                        }
                         // Root
                         Rule::root => group.1 = Some(()),
                         // Spread
