@@ -1,4 +1,5 @@
 use crate::types::{Display, Selection, Selector, Selectors};
+
 use serde_json::{json, Value};
 
 /// Returns a range selection or an error.
@@ -61,13 +62,12 @@ pub fn range_selector(
                 // Get the normalized slice selection, i.e. from end to start.
                 let normalized_range_selection = json!(json_array[end..=start]);
                 // Reverse it.
-                let reversed_range_selection: Vec<&Value> =
-                    normalized_range_selection
-                        .as_array()
-                        .unwrap()
-                        .iter()
-                        .rev()
-                        .collect();
+                let reversed_range_selection: Vec<&Value> = normalized_range_selection
+                    .as_array()
+                    .unwrap()
+                    .iter()
+                    .rev()
+                    .collect();
                 json!(reversed_range_selection)
             })
         }

@@ -1,6 +1,7 @@
 use crate::array_walker::array_walker;
 use crate::range_selector::range_selector;
 use crate::types::{Display, Selection, Selections, Selector, Selectors};
+
 use serde_json::{json, Value};
 
 fn apply_selector(
@@ -17,7 +18,7 @@ fn apply_selector(
                 raw_selector,
                 r#"" not found on the parent element"#,
             ]
-            .join(""))
+            .join(""));
         } else {
             return Err([
                 r#"Node ""#,
@@ -25,7 +26,7 @@ fn apply_selector(
                 r#"" not found on parent "#,
                 &selectors[map_index - 1].as_str(false),
             ]
-            .join(""))
+            .join(""));
         }
     }
 
@@ -46,41 +47,32 @@ pub fn get_selection(selectors: &Selectors, json: &Value) -> Selections {
         .map(|(map_index, current_selector)| -> Selection {
             match current_selector {
                 // Object selector.
-                Selector::Object(properties) => properties.iter().fold(
-                    Ok(json!({})),
-                    |acc: Selection, property| {
-                        let value = apply_selector(
-                            &inner_json,
-                            map_index,
-                            property,
-                            selectors,
-                        );
-                        match value {
-                            Ok(value) => match acc {
-                                Ok(mut current) => {
-                                    // Get the associated mutable Map and insert
-                                    // the property.
-                                    current
-                                        .as_object_mut()
-                                        .unwrap()
-                                        .insert(property.clone(), value);
-                                    Ok(current)
-                                }
+                Selector::Object(properties) => {
+                    properties
+                        .iter()
+                        .fold(Ok(json!({})), |acc: Selection, property| {
+                            let value = apply_selector(&inner_json, map_index, property, selectors);
+                            match value {
+                                Ok(value) => match acc {
+                                    Ok(mut current) => {
+                                        // Get the associated mutable Map and insert
+                                        // the property.
+                                        current
+                                            .as_object_mut()
+                                            .unwrap()
+                                            .insert(property.clone(), value);
+                                        Ok(current)
+                                    }
+                                    Err(error) => Err(error),
+                                },
                                 Err(error) => Err(error),
-                            },
-                            Err(error) => Err(error),
-                        }
-                    },
-                ),
+                            }
+                        })
+                }
 
                 // Default selector.
                 Selector::Default(raw_selector) => {
-                    match apply_selector(
-                        &inner_json,
-                        map_index,
-                        raw_selector,
-                        selectors,
-                    ) {
+                    match apply_selector(&inner_json, map_index, raw_selector, selectors) {
                         Ok(ref json) => {
                             inner_json = json.clone();
                             Ok(json.clone())
@@ -130,18 +122,15 @@ pub fn get_selection(selectors: &Selectors, json: &Value) -> Selections {
                 },
 
                 // Index selector.
-                Selector::Index(array_indexes) => match array_walker(
-                    &array_indexes,
-                    &inner_json,
-                    map_index,
-                    &selectors,
-                ) {
-                    Ok(json) => {
-                        inner_json = json.clone();
-                        Ok(json)
+                Selector::Index(array_indexes) => {
+                    match array_walker(&array_indexes, &inner_json, map_index, &selectors) {
+                        Ok(json) => {
+                            inner_json = json.clone();
+                            Ok(json)
+                        }
+                        Err(error) => Err(error),
                     }
-                    Err(error) => Err(error),
-                },
+                }
             }
         })
         .collect()

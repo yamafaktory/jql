@@ -1,5 +1,5 @@
 #![forbid(rust_2018_idioms)]
-#![deny(nonstandard_style)]
+#![deny(unsafe_code, nonstandard_style)]
 #![warn(missing_debug_implementations, missing_docs)]
 
 //! # A JSON query language library
@@ -19,6 +19,7 @@ mod types;
 mod utils;
 
 use crate::types::Selection;
+
 use serde_json::Value;
 
 /// Process a Serde JSON Value based on the provided selectors.

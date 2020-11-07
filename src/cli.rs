@@ -1,7 +1,4 @@
-use clap::{
-    crate_authors, crate_description, crate_name, crate_version, App, Arg,
-    ArgMatches,
-};
+use clap::{crate_authors, crate_description, crate_name, crate_version, App, Arg, ArgMatches};
 
 /// Get the CLI matches.
 pub fn get_matches<'a>() -> ArgMatches<'a> {
@@ -32,6 +29,12 @@ pub fn get_matches<'a>() -> ArgMatches<'a> {
                 .help("Writes raw string selection directly to standard output without JSON double-quotes")
                 .long("raw-output")
                 .short("r"),
+        )
+        .arg(
+            Arg::with_name("stream")
+                .help("Reads a stream of JSON data line by line")
+                .long("stream")
+                .short("s"),
         )
         .get_matches()
 }

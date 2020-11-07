@@ -3,6 +3,7 @@ use crate::{
     parser::selectors_parser,
     types::{Selection, Selections},
 };
+
 use rayon::prelude::*;
 use serde_json::{json, Value};
 
@@ -301,8 +302,7 @@ mod tests {
 
     #[test]
     fn get_single_value() {
-        let json_single_value: Value =
-            serde_json::from_str(SINGLE_VALUE_DATA).unwrap();
+        let json_single_value: Value = serde_json::from_str(SINGLE_VALUE_DATA).unwrap();
         let selector = Some(".");
         assert_eq!(
             Ok(json_single_value.clone()),
@@ -312,8 +312,7 @@ mod tests {
 
     #[test]
     fn get_single_null_value() {
-        let json_single_value: Value =
-            serde_json::from_str(SINGLE_NULL_VALUE_DATA).unwrap();
+        let json_single_value: Value = serde_json::from_str(SINGLE_NULL_VALUE_DATA).unwrap();
         let selector = Some(".");
         assert_eq!(Ok(Value::Null), walker(&json_single_value, selector));
     }
@@ -339,10 +338,7 @@ mod tests {
         let quote_selector = Some(r##""\"""##);
         let space_selector = Some(r#"" ""#);
         let empty_selector = Some(r#""""#);
-        assert_eq!(
-            Ok(json[".property.."].clone()),
-            walker(&json, dot_selector)
-        );
+        assert_eq!(Ok(json[".property.."].clone()), walker(&json, dot_selector));
         assert_eq!(Ok(json[r#"""#].clone()), walker(&json, quote_selector));
         assert_eq!(Ok(json[" "].clone()), walker(&json, space_selector));
         assert_eq!(Ok(json[r#""#].clone()), walker(&json, empty_selector));
@@ -467,10 +463,7 @@ mod tests {
     fn get_filter() {
         let json: Value = serde_json::from_str(DATA).unwrap();
         let selector = Some(r#""filter"|"color""#);
-        assert_eq!(
-            Ok(json!(["red", "green", "blue"])),
-            walker(&json, selector)
-        );
+        assert_eq!(Ok(json!(["red", "green", "blue"])), walker(&json, selector));
     }
 
     #[test]
@@ -546,10 +539,7 @@ mod tests {
     fn get_nested_filter_with_range() {
         let json: Value = serde_json::from_str(DATA).unwrap();
         let selector = Some(r#""nested-filter"|"laptop"."options".[1:2]"#);
-        assert_eq!(
-            Ok(json!([["b", "c"], ["e", "f"]])),
-            walker(&json, selector)
-        );
+        assert_eq!(Ok(json!([["b", "c"], ["e", "f"]])), walker(&json, selector));
     }
 
     #[test]
@@ -658,9 +648,7 @@ mod tests {
         let json: Value = serde_json::from_str(DATA).unwrap();
         let selector = Some(r#""nested-filter"|"laptop"|{"price","brand"}"#);
         assert_eq!(
-            Ok(
-                json!([{"price": 9999, "brand": "Apple"}, {"price": 999, "brand": "Asus"}])
-            ),
+            Ok(json!([{"price": 9999, "brand": "Apple"}, {"price": 999, "brand": "Asus"}])),
             walker(&json, selector)
         );
     }

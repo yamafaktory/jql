@@ -1,4 +1,5 @@
 use crate::types::{Display, Selection, Selections, Selectors};
+
 use serde_json::json;
 use serde_json::Value;
 
@@ -21,12 +22,12 @@ pub fn array_walker(
                     Some(array) => {
                         if selectors.len() == 1 {
                             [
-                        "Index [",
-                        index.to_string().as_str(),
-                        "] is out of bound, root element has a length of ",
-                        &(array.len()).to_string(),
-                    ]
-                    .join("")
+                                "Index [",
+                                index.to_string().as_str(),
+                                "] is out of bound, root element has a length of ",
+                                &(array.len()).to_string(),
+                            ]
+                            .join("")
                         } else {
                             [
                                 "Index [",
@@ -45,11 +46,7 @@ pub fn array_walker(
                         if selectors.len() == 1 || map_index == 0 {
                             String::from("Root element is not an array")
                         } else {
-                            [
-                                &selectors[map_index - 1].as_str(true),
-                                " is not an array",
-                            ]
-                            .join("")
+                            [&selectors[map_index - 1].as_str(true), " is not an array"].join("")
                         }
                     }
                 };

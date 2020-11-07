@@ -46,10 +46,7 @@ pub fn display_index_selector(indexes: &[usize], capitalized: bool) -> String {
 }
 
 /// Convert an object selector to a readable string.
-pub fn display_object_selector(
-    properties: &[String],
-    capitalized: bool,
-) -> String {
+pub fn display_object_selector(properties: &[String], capitalized: bool) -> String {
     if properties.len() == 1 {
         [
             if capitalized {
