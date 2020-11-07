@@ -30,5 +30,11 @@ pub fn get_matches<'a>() -> ArgMatches<'a> {
                 .long("raw-output")
                 .short("r"),
         )
+        .arg(
+            Arg::with_name("stream")
+                .help("Reads a stream of JSON data line by line")
+                .long("stream")
+                .short("s"),
+        )
         .get_matches()
 }

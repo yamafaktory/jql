@@ -76,6 +76,8 @@ async fn main() -> Result<()> {
 
         // JSON content coming from stdin.
         None => {
+            let stream = cli.is_present("stream");
+
             task::block_on(async {
                 let stdin = io::stdin();
                 let mut stdout = io::stdout();
@@ -85,16 +87,24 @@ async fn main() -> Result<()> {
                     // Read a line from stdin.
                     let n = stdin.read_line(&mut line).await?;
 
-                    // If this is the end of stdin, return.
+                    // Check for the EOF.
                     if n == 0 {
+                        // Render the output for the general case.
+                        if !stream {
+                            render_output(&line, &cli);
+                        }
+
                         return Ok(());
                     }
 
-                    render_output(&line, &cli);
+                    // Render every line for the stream option.
+                    if stream {
+                        render_output(&line, &cli);
 
-                    stdout.flush().await?;
+                        stdout.flush().await?;
 
-                    line.clear();
+                        line.clear();
+                    }
                 }
             })
         }
