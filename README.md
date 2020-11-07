@@ -3,6 +3,7 @@
 > A JSON Query Language CLI tool built with Rust 🦀
 
 ## 📜 Core philosophy
+
 - 📦 Stay lightweight
 - 🎮 Keep its features as simple as possible
 - 🧠 Avoid redundancy
@@ -509,6 +510,20 @@ bar
 echo "{\"foo\":\"bar\"}" | jql -r '"foo"'
 bar
 ```
+
+#### Streaming
+
+Use the `stream` flag to read a stream of JSON lines:
+
+```sh
+while true; do echo '{"foo": 2}'; sleep 1; done | cargo run '.!' --stream
+```
+
+```sh
+while true; do echo '{"foo": 2}'; sleep 1; done | cargo run '.!' -s
+```
+
+Please note that this option is only about reading valid JSON output streamed line by line (e.g. Docker logs with the `--follow` flag). This is not an option to read an incomplete streamed content (e.g. a very large input)!
 
 ## 🍿 Library
 
