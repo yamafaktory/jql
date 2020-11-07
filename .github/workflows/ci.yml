@@ -64,6 +64,8 @@ jobs:
             "three": 3
           }
           EOF
+      - name: Test streaming
+        run: for i in {1..10}; do echo '{"foo": 2}'; sleep 1; done | cargo run '.!' -s
 
   bench:
     if: "!contains(github.ref, 'refs/heads/master') && !contains(toJSON(github.event.commits.*.message), '[skip ci]')"
