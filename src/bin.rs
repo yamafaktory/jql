@@ -1,19 +1,19 @@
+#![forbid(rust_2018_idioms)]
+#![deny(unsafe_code, nonstandard_style)]
+
 mod cli;
 
+use jql::walker;
+
+use anyhow::Result;
+use async_std::{fs, io, path::Path, prelude::*, process::exit, task};
 use clap::ArgMatches;
 use colored_json::{ColoredFormatter, CompactFormatter, PrettyFormatter};
-use jql::walker;
 use serde_json::{Deserializer, Value};
-use std::{
-    fs::File,
-    io::{prelude::*, stdin, BufReader},
-    path::Path,
-    process::exit,
-};
 
 /// Try to serialize the raw JSON content, output the selection or throw an
 /// error.
-fn output(json_content: &str, cli: &ArgMatches<'_>) {
+fn render_output(json_content: &str, cli: &ArgMatches<'_>) {
     let inline = cli.is_present("inline");
     let raw_output = cli.is_present("raw-output");
     let selectors = cli.value_of("selectors");
@@ -59,44 +59,44 @@ fn output(json_content: &str, cli: &ArgMatches<'_>) {
         });
 }
 
-fn main() {
+#[async_std::main]
+async fn main() -> Result<()> {
     let cli = cli::get_matches();
 
     match cli.value_of("JSON") {
         // JSON content coming from the CLI.
         Some(json) => {
             let path = Path::new(json);
-            let file = match File::open(&path) {
-                Ok(file) => file,
-                Err(_) => {
-                    eprintln!("File {:?} not found", &path);
-                    exit(1);
-                }
-            };
-            let mut buffer_reader = BufReader::new(file);
-            let mut contents = String::new();
+            let contents = fs::read_to_string(path).await?;
 
-            match buffer_reader.read_to_string(&mut contents) {
-                Ok(_) => output(&contents, &cli),
-                Err(error) => panic!(
-                    "Couldn't read {}: {}",
-                    path.display(),
-                    error.to_string()
-                ),
-            }
+            render_output(&contents, &cli);
+
+            Ok(())
         }
-        // JSON content coming from the stdin.
-        None => {
-            let stdin: Result<String, std::io::Error> =
-                stdin().lock().lines().collect();
 
-            match stdin {
-                Ok(json) => output(&json, &cli),
-                Err(error) => {
-                    eprintln!("Error: {}", error);
-                    exit(1);
+        // JSON content coming from stdin.
+        None => {
+            task::block_on(async {
+                let stdin = io::stdin();
+                let mut stdout = io::stdout();
+                let mut line = String::new();
+
+                loop {
+                    // Read a line from stdin.
+                    let n = stdin.read_line(&mut line).await?;
+
+                    // If this is the end of stdin, return.
+                    if n == 0 {
+                        return Ok(());
+                    }
+
+                    render_output(&line, &cli);
+
+                    stdout.flush().await?;
+
+                    line.clear();
                 }
-            }
+            })
         }
     }
 }
