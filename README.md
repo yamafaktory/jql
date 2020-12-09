@@ -347,8 +347,14 @@ jql '"laptops".[1:0]|"laptop"|"brand","laptops"|"laptop"|"brand"' example.json
 
 ```json
 [
-  "Apple",
-  "Asus"
+  [
+    "Asus",
+    "Apple"
+  ],
+  [
+    "Apple",
+    "Asus"
+  ]
 ]
 ```
 
