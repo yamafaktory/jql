@@ -4,7 +4,7 @@ REPORT=$(pwd)/PERFORMANCE.md
 PERFORMANCE_TMP_DIR=$(pwd)/performance_tmp
 MD_FILES="$PERFORMANCE_TMP_DIR/"*".md"
 LARGE_JSON_FILE=$(pwd)/assets/github-repositories.json
-MIN_RUNS=100
+MIN_RUNS=1000
 
 # Remove export file if present.
 rm -f $REPORT
