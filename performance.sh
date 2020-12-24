@@ -1,8 +1,10 @@
+#!/usr/bin/env bash
 
 REPORT=$(pwd)/PERFORMANCE.md
 PERFORMANCE_TMP_DIR=$(pwd)/performance_tmp
 MD_FILES="$PERFORMANCE_TMP_DIR/"*".md"
-MIN_RUNS=1000
+LARGE_JSON_FILE=$(pwd)/assets/github-repositories.json
+MIN_RUNS=100
 
 # Remove export file if present.
 rm -f $REPORT
@@ -28,6 +30,12 @@ hyperfine \
     --min-runs $MIN_RUNS \
     "echo '[1, [2], [[3]]]' | jq 'flatten'" \
     "echo '[1, [2], [[3]]]' | jql '...'"
+
+hyperfine \
+    --export-markdown "$PERFORMANCE_TMP_DIR/PROPERTY_SELECTION_LARGE_JSON.md" \
+    --min-runs $MIN_RUNS \
+    "cat $LARGE_JSON_FILE | jq -r '.[] | .name, .url, .language, .stargazers_count, .watchers_count'" \
+    "cat $LARGE_JSON_FILE | jql '.|{\"name\", \"url\", \"language\", \"stargazers_count\", \"watchers_count\"}'"
 
 # Merge all the markdown files into the performance one.
 for md_file in $MD_FILES; do (cat "${md_file}"; echo) >> $REPORT; done
