@@ -2,6 +2,7 @@ use crate::array_walker::array_walker;
 use crate::range_selector::range_selector;
 use crate::types::{Display, Selection, Selections, Selector, Selectors};
 
+use rayon::prelude::*;
 use serde_json::{json, Value};
 
 fn apply_selector(
@@ -49,25 +50,42 @@ pub fn get_selection(selectors: &Selectors, json: &Value) -> Selections {
                 // Object selector.
                 Selector::Object(properties) => {
                     properties
-                        .iter()
-                        .fold(Ok(json!({})), |acc: Selection, property| {
-                            let value = apply_selector(&inner_json, map_index, property, selectors);
-                            match value {
-                                Ok(value) => match acc {
-                                    Ok(mut current) => {
-                                        // Get the associated mutable Map and insert
-                                        // the property.
-                                        current
+                        .par_iter()
+                        .fold(
+                            || Ok(json!({})),
+                            |acc: Selection, property| {
+                                match apply_selector(&inner_json, map_index, property, selectors) {
+                                    Ok(value) => match acc {
+                                        Ok(mut current) => {
+                                            // Get the associated mutable Map and insert
+                                            // the property.
+                                            current
+                                                .as_object_mut()
+                                                .unwrap()
+                                                .insert(property.clone(), value);
+                                            Ok(current)
+                                        }
+                                        Err(error) => Err(error),
+                                    },
+                                    Err(error) => Err(error),
+                                }
+                            },
+                        )
+                        .reduce(
+                            || Ok(json!({})),
+                            |first, second| {
+                                first.and_then(|mut first| {
+                                    second.map(|mut second| {
+                                        first
                                             .as_object_mut()
                                             .unwrap()
-                                            .insert(property.clone(), value);
-                                        Ok(current)
-                                    }
-                                    Err(error) => Err(error),
-                                },
-                                Err(error) => Err(error),
-                            }
-                        })
+                                            .extend(second.as_object_mut().unwrap().clone());
+
+                                        first
+                                    })
+                                })
+                            },
+                        )
                 }
 
                 // Default selector.

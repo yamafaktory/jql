@@ -6,7 +6,7 @@ mod cli;
 use jql::walker;
 
 use anyhow::Result;
-use async_std::{fs, io, path::Path, prelude::*, process::exit, task};
+use async_std::{fs, io, path::Path, prelude::*, process::exit};
 use clap::ArgMatches;
 use colored_json::{ColoredFormatter, CompactFormatter, PrettyFormatter};
 use serde_json::{Deserializer, Value};
@@ -77,36 +77,47 @@ async fn main() -> Result<()> {
         // JSON content coming from stdin.
         None => {
             let stream = cli.is_present("stream");
+            let mut stdin = io::stdin();
+            let mut stdout = io::stdout();
 
-            task::block_on(async {
-                let stdin = io::stdin();
-                let mut stdout = io::stdout();
+            // Special case for the stream option.
+            // In this case, read line by line.
+            if stream {
                 let mut line = String::new();
 
                 loop {
-                    // Read a line from stdin.
+                    // Read one line from stdin.
                     let n = stdin.read_line(&mut line).await?;
 
                     // Check for the EOF.
                     if n == 0 {
-                        // Render the output for the general case.
-                        if !stream {
-                            render_output(&line, &cli);
-                        }
-
                         return Ok(());
                     }
 
-                    // Render every line for the stream option.
-                    if stream {
-                        render_output(&line, &cli);
+                    render_output(&line, &cli);
 
-                        stdout.flush().await?;
+                    stdout.flush().await?;
 
-                        line.clear();
-                    }
+                    line.clear();
                 }
-            })
+            }
+
+            // By default, read the whole piped content from stdin.
+            let mut buffer = Vec::new();
+
+            stdin.read_to_end(&mut buffer).await?;
+
+            match String::from_utf8(buffer) {
+                Ok(lines) => {
+                    render_output(&lines, &cli);
+
+                    return Ok(());
+                }
+                Err(error) => {
+                    eprintln!("{}", error);
+                    exit(1);
+                }
+            }
         }
     }
 }

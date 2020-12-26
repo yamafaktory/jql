@@ -1,5 +1,6 @@
 use crate::types::{Display, Selection, Selections, Selectors};
 
+use rayon::prelude::*;
 use serde_json::json;
 use serde_json::Value;
 
@@ -12,7 +13,7 @@ pub fn array_walker(
     selectors: &Selectors,
 ) -> Selection {
     let results: Selections = array_indexes
-        .iter()
+        .par_iter()
         .map(|index| {
             // No JSON value has been found (array).
             if inner_json.get(index).is_none() {
