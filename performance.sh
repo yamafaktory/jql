@@ -34,8 +34,8 @@ hyperfine \
 hyperfine \
     --export-markdown "$PERFORMANCE_TMP_DIR/PROPERTY_SELECTION_LARGE_JSON.md" \
     --min-runs $MIN_RUNS \
-    "cat $LARGE_JSON_FILE | jq -r '.[] | .name, .url, .language, .stargazers_count, .watchers_count'" \
-    "cat $LARGE_JSON_FILE | jql '.|{\"name\", \"url\", \"language\", \"stargazers_count\", \"watchers_count\"}'"
+    "cat $LARGE_JSON_FILE | jq -r '[.[] | {name: .name, url: .url, language: .language, stargazers_count: .stargazers_count, watchers_count: .watchers_count}]' > /dev/null" \
+    "cat $LARGE_JSON_FILE | jql '.|{\"name\", \"url\", \"language\", \"stargazers_count\", \"watchers_count\"}' > /dev/null"
 
 # Merge all the markdown files into the performance one.
 for md_file in $MD_FILES; do (cat "${md_file}"; echo) >> $REPORT; done
