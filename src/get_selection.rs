@@ -75,13 +75,13 @@ pub fn get_selection(selectors: &Selectors, json: &Value) -> Selections {
                             || Ok(json!({})),
                             |first, second| {
                                 first.and_then(|mut first| {
-                                    second.and_then(|mut second| {
+                                    second.map(|mut second| {
                                         first
                                             .as_object_mut()
                                             .unwrap()
                                             .extend(second.as_object_mut().unwrap().clone());
 
-                                        Ok(first)
+                                        first
                                     })
                                 })
                             },
