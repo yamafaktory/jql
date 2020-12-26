@@ -1,5 +1,6 @@
 use crate::types::{Display, Selection, Selector, Selectors};
 
+use rayon::prelude::*;
 use serde_json::{json, Value};
 
 /// Returns a range selection or an error.
@@ -65,7 +66,7 @@ pub fn range_selector(
                 let reversed_range_selection: Vec<&Value> = normalized_range_selection
                     .as_array()
                     .unwrap()
-                    .iter()
+                    .par_iter()
                     .rev()
                     .collect();
                 json!(reversed_range_selection)
