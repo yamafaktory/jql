@@ -19,10 +19,7 @@ pub fn range_selector(
             }
 
             let (start, end) = (
-                match start {
-                    Some(start) => start,
-                    None => 0,
-                },
+                start.unwrap_or(0),
                 match end {
                     Some(end) => end,
                     None => json_array.len() - 1,
