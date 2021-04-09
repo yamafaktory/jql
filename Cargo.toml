@@ -22,7 +22,7 @@ version = "2.9.4-alpha.0"
 criterion = "0.3.4"
 
 [dependencies]
-anyhow = "1.0.38"
+anyhow = "1.0.39"
 clap = "2.33.3"
 colored_json = "2.1.0"
 pest = "2.1.3"

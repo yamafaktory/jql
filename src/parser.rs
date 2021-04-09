@@ -1,12 +1,21 @@
 use crate::types::Selector;
 use crate::types::{Group, Groups};
 
-use pest::{iterators as pest_iterators, Parser};
-use pest_derive::*;
+use pest::iterators as pest_iterators;
+use pest::Parser;
 
-#[derive(Parser)]
-#[grammar = "grammar.pest"]
-struct GroupsParser;
+pub use derived::Rule;
+
+// Clippy workaround.
+// See https://github.com/pest-parser/pest/issues/490.
+#[allow(clippy::upper_case_acronyms)]
+mod derived {
+    use pest_derive::Parser;
+
+    #[derive(Parser)]
+    #[grammar = "grammar.pest"]
+    pub(crate) struct GroupsParser;
+}
 
 type PestPair<'a> = pest_iterators::Pair<'a, Rule>;
 
@@ -45,9 +54,8 @@ fn span_to_range(pair: PestPair<'_>) -> Selector {
         },
     );
 
-    let position_to_usize = |value: Option<PestPair<'_>>| match value {
-        Some(pair) => Some(usize::from_str_radix(pair.as_span().as_str(), 10).unwrap()),
-        None => None,
+    let position_to_usize = |value: Option<PestPair<'_>>| {
+        value.map(|pair| pair.as_span().as_str().parse::<usize>().unwrap())
     };
 
     Selector::Range((position_to_usize(start), position_to_usize(end)))
@@ -80,7 +88,7 @@ fn get_nested_chars_from_default_pair(pair: PestPair<'_>) -> Vec<String> {
 
 /// Parse the provided selectors and returns a set of groups or an error.
 pub fn selectors_parser(selectors: &str) -> Result<Groups, String> {
-    match GroupsParser::parse(Rule::groups, selectors) {
+    match derived::GroupsParser::parse(Rule::groups, selectors) {
         Ok(pairs) => {
             let mut groups: Groups = Vec::new();
 
