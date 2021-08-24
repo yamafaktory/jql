@@ -34,5 +34,5 @@ use serde_json::Value;
 /// assert_eq!(jql::walker(&json_array, Some("[4]")), Ok(json!(11)));
 /// ```
 pub fn walker(json: &Value, selectors: Option<&str>) -> Selection {
-    core::walker(&json, selectors)
+    core::walker(json, selectors)
 }

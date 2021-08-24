@@ -109,7 +109,7 @@ pub fn get_selection(selectors: &Selectors, json: &Value) -> Selections {
                     } else {
                         Some(&selectors[map_index - 1])
                     },
-                    &selectors,
+                    selectors,
                     *start,
                 ) {
                     Ok(json) => {
@@ -129,7 +129,7 @@ pub fn get_selection(selectors: &Selectors, json: &Value) -> Selections {
                     } else {
                         Some(&selectors[map_index - 1])
                     },
-                    &selectors,
+                    selectors,
                     Some(0),
                 ) {
                     Ok(json) => {
@@ -141,7 +141,7 @@ pub fn get_selection(selectors: &Selectors, json: &Value) -> Selections {
 
                 // Index selector.
                 Selector::Index(array_indexes) => {
-                    match array_walker(&array_indexes, &inner_json, map_index, &selectors) {
+                    match array_walker(array_indexes, &inner_json, map_index, selectors) {
                         Ok(json) => {
                             inner_json = json.clone();
                             Ok(json)

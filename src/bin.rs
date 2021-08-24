@@ -111,7 +111,7 @@ async fn main() -> Result<()> {
                 Ok(lines) => {
                     render_output(&lines, &cli);
 
-                    return Ok(());
+                    Ok(())
                 }
                 Err(error) => {
                     eprintln!("{}", error);

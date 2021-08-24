@@ -17,7 +17,7 @@ pub fn apply_filter(filter_selectors: &[Selector], json: &Value) -> ExtendedSele
                     if filter_selectors.is_empty() {
                         Ok(vec![partial_json])
                     } else {
-                        get_selection(&filter_selectors, &partial_json)
+                        get_selection(filter_selectors, &partial_json)
                     }
                 })
                 .collect();

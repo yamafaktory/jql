@@ -18,7 +18,7 @@ pub fn group_walker(
         return Err(String::from("Empty group"));
     }
 
-    match get_selection(&selectors, &json) {
+    match get_selection(selectors, json) {
         Ok(ref items) => {
             // Check for an empty selection, in this case we assume that the
             // user expects to get back the complete raw JSON for this group.
@@ -30,7 +30,7 @@ pub fn group_walker(
 
             let is_spreading = spread.is_some();
 
-            let output = match apply_filter(&filters, &output_json) {
+            let output = match apply_filter(filters, &output_json) {
                 Ok(filtered) => match filtered {
                     MaybeArray::Array(array) => Ok(if is_spreading {
                         flatten_json_array(&json!(array))
