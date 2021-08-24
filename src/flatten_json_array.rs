@@ -16,11 +16,10 @@ pub fn flatten_json_array(value: &Value) -> Value {
                 } else {
                     acc.push(inner_value.clone());
                 }
-                acc
             } else {
                 acc.push(inner_value.clone());
-                acc
             }
+            acc
         })
         .flatten()
         .collect::<Vec<Value>>())
