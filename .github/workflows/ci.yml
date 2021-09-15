@@ -4,7 +4,7 @@ on:
   pull_request:
   push:
     branches:
-      - master
+      - main
 
 jobs:
   clippy:
@@ -69,7 +69,7 @@ jobs:
           for i in {1..10}; do echo '{"foo": 2}'; sleep 1; done | cargo run '.!' -s
 
   bench:
-    if: "!contains(github.ref, 'refs/heads/master') && !contains(toJSON(github.event.commits.*.message), '[skip ci]')"
+    if: "!contains(github.ref, 'refs/heads/main') && !contains(toJSON(github.event.commits.*.message), '[skip ci]')"
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -80,11 +80,11 @@ jobs:
         with:
           rust-version: ${{ matrix.rust }}
       - uses: actions/checkout@v2
-      - name: Run the benchmarks against the current branch, master and compare
+      - name: Run the benchmarks against the current branch, main and compare
         run: |
-          git fetch origin master
+          git fetch origin main
           cargo bench --bench benchmark -- --noplot --save-baseline current
-          git checkout -b master
-          cargo bench --bench benchmark -- --noplot --save-baseline master
+          git checkout -b main
+          cargo bench --bench benchmark -- --noplot --save-baseline main
           cargo install critcmp --force
-          critcmp master current
+          critcmp main current
