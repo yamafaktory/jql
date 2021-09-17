@@ -1,3 +1,5 @@
+use crate::types::{Display, InnerObject};
+
 /// Convert an array selector to a readable string.
 pub fn display_array_selector(capitalized: bool) -> String {
     String::from(if capitalized { "Array" } else { "array" })
@@ -46,7 +48,7 @@ pub fn display_index_selector(indexes: &[usize], capitalized: bool) -> String {
 }
 
 /// Convert an object selector to a readable string.
-pub fn display_object_selector(properties: &[String], capitalized: bool) -> String {
+pub fn display_object_selector(properties: &[InnerObject], capitalized: bool) -> String {
     if properties.len() == 1 {
         [
             if capitalized {
@@ -54,7 +56,7 @@ pub fn display_object_selector(properties: &[String], capitalized: bool) -> Stri
             } else {
                 "property {"
             },
-            properties[0].to_string().as_str(),
+            properties[0].as_str(false).as_str(),
             "}",
         ]
         .join("")
@@ -65,7 +67,7 @@ pub fn display_object_selector(properties: &[String], capitalized: bool) -> Stri
             } else {
                 "properties {"
             },
-            properties.join(",").as_str(),
+            // properties.join(",").as_str(false),
             "}",
         ]
         .join("")

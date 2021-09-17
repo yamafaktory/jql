@@ -10,7 +10,15 @@ pub enum Selector {
     Array,
     Default(String),
     Index(Vec<usize>),
-    Object(Vec<String>),
+    Object(Vec<InnerObject>),
+    Range((Option<usize>, Option<usize>)),
+}
+
+#[derive(Debug)]
+pub enum InnerObject {
+    Array,
+    Index(Vec<usize>),
+    Key(String),
     Range((Option<usize>, Option<usize>)),
 }
 
@@ -24,9 +32,21 @@ impl Display for Selector {
         match self {
             Selector::Array => display_array_selector(capitalized),
             Selector::Default(value) => display_default_selector(&value.clone(), capitalized),
-            Selector::Range(range) => display_range_selector(*range, capitalized),
             Selector::Index(indexes) => display_index_selector(indexes, capitalized),
             Selector::Object(properties) => display_object_selector(properties, capitalized),
+            Selector::Range(range) => display_range_selector(*range, capitalized),
+        }
+    }
+}
+
+impl Display for InnerObject {
+    // Return the selector as a readable string.
+    fn as_str(&self, capitalized: bool) -> String {
+        match self {
+            InnerObject::Array => display_array_selector(capitalized),
+            InnerObject::Index(indexes) => display_index_selector(indexes, capitalized),
+            InnerObject::Key(key) => key.to_string(),
+            InnerObject::Range(range) => display_range_selector(*range, capitalized),
         }
     }
 }
