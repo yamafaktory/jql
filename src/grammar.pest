@@ -35,6 +35,6 @@ groups = _{ selection ~ ("," ~ selection)* }
                     filter_index = { index }
                 filter_default = { default }
                 filter_object = _{ "{" ~ filter_property ~ "}" }
-                    filter_property = { default ~ ("," ~ default)* }
+                    filter_property = { (default | object_array) ~ ("," ~ (default | object_array))* }
 
         truncate = { "!" }
