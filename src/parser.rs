@@ -107,7 +107,7 @@ fn get_nested_chars_from_default_pair(pair: PestPair<'_>) -> Vec<InnerObject> {
                     acc.push(span_to_object_range(inner_pair));
                 }
                 Rule::object_index => {
-                    // acc.push(span_to_object_index(inner_pair));
+                    acc.push(span_to_object_index(inner_pair.clone().as_span().as_str()));
                 }
                 _ => {}
             }

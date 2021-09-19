@@ -656,8 +656,11 @@ mod tests {
     #[test]
     fn get_property_as_index() {
         let json: Value = serde_json::from_str(DATA).unwrap();
-        let selector = Some(r#""nested".{"b", [1]}"#);
-        assert_eq!(Ok(json!({ "b": "two" })), walker(&json, selector));
+        let selector = Some(r#""nested".{"b",[0,2]}"#);
+        assert_eq!(
+            Ok(json!({ "b": "two", "0": "one", "2": "three" })),
+            walker(&json, selector)
+        );
     }
 
     #[test]

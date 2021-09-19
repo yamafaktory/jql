@@ -3,7 +3,7 @@ use crate::range_selector::range_selector;
 use crate::types::{Display, InnerObject, Selection, Selections, Selector, Selectors};
 
 use rayon::prelude::*;
-use serde_json::{json, Value};
+use serde_json::{json, Map, Value};
 
 fn apply_selector(
     inner_json: &Value,
@@ -35,6 +35,18 @@ fn apply_selector(
     Ok(inner_json[raw_selector].clone())
 }
 
+fn object_to_vec(inner_json: &Value) -> Vec<(String, Value)> {
+    // Make a mutable copy of the inner JSON.
+    let mut inner_json_mut = inner_json.clone();
+
+    inner_json_mut
+        .as_object_mut()
+        .unwrap()
+        .to_owned()
+        .into_iter()
+        .collect::<Vec<(String, Value)>>()
+}
+
 /// Returns a selection based on selectors and a JSON content as a Result of
 /// values or an Err early on, stopping the iteration as soon as the latter is
 /// encountered.
@@ -55,7 +67,23 @@ pub fn get_selection(selectors: &Selectors, json: &Value) -> Selections {
                             || Ok(json!({})),
                             |acc: Selection, property| {
                                 match property {
-                                    InnerObject::Index(index) => todo!(),
+                                    InnerObject::Index(indexes) => {
+                                        let vectified_object = object_to_vec(&inner_json);
+
+                                        let map = indexes.iter().fold(
+                                            Map::with_capacity(indexes.len()),
+                                            |mut acc, index| {
+                                                acc.insert(
+                                                    index.to_string(),
+                                                    vectified_object[*index].1.clone(),
+                                                );
+
+                                                acc
+                                            },
+                                        );
+
+                                        Ok(json!(map))
+                                    }
                                     InnerObject::Key(key) => {
                                         match apply_selector(&inner_json, map_index, key, selectors)
                                         {
@@ -74,7 +102,9 @@ pub fn get_selection(selectors: &Selectors, json: &Value) -> Selections {
                                             Err(error) => Err(error),
                                         }
                                     }
-                                    InnerObject::Array => todo!(),
+                                    // This selector is pretty dumb but is used as a guard
+                                    // if an empty array is provided.
+                                    InnerObject::Array => Ok(inner_json.clone()),
                                     InnerObject::Range(_) => todo!(),
                                 }
                             },
