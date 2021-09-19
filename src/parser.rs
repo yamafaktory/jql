@@ -42,11 +42,6 @@ fn span_to_object_index(inner_span: &str) -> InnerObject {
     )
 }
 
-/// Convert a span to an object selector.
-fn span_to_object(inner_span: Vec<InnerObject>) -> Selector {
-    Selector::Object(inner_span)
-}
-
 /// Convert a span to a range selector.
 fn span_to_range(pair: PestPair<'_>) -> Selector {
     let (start, end) = pair.into_inner().fold(
@@ -65,6 +60,7 @@ fn span_to_range(pair: PestPair<'_>) -> Selector {
     Selector::Range((position_to_usize(start), position_to_usize(end)))
 }
 
+/// Convert a span to a range selector with an inner object.
 fn span_to_object_range(pair: PestPair<'_>) -> InnerObject {
     let (start, end) = pair.into_inner().fold(
         (None, None),
@@ -94,7 +90,7 @@ fn get_chars_from_default_pair(pair: PestPair<'_>) -> Vec<String> {
 }
 
 /// Return a vector of nested chars found inside a given pair.
-fn get_nested_chars_from_default_pair(pair: PestPair<'_>) -> Vec<InnerObject> {
+fn get_inner_object_from_pair(pair: PestPair<'_>) -> Vec<InnerObject> {
     pair.into_inner()
         .fold(Vec::new(), |mut acc: Vec<InnerObject>, inner_pair| {
             match inner_pair.as_rule() {
@@ -104,7 +100,9 @@ fn get_nested_chars_from_default_pair(pair: PestPair<'_>) -> Vec<InnerObject> {
                     ));
                 }
                 Rule::object_range => {
-                    acc.push(span_to_object_range(inner_pair));
+                    acc.push(span_to_object_range(
+                        inner_pair.into_inner().next().unwrap(),
+                    ));
                 }
                 Rule::object_index => {
                     acc.push(span_to_object_index(inner_pair.clone().as_span().as_str()));
@@ -114,9 +112,6 @@ fn get_nested_chars_from_default_pair(pair: PestPair<'_>) -> Vec<InnerObject> {
 
             acc
         })
-    // .into_iter()
-    // .flatten()
-    // .collect::<Vec<InnerObject>>()
 }
 
 /// Parse the provided selectors and returns a set of groups or an error.
@@ -154,20 +149,12 @@ pub fn selectors_parser(selectors: &str) -> Result<Groups, String> {
                             .3
                             .push(span_to_range(inner_pair.into_inner().next().unwrap())),
                         // Property
-                        Rule::property => {
-                            group
-                                .2
-                                .push(Selector::Object(get_nested_chars_from_default_pair(
-                                    inner_pair,
-                                )));
-                        }
-                        Rule::filter_property => {
-                            group
-                                .3
-                                .push(Selector::Object(get_nested_chars_from_default_pair(
-                                    inner_pair,
-                                )));
-                        }
+                        Rule::property => group
+                            .2
+                            .push(Selector::Object(get_inner_object_from_pair(inner_pair))),
+                        Rule::filter_property => group
+                            .3
+                            .push(Selector::Object(get_inner_object_from_pair(inner_pair))),
                         // Root
                         Rule::root => group.1 = Some(()),
                         // Spread

@@ -654,11 +654,97 @@ mod tests {
     }
 
     #[test]
+    fn get_property_as_array() {
+        let json: Value = serde_json::from_str(DATA).unwrap();
+        let selector = Some(r#""nested".{[]}"#);
+        assert_eq!(
+            Ok(json!({ "a": "one", "b": "two", "c": "three" })),
+            walker(&json, selector)
+        );
+    }
+
+    #[test]
     fn get_property_as_index() {
         let json: Value = serde_json::from_str(DATA).unwrap();
         let selector = Some(r#""nested".{"b",[0,2]}"#);
         assert_eq!(
             Ok(json!({ "b": "two", "0": "one", "2": "three" })),
+            walker(&json, selector)
+        );
+    }
+
+    #[test]
+    fn get_property_as_out_of_bound_index() {
+        let json: Value = serde_json::from_str(DATA).unwrap();
+        let selector = Some(r#""nested".{"b",[0,3]}"#);
+        assert_eq!(
+            Err(String::from(
+                r#"Index [3] is out of bound, node "nested" contains 3 properties"#
+            )),
+            walker(&json, selector)
+        );
+    }
+
+    #[test]
+    fn get_property_as_range() {
+        let json: Value = serde_json::from_str(DATA).unwrap();
+        let selector = Some(r#""nested".{[1:2]}"#);
+        assert_eq!(
+            Ok(json!({ "1": "two", "2": "three" })),
+            walker(&json, selector)
+        );
+    }
+
+    #[test]
+    fn get_property_as_range_reverse() {
+        let json: Value = serde_json::from_str(DATA).unwrap();
+        let selector = Some(r#""nested".{[2:1]}"#);
+        assert_eq!(
+            Ok(json!({ "2": "three", "1": "two" })),
+            walker(&json, selector)
+        );
+    }
+
+    #[test]
+    fn get_property_as_range_with_no_start() {
+        let json: Value = serde_json::from_str(DATA).unwrap();
+        let selector = Some(r#""nested".{[:2]}"#);
+        assert_eq!(
+            Ok(json!({ "0": "one", "1": "two", "2": "three" })),
+            walker(&json, selector)
+        );
+    }
+
+    #[test]
+    fn get_property_as_range_with_no_end() {
+        let json: Value = serde_json::from_str(DATA).unwrap();
+        let selector = Some(r#""nested".{[1:]}"#);
+        assert_eq!(
+            Ok(json!({ "1": "two", "2": "three" })),
+            walker(&json, selector)
+        );
+    }
+
+    #[test]
+    fn get_property_as_out_of_bound_start_range() {
+        let json: Value = serde_json::from_str(DATA).unwrap();
+        let selector = Some(r#""nested".{[4:9]}"#);
+        assert_eq!(
+            Err(String::from(
+                r#"Range [4:9] is out of bound, node "nested" contains 3 properties"#
+            )),
+            walker(&json, selector)
+        );
+    }
+
+    #[test]
+    fn get_property_as_out_of_bound_end_range() {
+        let json: Value = serde_json::from_str(DATA).unwrap();
+        let selector = Some(r#""nested".{[1:9]}"#);
+        assert_eq!(
+            Err(String::from(
+                r#"Range [1:9] is out of bound, node "nested" contains 3 properties"#
+            )),
             walker(&json, selector)
         );
     }
