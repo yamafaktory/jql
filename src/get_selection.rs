@@ -4,6 +4,7 @@ use crate::types::{Display, InnerObject, Selection, Selections, Selector, Select
 
 use rayon::prelude::*;
 use serde_json::{json, Map, Value};
+use std::sync::{Arc, Mutex};
 
 fn apply_selector(
     inner_json: &Value,
@@ -51,8 +52,8 @@ fn object_to_vec(inner_json: &Value) -> Vec<(String, Value)> {
 /// values or an Err early on, stopping the iteration as soon as the latter is
 /// encountered.
 pub fn get_selection(selectors: &Selectors, json: &Value) -> Selections {
-    // Local copy of the original JSON that will be reused in the loop.
-    let mut inner_json = json.clone();
+    // Use an Arc to share the JSON data among threads.
+    let data = Arc::new(Mutex::new(json.clone()));
 
     selectors
         .iter()
@@ -68,19 +69,31 @@ pub fn get_selection(selectors: &Selectors, json: &Value) -> Selections {
                             |acc: Selection, property| {
                                 match property {
                                     InnerObject::Index(indexes) => {
-                                        let key_and_values = object_to_vec(&inner_json);
-                                        let last_index = key_and_values.len() - 1;
+                                        let mut data = data.lock().unwrap();
+                                        let key_and_values = object_to_vec(&data);
+                                        let properties = key_and_values.len();
+                                        let last_index = properties - 1;
 
                                         match indexes.par_iter().find_last(|&&x| x > last_index) {
                                             Some(index) => {
+                                                let reference = if map_index > 0 {
+                                                    selectors[map_index - 1].as_str(false)
+                                                } else {
+                                                    "object".to_string()
+                                                };
+
                                                 return Err([
                                                     "Index [",
                                                     index.to_string().as_str(),
                                                     "] is out of bound, ",
-                                                    &selectors[map_index - 1].as_str(false),
+                                                    reference.as_str(),
                                                     " contains ",
-                                                    &(key_and_values.len()).to_string(),
-                                                    " properties",
+                                                    &(properties).to_string(),
+                                                    if properties == 1 {
+                                                        " property"
+                                                    } else {
+                                                        " properties"
+                                                    },
                                                 ]
                                                 .join(""));
                                             }
@@ -97,13 +110,15 @@ pub fn get_selection(selectors: &Selectors, json: &Value) -> Selections {
                                                     },
                                                 );
 
+                                                *data = json!(map);
                                                 Ok(json!(map))
                                             }
                                         }
                                     }
                                     InnerObject::Key(key) => {
-                                        match apply_selector(&inner_json, map_index, key, selectors)
-                                        {
+                                        let data = data.lock().unwrap();
+
+                                        match apply_selector(&data, map_index, key, selectors) {
                                             Ok(value) => match acc {
                                                 Ok(mut current) => {
                                                     // Get the associated mutable Map and insert
@@ -121,10 +136,16 @@ pub fn get_selection(selectors: &Selectors, json: &Value) -> Selections {
                                     }
                                     // This selector is pretty dumb but is used as a guard
                                     // if an empty array is provided.
-                                    InnerObject::Array => Ok(inner_json.clone()),
+                                    InnerObject::Array => {
+                                        let data = data.lock().unwrap();
+
+                                        Ok(data.clone())
+                                    }
                                     InnerObject::Range((start, end)) => {
-                                        let key_and_values = object_to_vec(&inner_json);
-                                        let last_index = key_and_values.len() - 1;
+                                        let data = data.lock().unwrap();
+                                        let key_and_values = object_to_vec(&data);
+                                        let properties = key_and_values.len();
+                                        let last_index = properties - 1;
                                         let start_with_default = start.unwrap_or(0);
                                         let end_with_default = end.unwrap_or(last_index);
                                         let is_default = start_with_default < end_with_default;
@@ -133,16 +154,26 @@ pub fn get_selection(selectors: &Selectors, json: &Value) -> Selections {
                                         if start_with_default > last_index
                                             || end_with_default > last_index
                                         {
+                                            let reference = if map_index > 0 {
+                                                selectors[map_index - 1].as_str(false)
+                                            } else {
+                                                "object".to_string()
+                                            };
+
                                             return Err([
                                                 "Range [",
                                                 start_with_default.to_string().as_str(),
                                                 ":",
                                                 end_with_default.to_string().as_str(),
                                                 "] is out of bound, ",
-                                                &selectors[map_index - 1].as_str(false),
+                                                reference.as_str(),
                                                 " contains ",
-                                                &(key_and_values.len()).to_string(),
-                                                " properties",
+                                                &(properties).to_string(),
+                                                if properties == 1 {
+                                                    " property"
+                                                } else {
+                                                    " properties"
+                                                },
                                             ]
                                             .join(""));
                                         }
@@ -196,9 +227,11 @@ pub fn get_selection(selectors: &Selectors, json: &Value) -> Selections {
 
                 // Default selector.
                 Selector::Default(raw_selector) => {
-                    match apply_selector(&inner_json, map_index, raw_selector, selectors) {
+                    let mut data = data.lock().unwrap();
+
+                    match apply_selector(&data, map_index, raw_selector, selectors) {
                         Ok(ref json) => {
-                            inner_json = json.clone();
+                            *data = json.clone();
                             Ok(json.clone())
                         }
                         Err(error) => Err(error),
@@ -206,50 +239,60 @@ pub fn get_selection(selectors: &Selectors, json: &Value) -> Selections {
                 }
 
                 // Range selector.
-                Selector::Range((start, end)) => match range_selector(
-                    *end,
-                    &inner_json.clone(),
-                    map_index,
-                    if map_index == 0 {
-                        None
-                    } else {
-                        Some(&selectors[map_index - 1])
-                    },
-                    selectors,
-                    *start,
-                ) {
-                    Ok(json) => {
-                        inner_json = json.clone();
-                        Ok(json)
+                Selector::Range((start, end)) => {
+                    let mut data = data.lock().unwrap();
+
+                    match range_selector(
+                        *end,
+                        &data.clone(),
+                        map_index,
+                        if map_index == 0 {
+                            None
+                        } else {
+                            Some(&selectors[map_index - 1])
+                        },
+                        selectors,
+                        *start,
+                    ) {
+                        Ok(json) => {
+                            *data = json.clone();
+                            Ok(json)
+                        }
+                        Err(error) => Err(error),
                     }
-                    Err(error) => Err(error),
-                },
+                }
 
                 // Array selector.
-                Selector::Array => match range_selector(
-                    None,
-                    &inner_json.clone(),
-                    map_index,
-                    if map_index == 0 {
-                        None
-                    } else {
-                        Some(&selectors[map_index - 1])
-                    },
-                    selectors,
-                    Some(0),
-                ) {
-                    Ok(json) => {
-                        inner_json = json.clone();
-                        Ok(json)
+                Selector::Array => {
+                    let mut data = data.lock().unwrap();
+
+                    match range_selector(
+                        None,
+                        &data.clone(),
+                        map_index,
+                        if map_index == 0 {
+                            None
+                        } else {
+                            Some(&selectors[map_index - 1])
+                        },
+                        selectors,
+                        Some(0),
+                    ) {
+                        Ok(json) => {
+                            *data = json.clone();
+                            Ok(json)
+                        }
+                        Err(error) => Err(error),
                     }
-                    Err(error) => Err(error),
-                },
+                }
 
                 // Index selector.
                 Selector::Index(array_indexes) => {
-                    match array_walker(array_indexes, &inner_json, map_index, selectors) {
+                    let mut data = data.lock().unwrap();
+
+                    match array_walker(array_indexes, &data, map_index, selectors) {
                         Ok(json) => {
-                            inner_json = json.clone();
+                            *data = json.clone();
                             Ok(json)
                         }
                         Err(error) => Err(error),

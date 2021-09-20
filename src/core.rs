@@ -750,6 +750,30 @@ mod tests {
     }
 
     #[test]
+    fn get_property_as_out_of_bound_index_in_filter() {
+        let json: Value = serde_json::from_str(DATA).unwrap();
+        let selector = Some(r#""nested-filter"|{[1,3]}"#);
+        assert_eq!(
+            Err(String::from(
+                r#"Index [3] is out of bound, object contains 1 property"#
+            )),
+            walker(&json, selector)
+        );
+    }
+
+    #[test]
+    fn get_property_as_out_of_bound_range_in_filter() {
+        let json: Value = serde_json::from_str(DATA).unwrap();
+        let selector = Some(r#""nested-filter"|{[1:3]}"#);
+        assert_eq!(
+            Err(String::from(
+                r#"Range [1:3] is out of bound, object contains 1 property"#
+            )),
+            walker(&json, selector)
+        );
+    }
+
+    #[test]
     fn check_whitespace() {
         let json: Value = serde_json::from_str(DATA).unwrap();
         let space_selector = Some(r#"" ""#);
