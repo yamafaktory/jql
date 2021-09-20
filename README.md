@@ -1,4 +1,6 @@
-# JQL ![Build Status](https://github.com/yamafaktory/jql/workflows/ci/badge.svg)
+# JQL
+
+![GitHub Workflow Status](https://img.shields.io/github/workflow/status/yamafaktory/jql/ci?style=for-the-badge) ![Crates.io](https://img.shields.io/crates/v/jql?style=for-the-badge)
 
 > A JSON Query Language CLI tool built with Rust 🦀
 
@@ -95,10 +97,7 @@ jql '"primes".[2,0]' example.json
 ```
 
 ```json
-[
-  13,
-  7
-]
+[13, 7]
 ```
 
 ### Range selection
@@ -213,11 +212,7 @@ jql '"primes".[]' example.json
 ```
 
 ```json
-[
-  7,
-  11,
-  13
-]
+[7, 11, 13]
 ```
 
 Please note that this is basically an alias for a full range selection:
@@ -245,6 +240,79 @@ jql '"object".{"a","c"}' example.json
 }
 ```
 
+Property selection can also be used with indexes and ranges. Please note that in this case a remapping/transformation is applied to the JSON data:
+
+```json
+{
+  "alpha": "red",
+  "beta": "green",
+  "gamma": "blue"
+}
+```
+
+```sh
+jql '{[2,0,1]}' example.json
+```
+
+```json
+{
+  "2": "blue",
+  "0": "red",
+  "1": "green"
+}
+```
+
+```sh
+jql '{[1:2]}' example.json
+```
+
+```json
+{
+  "1": "green",
+  "2": "blue"
+}
+```
+
+This is pretty unusual but it might help in some scenarios when e.g. one wants to extract some properties out of a complex JSON structure based on their order:
+
+```json
+{
+  "some-property": [
+    {
+      "key1": [
+        {
+          "subkey1": "value"
+        }
+      ],
+      "key2": 123
+    },
+    {
+      "key3": [
+        {
+          "subkey3": "value"
+        }
+      ],
+      "key4": "something"
+    }
+  ]
+}
+```
+
+```sh
+jql '.."some-property"|{[0]}|"0"' example.json
+```
+
+```json
+[
+  {
+    "subkey1": "value"
+  },
+  {
+    "subkey3": "value"
+  }
+]
+```
+
 ### Multi-selection
 
 ```json
@@ -260,15 +328,7 @@ jql '"one".[2:0],"two","three"' example.json
 ```
 
 ```json
-[
-  [
-    3,
-    2,
-    1
-  ],
-  2,
-  3
-]
+[[3, 2, 1], 2, 3]
 ```
 
 ### Filter
@@ -316,10 +376,7 @@ jql '"laptops"|"laptop"."brand"' example.json
 ```
 
 ```json
-[
-  "Apple",
-  "Asus"
-]
+["Apple", "Asus"]
 ```
 
 ```sh
@@ -328,14 +385,8 @@ jql '"laptops".[1:0]|"laptop"."brand","laptops"|"laptop"."brand"' example.json
 
 ```json
 [
-  [
-    "Asus",
-    "Apple"
-  ],
-  [
-    "Apple",
-    "Asus"
-  ]
+  ["Asus", "Apple"],
+  ["Apple", "Asus"]
 ]
 ```
 
@@ -347,14 +398,8 @@ jql '"laptops".[1:0]|"laptop"|"brand","laptops"|"laptop"|"brand"' example.json
 
 ```json
 [
-  [
-    "Asus",
-    "Apple"
-  ],
-  [
-    "Apple",
-    "Asus"
-  ]
+  ["Asus", "Apple"],
+  ["Apple", "Asus"]
 ]
 ```
 
@@ -371,15 +416,7 @@ jql '.."dna"' example.json
 ```
 
 ```json
-[
-  "c",
-  "a",
-  "c",
-  "g",
-  "t",
-  "a",
-  "t"
-]
+["c", "a", "c", "g", "t", "a", "t"]
 ```
 
 ### Truncate
@@ -387,13 +424,13 @@ jql '.."dna"' example.json
 The truncate selector `!` can be used to stop walking the children's values and to explore an unknown JSON file / structure.
 Each children is then transformed into a JSON primitive for convenience, e.g.:
 
-primitive | value                        | result
---------- | ---------------------------- | -------
-object    | `{ "a": 1, "b": 2, "c": 3 }` | `{}`
-array     | `[1, 2, 3]`                  | `[]`
-string    | `"foo"`                      | `"foo"`
-number    | `666`                        | `666`
-null      | `null`                       | `null`
+| primitive | value                        | result  |
+| --------- | ---------------------------- | ------- |
+| object    | `{ "a": 1, "b": 2, "c": 3 }` | `{}`    |
+| array     | `[1, 2, 3]`                  | `[]`    |
+| string    | `"foo"`                      | `"foo"` |
+| number    | `666`                        | `666`   |
+| null      | `null`                       | `null`  |
 
 ```json
 {
@@ -402,11 +439,7 @@ null      | `null`                       | `null`
     "b": "bar",
     "c": 1337,
     "d": {
-      "woot": [
-        1,
-        2,
-        3
-      ]
+      "woot": [1, 2, 3]
     }
   }
 }
@@ -534,7 +567,6 @@ Please note that this option is only about reading valid JSON output streamed li
 ## 🍿 Library
 
 This crate is both a binary (the CLI tool) and a library that can be directly used https://docs.rs/crate/jql/.
-
 
 ## ⚡ Performance
 
