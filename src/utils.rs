@@ -67,7 +67,11 @@ pub fn display_object_selector(properties: &[InnerObject], capitalized: bool) ->
             } else {
                 "properties {"
             },
-            // properties.join(",").as_str(false),
+            properties
+                .iter()
+                .map(|id| id.as_str(false) + ",")
+                .collect::<String>()
+                .as_str(),
             "}",
         ]
         .join("")
