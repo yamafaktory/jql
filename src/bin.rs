@@ -13,10 +13,25 @@ use serde_json::{Deserializer, Value};
 
 /// Try to serialize the raw JSON content, output the selection or throw an
 /// error.
-fn render_output(json_content: &str, cli: &ArgMatches<'_>) {
+fn render_output(json_content: &str, cli: &ArgMatches) {
+    let check = cli.is_present("check");
     let inline = cli.is_present("inline");
     let raw_output = cli.is_present("raw-output");
     let selectors = cli.value_of("selectors");
+
+    // Early check of the JSON content with matching exit code based on result.
+    if check {
+        match serde_json::from_str::<Value>(json_content) {
+            Ok(_) => {
+                println!("Valid JSON file or content");
+                exit(0);
+            }
+            Err(_) => {
+                eprintln!("Invalid JSON file or content");
+                exit(1);
+            }
+        }
+    }
 
     Deserializer::from_str(json_content)
         .into_iter::<Value>()
@@ -62,8 +77,13 @@ fn render_output(json_content: &str, cli: &ArgMatches<'_>) {
 #[async_std::main]
 async fn main() -> Result<()> {
     let cli = cli::get_matches();
+    let check = cli.is_present("check");
 
-    match cli.value_of("JSON") {
+    // Use a hack here since we can't conditionally define indexes of
+    // positional arguments with clap.
+    // Assume that the first positional argument is the JSON file or content
+    // if the check flag is passed, otherwise keep the default behavior.
+    match cli.value_of(if check { "selectors" } else { "JSON" }) {
         // JSON content coming from the CLI.
         Some(json) => {
             let path = Path::new(json);
