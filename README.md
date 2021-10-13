@@ -525,6 +525,15 @@ jql -h
 jql --help
 ```
 
+#### Check
+
+The command will return a matching exit code based on the validity of the JSON content or file provided. No selector is needed in this case!
+
+```sh
+jql --c example.json
+jql --check example.json
+```
+
 #### Version
 
 ```sh
@@ -555,11 +564,11 @@ bar
 Use the `stream` flag to read a stream of JSON lines:
 
 ```sh
-while true; do echo '{"foo": 2}'; sleep 1; done | cargo run '.!' --stream
+while true; do echo '{"foo": 2}'; sleep 1; done | jql '.!' --stream
 ```
 
 ```sh
-while true; do echo '{"foo": 2}'; sleep 1; done | cargo run '.!' -s
+while true; do echo '{"foo": 2}'; sleep 1; done | jql '.!' -s
 ```
 
 Please note that this option is only about reading valid JSON output streamed line by line (e.g. Docker logs with the `--follow` flag). This is not an option to read an incomplete streamed content (e.g. a very large input)!
