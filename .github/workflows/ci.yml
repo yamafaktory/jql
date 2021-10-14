@@ -64,9 +64,13 @@ jobs:
             "three": 3
           }
           EOF
-      - name: Test streaming
+      - name: Test streaming flag
+        run: for i in {1..10}; do echo '{"foo": 2}'; sleep 1; done | cargo run '.!' -s
+      - name: Test check flag
         run: |
-          for i in {1..10}; do echo '{"foo": 2}'; sleep 1; done | cargo run '.!' -s
+          if ! echo "{\"foo\":\"bar\"}" | cargo run -- -c | grep -q "Valid JSON file or content"; then exit 1; fi
+          if echo "{\"foo:\"bar\"}" | cargo run -- -c | grep -q "Invalid JSON file or content"; then exit 1; fi
+
 
   bench:
     if: "!contains(github.ref, 'refs/heads/main') && !contains(toJSON(github.event.commits.*.message), '[skip ci]')"
