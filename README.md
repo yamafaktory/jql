@@ -534,6 +534,8 @@ jql --c example.json
 jql --check example.json
 ```
 
+Please note that this flag is exclusive.
+
 #### Version
 
 ```sh

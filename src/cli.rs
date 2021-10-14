@@ -27,12 +27,14 @@ pub fn get_matches() -> ArgMatches {
         .arg(
             Arg::new("inline")
                 .about("Inlines JSON output")
+                .conflicts_with("check")
                 .long("inline")
                 .short('i'),
         )
         .arg(
             Arg::new("raw-output")
                 .about("Writes raw string selection directly to standard output without JSON double-quotes")
+                .conflicts_with("check")
                 .long("raw-output")
                 .short('r'),
         )
