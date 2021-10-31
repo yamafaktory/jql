@@ -98,3 +98,79 @@ pub fn display_range_selector(
     ]
     .join("")
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn array_selector() {
+        assert_eq!("Array", display_array_selector(true));
+        assert_eq!("array", display_array_selector(false));
+    }
+
+    #[test]
+    fn default_selector() {
+        assert_eq!("Node \"foo\"", display_default_selector("foo", true));
+        assert_eq!("node \"foo\"", display_default_selector("foo", false));
+    }
+
+    #[test]
+    fn index_selector() {
+        assert_eq!("Index [1]", display_index_selector(&[1], true));
+        assert_eq!("index [1]", display_index_selector(&[1], false));
+        assert_eq!("Indexes [1,2,3]", display_index_selector(&[1, 2, 3], true));
+        assert_eq!("indexes [1,2,3]", display_index_selector(&[1, 2, 3], false));
+    }
+
+    #[test]
+    fn object_selector() {
+        assert_eq!(
+            "Property {foo}",
+            display_object_selector(&[InnerObject::Key("foo".to_string())], true)
+        );
+        assert_eq!(
+            "property {foo}",
+            display_object_selector(&[InnerObject::Key("foo".to_string())], false)
+        );
+        assert_eq!(
+            "Properties {array,foo,index [1],range [1:2],}",
+            display_object_selector(
+                &[
+                    InnerObject::Array,
+                    InnerObject::Key("foo".to_string()),
+                    InnerObject::Index([1].to_vec()),
+                    InnerObject::Range((Some(1), Some(2)))
+                ],
+                true
+            )
+        );
+        assert_eq!(
+            "properties {array,foo,index [1],range [1:2],}",
+            display_object_selector(
+                &[
+                    InnerObject::Array,
+                    InnerObject::Key("foo".to_string()),
+                    InnerObject::Index([1].to_vec()),
+                    InnerObject::Range((Some(1), Some(2)))
+                ],
+                false
+            )
+        );
+    }
+
+    #[test]
+    fn range_selector() {
+        assert_eq!(
+            "Range [1:2]",
+            display_range_selector((Some(1), Some(2)), true)
+        );
+        assert_eq!(
+            "range [1:2]",
+            display_range_selector((Some(1), Some(2)), false)
+        );
+        assert_eq!("Range [1:]", display_range_selector((Some(1), None), true));
+        assert_eq!("Range [:2]", display_range_selector((None, Some(2)), true));
+        assert_eq!("Range [:]", display_range_selector((None, None), true));
+    }
+}
