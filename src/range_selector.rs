@@ -80,3 +80,125 @@ pub fn range_selector(
         .join("")),
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn empty_array_range_selector() {
+        assert_eq!(
+            Ok(json!([])),
+            range_selector(
+                None,
+                &json!([]),
+                1,
+                None,
+                &[Selector::Default("foo".to_string()),],
+                None,
+            )
+        )
+    }
+
+    #[test]
+    fn is_default_range_selector() {
+        assert_eq!(
+            Ok(json!(["foo", "bar"])),
+            range_selector(
+                None,
+                &json!(["foo", "bar"]),
+                1,
+                None,
+                &[Selector::Default("foo".to_string()),],
+                None,
+            )
+        )
+    }
+
+    #[test]
+    fn reversed_range_selector() {
+        assert_eq!(
+            Ok(json!(["bar", "foo"])),
+            range_selector(
+                Some(0),
+                &json!(["foo", "bar"]),
+                1,
+                None,
+                &[Selector::Default("foo".to_string()),],
+                Some(1),
+            )
+        )
+    }
+
+    #[test]
+    fn invalid_range_selector() {
+        assert_eq!(
+            Err(String::from(
+                "Range [100:1] is out of bound, root element has a length of 2"
+            )),
+            range_selector(
+                None,
+                &json!(["foo", "bar"]),
+                1,
+                None,
+                &[Selector::Default("foo".to_string()),],
+                Some(100),
+            )
+        );
+        assert_eq!(
+            Err(String::from(
+                "Range [0:100] is out of bound, root element has a length of 2"
+            )),
+            range_selector(
+                Some(100),
+                &json!(["foo", "bar"]),
+                1,
+                None,
+                &[Selector::Default("foo".to_string()),],
+                None,
+            )
+        );
+        assert_eq!(
+            Err(String::from(
+                "Range [100:1] is out of bound, node \"foo\" has a length of 2"
+            )),
+            range_selector(
+                None,
+                &json!(["foo", "bar"]),
+                1,
+                None,
+                &[
+                    Selector::Default("foo".to_string()),
+                    Selector::Index([0].to_vec()),
+                ],
+                Some(100),
+            )
+        );
+    }
+
+    #[test]
+    fn none_array_range_selector() {
+        assert_eq!(
+            Err(String::from("Root element is not an array")),
+            range_selector(
+                None,
+                &json!("foo"),
+                1,
+                None,
+                &[Selector::Default("foo".to_string()),],
+                None,
+            )
+        );
+        assert_eq!(
+            Err(String::from("Node \"foo\" is not an array")),
+            range_selector(
+                None,
+                &json!("foo"),
+                1,
+                Some(&Selector::Default("foo".to_string())),
+                &[Selector::Default("foo".to_string()),],
+                Some(100),
+            )
+        )
+    }
+}
