@@ -1,4 +1,4 @@
-use crate::types::{Display, Selection, Selections, Selector, Selectors};
+use crate::types::{Display, Selection, Selections, Selectors};
 
 use rayon::prelude::*;
 use serde_json::json;
@@ -75,6 +75,7 @@ pub fn array_walker(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::types::{Selector};
 
     #[test]
     fn valid_array_walker() {
