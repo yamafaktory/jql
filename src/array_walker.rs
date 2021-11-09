@@ -1,4 +1,4 @@
-use crate::types::{Display, Selection, Selections, Selectors};
+use crate::types::{Display, Selection, Selections, Selector, Selectors};
 
 use rayon::prelude::*;
 use serde_json::json;
@@ -69,5 +69,82 @@ pub fn array_walker(
             json!(values)
         }),
         Err(error) => Err(error),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn valid_array_walker() {
+        assert_eq!(
+            Ok(json!("bar")),
+            array_walker(
+                &[1],
+                &json!(["foo", "bar"]),
+                1,
+                &[Selector::Default("foo".to_string()),],
+            )
+        );
+        assert_eq!(
+            Ok(json!(["foo", "bar"])),
+            array_walker(
+                &[0, 1],
+                &json!(["foo", "bar"]),
+                1,
+                &[Selector::Default("foo".to_string()),],
+            )
+        );
+    }
+
+    #[test]
+    fn invalid_array_walker() {
+        assert_eq!(
+            Err(String::from(
+                "Index [1] is out of bound, root element has a length of 0"
+            )),
+            array_walker(
+                &[1],
+                &json!([]),
+                1,
+                &[Selector::Default("foo".to_string()),],
+            )
+        );
+        assert_eq!(
+            Err(String::from(
+                "Index [1] is out of bound, node \"foo\" has a length of 0"
+            )),
+            array_walker(
+                &[1],
+                &json!([]),
+                1,
+                &[
+                    Selector::Default("foo".to_string()),
+                    Selector::Index([0].to_vec()),
+                ],
+            )
+        );
+        assert_eq!(
+            Err(String::from("Root element is not an array")),
+            array_walker(
+                &[1],
+                &json!("foo"),
+                1,
+                &[Selector::Default("foo".to_string()),],
+            )
+        );
+        assert_eq!(
+            Err(String::from("Node \"foo\" is not an array")),
+            array_walker(
+                &[1],
+                &json!("foo"),
+                1,
+                &[
+                    Selector::Default("foo".to_string()),
+                    Selector::Index([0].to_vec()),
+                ],
+            )
+        );
     }
 }
