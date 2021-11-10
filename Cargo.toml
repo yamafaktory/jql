@@ -22,7 +22,7 @@ version = "3.0.4-alpha.0"
 criterion = "0.3.5"
 
 [dependencies]
-anyhow = "1.0.44"
+anyhow = "1.0.45"
 clap = "3.0.0-beta.5"
 colored_json = "2.1.0"
 pest = "2.1.3"
@@ -36,7 +36,7 @@ features = ["attributes", "unstable"]
 [dependencies.serde_json]
 default-features = false
 features = ["preserve_order"]
-version = "1.0.68"
+version = "1.0.69"
 
 [[bench]]
 harness = false
