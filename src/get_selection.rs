@@ -302,3 +302,166 @@ pub fn get_selection(selectors: &Selectors, json: &Value) -> Selections {
         })
         .collect()
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_object_get_selection() {
+        assert_eq!(
+            Ok(vec![json!({"0": 10, "2": 30})]),
+            get_selection(
+                &[Selector::Object(vec![InnerObject::Index(vec![0, 2])]),],
+                &json!({ "A": 10, "B": 20, "C": 30 })
+            )
+        );
+        assert_eq!(
+            Err(String::from(
+                "Index [10] is out of bound, object contains 3 properties"
+            )),
+            get_selection(
+                &[Selector::Object(vec![InnerObject::Index(vec![10])]),],
+                &json!({ "A": 10, "B": 20, "C": 30 })
+            )
+        );
+
+        assert_eq!(
+            Ok(vec![json!({ "A": 10 })]),
+            get_selection(
+                &[Selector::Object(vec![InnerObject::Key("A".to_string())])],
+                &json!({ "A": 10, "B": 20, "C": 30 })
+            )
+        );
+        assert_eq!(
+            Err(String::from("Node \"D\" not found on the parent element")),
+            get_selection(
+                &[Selector::Object(vec![InnerObject::Key("D".to_string())])],
+                &json!({ "A": 10, "B": 20, "C": 30 })
+            )
+        );
+
+        assert_eq!(
+            Ok(vec![json!({"A": 10, "B": 20, "C": 30})]),
+            get_selection(
+                &[Selector::Object(vec![InnerObject::Array])],
+                &json!({ "A": 10, "B": 20, "C": 30 })
+            )
+        );
+
+        assert_eq!(
+            Ok(vec![json!({"0": 10, "1": 20})]),
+            get_selection(
+                &[Selector::Object(vec![InnerObject::Range((
+                    Some(0),
+                    Some(1)
+                ))])],
+                &json!({ "A": 10, "B": 20, "C": 30 })
+            )
+        );
+        assert_eq!(
+            Err(String::from(
+                "Range [10:20] is out of bound, object contains 3 properties"
+            )),
+            get_selection(
+                &[Selector::Object(vec![InnerObject::Range((
+                    Some(10),
+                    Some(20)
+                ))])],
+                &json!({ "A": 10, "B": 20, "C": 30 })
+            )
+        );
+
+        assert_eq!(
+            Ok(vec![json!({"A": 10, "2": 30, "3": 40})]),
+            get_selection(
+                &[Selector::Object(vec![
+                    InnerObject::Key("A".to_string()),
+                    InnerObject::Range((Some(2), Some(3)))
+                ]),],
+                &json!({ "A": 10, "B": 20, "C": 30, "D": 40, "E": 50 })
+            )
+        );
+    }
+
+    #[test]
+    fn test_default_get_selection() {
+        assert_eq!(
+            Ok(vec![json!(10)]),
+            get_selection(
+                &[Selector::Default("A".to_string()),],
+                &json!({ "A": 10, "B": 20, "C": 30 })
+            )
+        );
+        assert_eq!(
+            Err(String::from("Node \"D\" not found on the parent element")),
+            get_selection(
+                &[Selector::Default("D".to_string()),],
+                &json!({ "A": 10, "B": 20, "C": 30 })
+            )
+        )
+    }
+
+    #[test]
+    fn test_range_get_selection() {
+        assert_eq!(
+            Ok(vec![json!(["B", "C", "D"])]),
+            get_selection(
+                &[Selector::Range((Some(1), Some(3))),],
+                &json!(["A", "B", "C", "D", "E"])
+            )
+        );
+        assert_eq!(
+            Err(String::from(
+                "Range [10:20] is out of bound, root element has a length of 5"
+            )),
+            get_selection(
+                &[Selector::Range((Some(10), Some(20))),],
+                &json!(["A", "B", "C", "D", "E"])
+            )
+        );
+    }
+
+    #[test]
+    fn test_array_get_selection() {
+        assert_eq!(
+            Ok(vec![json!(["A", "B", "C", "D", "E"])]),
+            get_selection(&[Selector::Array], &json!(["A", "B", "C", "D", "E"]))
+        );
+    }
+
+    #[test]
+    fn test_index_get_selection() {
+        assert_eq!(
+            Ok(vec![json!(["B", "D"])]),
+            get_selection(
+                &[Selector::Index(vec![1, 3])],
+                &json!(["A", "B", "C", "D", "E"])
+            )
+        );
+
+        assert_eq!(
+            Err(String::from(
+                "Index [10] is out of bound, root element has a length of 5"
+            )),
+            get_selection(
+                &[Selector::Index(vec![10])],
+                &json!(["A", "B", "C", "D", "E"])
+            )
+        );
+    }
+
+    #[test]
+    fn test_get_selection() {
+        assert_eq!(
+            Ok(vec![json!(["C", "D"]), json!("C")]),
+            get_selection(
+                &[
+                    Selector::Range((Some(2), Some(3))),
+                    Selector::Index(vec![0])
+                ],
+                &json!(["A", "B", "C", "D", "E"])
+            )
+        );
+    }
+}
