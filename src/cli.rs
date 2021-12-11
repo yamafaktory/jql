@@ -8,39 +8,39 @@ pub fn get_matches() -> ArgMatches {
         .version(crate_version!())
         .arg(
             Arg::new("selectors")
-                .about("Selectors to apply")
+                .help("Selectors to apply")
                 .index(1)
                 .required_unless_present("check")
         )
         .arg(
            Arg::new("JSON")
-                .about("JSON file to use")
+                .help("JSON file to use")
                 .index(2)
                 .required(false),
         )
         .arg(
             Arg::new("check")
-                .about("Checks if the input is valid JSON")
+                .help("Checks if the input is valid JSON")
                 .long("check")
                 .short('c'),
         )
         .arg(
             Arg::new("inline")
-                .about("Inlines JSON output")
+                .help("Inlines JSON output")
                 .conflicts_with("check")
                 .long("inline")
                 .short('i'),
         )
         .arg(
             Arg::new("raw-output")
-                .about("Writes raw string selection directly to standard output without JSON double-quotes")
+                .help("Writes raw string selection directly to standard output without JSON double-quotes")
                 .conflicts_with("check")
                 .long("raw-output")
                 .short('r'),
         )
         .arg(
             Arg::new("stream")
-                .about("Reads a stream of JSON data line by line")
+                .help("Reads a stream of JSON data line by line")
                 .conflicts_with("check")
                 .long("stream")
                 .short('s'),
