@@ -28,6 +28,12 @@ The AUR package is maintained by @frol.
 yay -S jql
 ```
 
+### Homebrew
+
+```sh
+brew install jql
+```
+
 ## 🛠️ Usage
 
 If you find some of the following examples confusing, please have a look at [The JavaScript Object Notation (JSON) Data Interchange Format](https://tools.ietf.org/html/rfc8259#section-13).
