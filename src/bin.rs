@@ -1,8 +1,11 @@
 #![deny(unsafe_code, nonstandard_style)]
 
 mod cli;
+mod panic;
 
+use cli::get_matches;
 use jql::walker;
+use panic::use_custom_panic_hook;
 
 use anyhow::Result;
 use async_std::{fs, io, path::Path, prelude::*, process::exit};
@@ -75,7 +78,10 @@ fn render_output(json_content: &str, cli: &ArgMatches) {
 
 #[async_std::main]
 async fn main() -> Result<()> {
-    let cli = cli::get_matches();
+    // Use a custom panic hook.
+    use_custom_panic_hook();
+
+    let cli = get_matches();
     let check = cli.is_present("check");
 
     // Use a hack here since we can't conditionally define indexes of
