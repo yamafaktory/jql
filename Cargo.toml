@@ -37,7 +37,7 @@ features = ["attributes", "unstable"]
 
 [dependencies.serde_json]
 default-features = false
-features = ["preserve_order"]
+features = ["preserve_order", "unbounded_depth"]
 version = "1.0.78"
 
 # See comment above.
