@@ -35,7 +35,19 @@ fn render_output(json_content: &str, cli: &ArgMatches) {
         }
     }
 
-    Deserializer::from_str(json_content)
+    // Get a deserializer out of the JSON content.
+    let mut deserializer = Deserializer::from_str(json_content);
+
+    // Disable recursion limit.
+    // Fixes issue #120.
+    // Note to be used along with the `unbounded_depth` feature.
+    // https://github.com/serde-rs/json/blob/master/src/de.rs#L163-L210
+    // We might eventually use `serde_stacker` but this might introduce
+    // some performance cost.
+    // https://github.com/dtolnay/serde-stacker/issues/1
+    deserializer.disable_recursion_limit();
+
+    deserializer
         .into_iter::<Value>()
         .for_each(|value| match value {
             Ok(valid_json) => {
