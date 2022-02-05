@@ -5,23 +5,35 @@ use crate::utils::{
 
 use serde_json::Value;
 
-#[derive(Debug)]
+/// Selectors.
+#[derive(Debug, PartialEq, Eq)]
 pub enum Selector {
+    /// Array variant.
     Array,
+    /// Default variant.
     Default(String),
+    /// Index variant.
     Index(Vec<usize>),
+    /// Object variant.
     Object(Vec<InnerObject>),
+    /// Range variant.
     Range((Option<usize>, Option<usize>)),
 }
 
-#[derive(Debug)]
+/// Inner objects.
+#[derive(Debug, PartialEq, Eq)]
 pub enum InnerObject {
+    /// Array variant.
     Array,
+    /// Index variant.
     Index(Vec<usize>),
+    /// Key variant.
     Key(String),
+    /// Range variant.
     Range((Option<usize>, Option<usize>)),
 }
 
+#[doc(hidden)]
 pub trait Display {
     fn as_str(&self, capitalized: bool) -> String;
 }
@@ -51,31 +63,50 @@ impl Display for InnerObject {
     }
 }
 
-pub type Selectors = [Selector];
+/// A Group is a set of grammar components used to define a selection.
+#[derive(Debug, PartialEq, Eq)]
+pub struct Group {
+    /// Filters.
+    pub filters: Vec<Selector>,
+    /// Root marker.
+    pub root: Option<()>,
+    /// Selectors.
+    pub selectors: Vec<Selector>,
+    /// Spread marker.
+    pub spread: Option<()>,
+    /// Truncate marker.
+    pub truncate: Option<()>,
+}
 
-pub type Group = (
-    // Spread part.
-    Option<()>,
-    // Root part.
-    Option<()>,
-    // Selectors part.
-    Vec<Selector>,
-    // Filters part.
-    Vec<Selector>,
-    // Truncate part.
-    Option<()>,
-);
+/// Group implementations.
+impl Group {
+    /// Creates a new group.
+    pub fn new() -> Self {
+        Self {
+            filters: Vec::new(),
+            root: None,
+            selectors: Vec::new(),
+            spread: None,
+            truncate: None,
+        }
+    }
+}
 
-pub type Groups = Vec<Group>;
+impl Default for Group {
+    fn default() -> Self {
+        Self::new()
+    }
+}
 
+#[doc(hidden)]
 #[derive(Debug)]
 pub enum MaybeArray {
     Array(Vec<Value>),
     NonArray(Vec<Value>),
 }
 
-pub type Selection = Result<Value, String>;
+pub(crate) type Selection = Result<Value, String>;
 
-pub type Selections = Result<Vec<Value>, String>;
+pub(crate) type Selections = Result<Vec<Value>, String>;
 
-pub type ExtendedSelections = Result<MaybeArray, String>;
+pub(crate) type ExtendedSelections = Result<MaybeArray, String>;

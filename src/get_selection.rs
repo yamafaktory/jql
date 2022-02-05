@@ -1,6 +1,8 @@
-use crate::array_walker::array_walker;
-use crate::range_selector::range_selector;
-use crate::types::{Display, InnerObject, Selection, Selections, Selector, Selectors};
+use crate::{
+    array_walker::array_walker,
+    range_selector::range_selector,
+    types::{Display, InnerObject, Selection, Selections, Selector},
+};
 
 use rayon::prelude::*;
 use serde_json::{json, Map, Value};
@@ -10,7 +12,7 @@ fn apply_selector(
     inner_json: &Value,
     map_index: usize,
     raw_selector: &str,
-    selectors: &Selectors,
+    selectors: &[Selector],
 ) -> Selection {
     // No JSON value has been found.
     if inner_json.get(raw_selector).is_none() {
@@ -51,7 +53,7 @@ fn object_to_vec(inner_json: &Value) -> Vec<(String, Value)> {
 /// Returns a selection based on selectors and a JSON content as a Result of
 /// values or an Err early on, stopping the iteration as soon as the latter is
 /// encountered.
-pub fn get_selection(selectors: &Selectors, json: &Value) -> Selections {
+pub fn get_selection(selectors: &[Selector], json: &Value) -> Selections {
     // Use an Arc to share the JSON data among threads.
     let data = Arc::new(Mutex::new(json.clone()));
 
@@ -229,7 +231,7 @@ pub fn get_selection(selectors: &Selectors, json: &Value) -> Selections {
                 Selector::Default(raw_selector) => {
                     let mut data = data.lock().unwrap();
 
-                    match apply_selector(&data, map_index, raw_selector, selectors) {
+                    match apply_selector(&data, map_index, &raw_selector, selectors) {
                         Ok(ref json) => {
                             *data = json.clone();
                             Ok(json.clone())

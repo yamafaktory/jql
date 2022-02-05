@@ -35,57 +35,67 @@ fn render_output(json_content: &str, cli: &ArgMatches) {
         }
     }
 
-    // Get a deserializer out of the JSON content.
-    let mut deserializer = Deserializer::from_str(json_content);
+    match selectors {
+        Some(selectors) => {
+            // Get a deserializer out of the JSON content.
+            let mut deserializer = Deserializer::from_str(json_content);
 
-    // Disable recursion limit.
-    // Fixes issue #120.
-    // Note to be used along with the `unbounded_depth` feature.
-    // https://github.com/serde-rs/json/blob/master/src/de.rs#L163-L210
-    // We might eventually use `serde_stacker` but this might introduce
-    // some performance cost.
-    // https://github.com/dtolnay/serde-stacker/issues/1
-    deserializer.disable_recursion_limit();
+            // Disable recursion limit.
+            // Fixes issue #120.
+            // Note to be used along with the `unbounded_depth` feature.
+            // https://github.com/serde-rs/json/blob/master/src/de.rs#L163-L210
+            // We might eventually use `serde_stacker` but this might introduce
+            // some performance cost.
+            // https://github.com/dtolnay/serde-stacker/issues/1
+            deserializer.disable_recursion_limit();
 
-    deserializer
-        .into_iter::<Value>()
-        .for_each(|value| match value {
-            Ok(valid_json) => {
-                // Walk through the JSON content with the provided selectors as
-                // input.
-                match walker(&valid_json, selectors) {
-                    Ok(selection) => println!(
-                        "{}",
-                        // Inline or pretty output.
-                        (if inline {
-                            ColoredFormatter::new(CompactFormatter {})
-                                .to_colored_json_auto(&selection)
-                                .unwrap()
-                        } else {
-                            // If the selection is a string and the raw-output
-                            // flag is passed, directly return the raw string
-                            // without JSON double-quotes.
-                            // https://github.com/serde-rs/json/issues/367
-                            if raw_output && selection.is_string() {
-                                String::from(selection.as_str().unwrap())
-                            } else {
-                                ColoredFormatter::new(PrettyFormatter::new())
-                                    .to_colored_json_auto(&selection)
-                                    .unwrap()
+            deserializer
+                .into_iter::<Value>()
+                .for_each(|value| match value {
+                    Ok(valid_json) => {
+                        // Walk through the JSON content with the provided selectors as
+                        // input.
+                        match walker(&valid_json, selectors) {
+                            Ok(selection) => println!(
+                                "{}",
+                                // Inline or pretty output.
+                                (if inline {
+                                    ColoredFormatter::new(CompactFormatter {})
+                                        .to_colored_json_auto(&selection)
+                                        .unwrap()
+                                } else {
+                                    // If the selection is a string and the raw-output
+                                    // flag is passed, directly return the raw string
+                                    // without JSON double-quotes.
+                                    // https://github.com/serde-rs/json/issues/367
+                                    if raw_output && selection.is_string() {
+                                        String::from(selection.as_str().unwrap())
+                                    } else {
+                                        ColoredFormatter::new(PrettyFormatter::new())
+                                            .to_colored_json_auto(&selection)
+                                            .unwrap()
+                                    }
+                                })
+                            ),
+                            Err(error) => {
+                                eprintln!("{}", error);
+                                exit(1);
                             }
-                        })
-                    ),
-                    Err(error) => {
-                        eprintln!("{}", error);
+                        }
+                    }
+                    Err(_) => {
+                        eprintln!("Invalid JSON file or content");
                         exit(1);
                     }
-                }
-            }
-            Err(_) => {
-                eprintln!("Invalid JSON file or content");
-                exit(1);
-            }
-        });
+                });
+        }
+
+        // No selector found.
+        None => {
+            eprintln!("No selector found");
+            exit(1);
+        }
+    }
 }
 
 #[async_std::main]
