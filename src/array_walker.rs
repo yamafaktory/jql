@@ -1,4 +1,4 @@
-use crate::types::{Display, Selection, Selections, Selectors};
+use crate::types::{Display, Selection, Selections, Selector};
 
 use rayon::prelude::*;
 use serde_json::json;
@@ -10,7 +10,7 @@ pub fn array_walker(
     array_indexes: &[usize],
     inner_json: &Value,
     map_index: usize,
-    selectors: &Selectors,
+    selectors: &[Selector],
 ) -> Selection {
     let results: Selections = array_indexes
         .par_iter()
@@ -75,7 +75,7 @@ pub fn array_walker(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::types::{Selector};
+    use crate::types::Selector;
 
     #[test]
     fn valid_array_walker() {

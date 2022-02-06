@@ -1,4 +1,4 @@
-use crate::types::{Display, Selection, Selector, Selectors};
+use crate::types::{Display, Selection, Selector};
 
 use rayon::prelude::*;
 use serde_json::{json, Value};
@@ -9,7 +9,7 @@ pub fn range_selector(
     inner_json: &Value,
     map_index: usize,
     previous_selector: Option<&Selector>,
-    selectors: &Selectors,
+    selectors: &[Selector],
     start: Option<usize>,
 ) -> Selection {
     match inner_json.as_array() {

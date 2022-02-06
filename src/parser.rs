@@ -1,4 +1,4 @@
-use crate::types::{Group, Groups, InnerObject, Selector};
+use crate::types::{Group, InnerObject, Selector};
 
 use pest::{iterators as pest_iterators, Parser};
 use pest_derive::Parser;
@@ -115,13 +115,13 @@ fn get_inner_object_from_pair(pair: PestPair<'_>) -> Vec<InnerObject> {
 }
 
 /// Parse the provided selectors and returns a set of groups or an error.
-pub fn selectors_parser(selectors: &str) -> Result<Groups, String> {
+pub fn selectors_parser(selectors: &str) -> Result<Vec<Group>, String> {
     match GroupsParser::parse(Rule::groups, selectors) {
         Ok(pairs) => {
-            let mut groups: Groups = Vec::new();
+            let mut groups: Vec<Group> = Vec::new();
 
             for pair in pairs {
-                let mut group: Group = (None, None, Vec::new(), Vec::new(), None);
+                let mut group = Group::new();
 
                 // Loop over the pairs converted as an iterator of the tokens
                 // which composed it.
@@ -132,35 +132,35 @@ pub fn selectors_parser(selectors: &str) -> Result<Groups, String> {
                     // parser.
                     match inner_pair.as_rule() {
                         // Default
-                        Rule::default => group.2.push(span_to_default(
+                        Rule::default => group.selectors.push(span_to_default(
                             &get_chars_from_default_pair(inner_pair)[0].clone(),
                         )),
-                        Rule::filter_default => group.3.push(span_to_default(
+                        Rule::filter_default => group.filters.push(span_to_default(
                             &get_chars_from_default_pair(inner_pair.into_inner().next().unwrap())
                                 [0]
                             .clone(),
                         )),
                         // Index
-                        Rule::index => group.2.push(span_to_index(inner_span)),
-                        Rule::filter_index => group.3.push(span_to_index(inner_span)),
+                        Rule::index => group.selectors.push(span_to_index(inner_span)),
+                        Rule::filter_index => group.filters.push(span_to_index(inner_span)),
                         // Range
-                        Rule::range => group.2.push(span_to_range(inner_pair)),
+                        Rule::range => group.selectors.push(span_to_range(inner_pair)),
                         Rule::filter_range => group
-                            .3
+                            .filters
                             .push(span_to_range(inner_pair.into_inner().next().unwrap())),
                         // Property
                         Rule::property => group
-                            .2
+                            .selectors
                             .push(Selector::Object(get_inner_object_from_pair(inner_pair))),
                         Rule::filter_property => group
-                            .3
+                            .filters
                             .push(Selector::Object(get_inner_object_from_pair(inner_pair))),
                         // Root
-                        Rule::root => group.1 = Some(()),
+                        Rule::root => group.root = Some(()),
                         // Spread
-                        Rule::spread => group.0 = Some(()),
+                        Rule::spread => group.spread = Some(()),
                         // Truncate
-                        Rule::truncate => group.4 = Some(()),
+                        Rule::truncate => group.truncate = Some(()),
                         _ => (),
                     };
                 }
