@@ -231,7 +231,7 @@ pub fn get_selection(selectors: &[Selector], json: &Value) -> Selections {
                 Selector::Default(raw_selector) => {
                     let mut data = data.lock().unwrap();
 
-                    match apply_selector(&data, map_index, &raw_selector, selectors) {
+                    match apply_selector(&data, map_index, raw_selector, selectors) {
                         Ok(ref json) => {
                             *data = json.clone();
                             Ok(json.clone())
