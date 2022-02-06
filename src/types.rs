@@ -63,7 +63,7 @@ impl Display for InnerObject {
     }
 }
 
-/// A Group is a set of grammar components used to define a selection.
+/// A Group is a set of grammar elements used to define a selection.
 #[derive(Debug, PartialEq, Eq)]
 pub struct Group {
     /// Filters.
