@@ -1,8 +1,8 @@
-use clap::{crate_authors, crate_description, crate_name, crate_version, App, Arg, ArgMatches};
+use clap::{crate_authors, crate_description, crate_name, crate_version, Arg, ArgMatches, Command};
 
 /// Get the CLI matches.
 pub fn get_matches() -> ArgMatches {
-    App::new(crate_name!())
+    Command::new(crate_name!())
         .about(crate_description!())
         .author(crate_authors!())
         .version(crate_version!())
