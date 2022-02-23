@@ -22,7 +22,7 @@ cargo install jql
 
 ### Archlinux
 
-The AUR package is maintained by @frol.
+The AUR package is maintained by @barklan.
 
 ```sh
 yay -S jql
