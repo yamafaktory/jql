@@ -1,8 +1,7 @@
 use crate::types::{Display, Selection, Selections, Selector};
 
 use rayon::prelude::*;
-use serde_json::json;
-use serde_json::Value;
+use serde_json::{json, Value};
 
 /// Walks through a JSON array. Iterate over the indexes of the array, returns
 /// a Result of one value or an Err early on.
@@ -12,6 +11,8 @@ pub fn array_walker(
     map_index: usize,
     selectors: &[Selector],
 ) -> Selection {
+    let is_root = selectors.len() == 1 || map_index == 0;
+
     let results: Selections = array_indexes
         .par_iter()
         .map(|index| {
@@ -21,7 +22,7 @@ pub fn array_walker(
                     // Trying to access an out of bound index on a node
                     // or on the root element.
                     Some(array) => {
-                        if selectors.len() == 1 {
+                        if is_root {
                             [
                                 "Index [",
                                 index.to_string().as_str(),
@@ -44,7 +45,7 @@ pub fn array_walker(
                     // Trying to access an index on a node which is not
                     // an array.
                     None => {
-                        if selectors.len() == 1 || map_index == 0 {
+                        if is_root {
                             String::from("Root element is not an array")
                         } else {
                             [&selectors[map_index - 1].as_str(true), " is not an array"].join("")
