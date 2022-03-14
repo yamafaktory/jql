@@ -45,7 +45,7 @@ fn object_to_vec(inner_json: &Value) -> Vec<(String, Value)> {
     inner_json_mut
         .as_object_mut()
         .unwrap()
-        .to_owned()
+        .clone()
         .into_iter()
         .collect::<Vec<(String, Value)>>()
 }
