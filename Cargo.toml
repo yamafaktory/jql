@@ -34,6 +34,7 @@ rayon = "1.5.1"
 [dependencies.async-std]
 version = "1.10.0"
 features = ["attributes", "unstable"]
+optional = true
 
 [dependencies.serde_json]
 default-features = false
@@ -42,7 +43,7 @@ version = "1.0.79"
 
 # See comment above.
 [features]
-default = ["clap", "colored_json"]
+default = ["clap", "colored_json", "async-std"]
 
 [[bench]]
 harness = false
