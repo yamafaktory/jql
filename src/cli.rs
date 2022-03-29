@@ -16,44 +16,44 @@ pub fn get_matches() -> ArgMatches {
            Arg::new("JSON")
                 .help("JSON file to use")
                 .index(2)
-                .required(false),
+                .required(false)
         )
         .arg(
             Arg::new("check")
                 .help("Checks if the input is valid JSON")
                 .long("check")
-                .short('c'),
+                .short('c')
+        )
+        .arg(
+            Arg::new("from-file")
+                .conflicts_with("check")
+                .help("Reads selectors from file rather than from a command line")
+                .long("from-file")
+                .short('f')
+                .takes_value(true)
+                .use_value_delimiter(false)
+                .value_name("FILE")
         )
         .arg(
             Arg::new("inline")
                 .help("Inlines JSON output")
                 .conflicts_with("check")
                 .long("inline")
-                .short('i'),
+                .short('i')
         )
         .arg(
             Arg::new("raw-output")
                 .help("Writes raw string selection directly to standard output without JSON double-quotes")
                 .conflicts_with("check")
                 .long("raw-output")
-                .short('r'),
+                .short('r')
         )
         .arg(
             Arg::new("stream")
                 .help("Reads a stream of JSON data line by line")
                 .conflicts_with("check")
                 .long("stream")
-                .short('s'),
-        )
-        .arg(
-            Arg::new("from-file")
-                .help("Reads selectors from file than from a command argument")
-                .conflicts_with("check")
-                .long("from-file")
-                .takes_value(true)
-                .value_name("FILE")
-                .use_value_delimiter(false)
-                .short('f'),
+                .short('s')
         )
         .get_matches()
 }

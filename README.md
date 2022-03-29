@@ -542,11 +542,13 @@ jql --check example.json
 
 Please note that this flag is exclusive.
 
-#### Version
+#### From file
+
+The command will reads the provided selectors from a file rather than from a command line.
 
 ```sh
-jql -V
-jql --version
+jql --f selector.txt example.json
+jql --from-file selector.txt example.json
 ```
 
 #### Inlining the JSON output
@@ -580,6 +582,13 @@ while true; do echo '{"foo": 2}'; sleep 1; done | jql '.!' -s
 ```
 
 Please note that this option is only about reading valid JSON output streamed line by line (e.g. Docker logs with the `--follow` flag). This is not an option to read an incomplete streamed content (e.g. a very large input)!
+
+#### Version
+
+```sh
+jql -V
+jql --version
+```
 
 ## 🍿 Library
 
