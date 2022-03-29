@@ -15,11 +15,25 @@ use serde_json::{Deserializer, Value};
 
 /// Try to serialize the raw JSON content, output the selection or throw an
 /// error.
-fn render_output(json_content: &str, cli: &ArgMatches) {
+async fn render_output(json_content: &str, cli: &ArgMatches) {
     let check = cli.is_present("check");
     let inline = cli.is_present("inline");
     let raw_output = cli.is_present("raw-output");
-    let selectors = cli.value_of("selectors");
+    let from_file = cli.is_present("from-file");
+    let selectors = if from_file {
+        let file = cli.value_of("from-file").unwrap();
+        let path = Path::new(file);
+        let contents = fs::read_to_string(path).await;
+        match contents {
+            Ok(selectors) => Some(selectors),
+            Err(e) => {
+                eprintln!("{}", e);
+                exit(1);
+            }
+        }
+    } else {
+        cli.value_of("selectors").map(|s| s.to_string())
+    };
 
     // Early check of the JSON content with matching exit code based on result.
     if check {
@@ -55,7 +69,7 @@ fn render_output(json_content: &str, cli: &ArgMatches) {
                     Ok(valid_json) => {
                         // Walk through the JSON content with the provided selectors as
                         // input.
-                        match walker(&valid_json, selectors) {
+                        match walker(&valid_json, &selectors) {
                             Ok(selection) => println!(
                                 "{}",
                                 // Inline or pretty output.
@@ -105,18 +119,24 @@ async fn main() -> Result<()> {
 
     let cli = get_matches();
     let check = cli.is_present("check");
+    let from_file = cli.is_present("from-file");
 
     // Use a hack here since we can't conditionally define indexes of
     // positional arguments with clap.
     // Assume that the first positional argument is the JSON file or content
     // if the check flag is passed, otherwise keep the default behavior.
-    match cli.value_of(if check { "selectors" } else { "JSON" }) {
+    let json_arg = if check || from_file {
+        "selectors"
+    } else {
+        "JSON"
+    };
+    match cli.value_of(json_arg) {
         // JSON content coming from the CLI.
         Some(json) => {
             let path = Path::new(json);
             let contents = fs::read_to_string(path).await?;
 
-            render_output(&contents, &cli);
+            render_output(&contents, &cli).await;
 
             Ok(())
         }
@@ -141,7 +161,7 @@ async fn main() -> Result<()> {
                         return Ok(());
                     }
 
-                    render_output(&line, &cli);
+                    render_output(&line, &cli).await;
 
                     stdout.flush().await?;
 
@@ -156,7 +176,7 @@ async fn main() -> Result<()> {
 
             match String::from_utf8(buffer) {
                 Ok(lines) => {
-                    render_output(&lines, &cli);
+                    render_output(&lines, &cli).await;
 
                     Ok(())
                 }

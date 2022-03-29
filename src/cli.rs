@@ -10,7 +10,7 @@ pub fn get_matches() -> ArgMatches {
             Arg::new("selectors")
                 .help("Selectors to apply")
                 .index(1)
-                .required_unless_present("check")
+                .required_unless_present_any(&["check", "from-file"])
         )
         .arg(
            Arg::new("JSON")
@@ -44,6 +44,16 @@ pub fn get_matches() -> ArgMatches {
                 .conflicts_with("check")
                 .long("stream")
                 .short('s'),
+        )
+        .arg(
+            Arg::new("from-file")
+                .help("Reads selectors from file than from a command argument")
+                .conflicts_with("check")
+                .long("from-file")
+                .takes_value(true)
+                .value_name("FILE")
+                .use_value_delimiter(false)
+                .short('f'),
         )
         .get_matches()
 }
