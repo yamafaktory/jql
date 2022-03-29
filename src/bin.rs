@@ -24,10 +24,11 @@ async fn render_output(json_content: &str, cli: &ArgMatches) {
         let file = cli.value_of("from-file").unwrap();
         let path = Path::new(file);
         let contents = fs::read_to_string(path).await;
+
         match contents {
             Ok(selectors) => Some(selectors),
-            Err(e) => {
-                eprintln!("{}", e);
+            Err(_) => {
+                eprintln!("Invalid selectors file");
                 exit(1);
             }
         }
@@ -130,6 +131,7 @@ async fn main() -> Result<()> {
     } else {
         "JSON"
     };
+
     match cli.value_of(json_arg) {
         // JSON content coming from the CLI.
         Some(json) => {

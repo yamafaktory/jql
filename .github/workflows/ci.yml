@@ -73,6 +73,8 @@ jobs:
           if echo "{\"foo:\"bar\"}" | cargo run -- -c | grep -q "Invalid JSON file or content"; then exit 1; fi
       - name: Test broken pipe
         run: echo "{\"foo\":\"bar\"}" | cargo run "." | less -sex
+      - name: Test from-file
+        run: if echo "{\"foo\":\"bar\"}" | cargo run -- -f selectors.txt | grep -q \"bar\"; then exit 1; fi
 
   bench:
     if: "!contains(github.ref, 'refs/heads/main') && !contains(toJSON(github.event.commits.*.message), '[skip ci]')"
