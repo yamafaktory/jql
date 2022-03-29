@@ -74,7 +74,9 @@ jobs:
       - name: Test broken pipe
         run: echo "{\"foo\":\"bar\"}" | cargo run "." | less -sex
       - name: Test from-file
-        run: if echo "{\"foo\":\"bar\"}" | cargo run -- -f selectors.txt | grep -q \"bar\"; then exit 1; fi
+        run: |
+          echo \"foo\" > selectors.txt
+          if !echo "{\"foo\":\"bar\"}" | cargo run -- -f selectors.txt | grep -q \"bar\"; then exit 1; fi
 
   bench:
     if: "!contains(github.ref, 'refs/heads/main') && !contains(toJSON(github.event.commits.*.message), '[skip ci]')"
