@@ -29,12 +29,14 @@ groups = _{ selection ~ ("," ~ selection)* }
 
         filters = _{ pipe ~ filter ~ ("."? ~ filter)* }
             pipe = _{ "|" }
-            filter = _{ filter_array | filter_object | filter_default }
+            filter = _{ filter_array | filter_object | filter_default | filter_lens }
                 filter_array = _{ "[" ~ (filter_range | filter_index) ~ "]" }
                     filter_range = { range }
                     filter_index = { index }
                 filter_default = { default }
                 filter_object = _{ "{" ~ filter_property ~ "}" }
                     filter_property = { (default | object_array) ~ ("," ~ (default | object_array))* }
+                filter_lens = _{ "=" ~ "{" ~ filter_lens_property ~ "}" }
+		    filter_lens_property= { default ~ ("," ~ default)* }
 
         truncate = { "!" }
