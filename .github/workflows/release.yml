@@ -48,6 +48,11 @@ jobs:
           archive: tar.gz
           archive-cmd: tar czf
           sha-cmd: sha256sum
+        - os: ubuntu-latest
+          target: arm-unknown-linux-musleabihf
+          archive: tar.gz
+          archive-cmd: tar czf
+          sha-cmd: sha256sum
 
         # Darwin
         - os: macos-latest
