@@ -1,20 +1,20 @@
 | Command | Mean [ms] | Min [ms] | Max [ms] | Relative |
 |:---|---:|---:|---:|---:|
-| `echo '[1, [2], [[3]]]' \| jq 'flatten'` | 39.6 ± 2.7 | 34.8 | 59.8 | 19.61 ± 8.46 |
-| `echo '[1, [2], [[3]]]' \| jql '...'` | 2.0 ± 0.9 | 1.4 | 16.4 | 1.00 |
+| `echo '[1, [2], [[3]]]' \| jq 'flatten'` | 42.1 ± 2.6 | 36.6 | 53.7 | 17.16 ± 8.64 |
+| `echo '[1, [2], [[3]]]' \| jql '...'` | 2.5 ± 1.2 | 1.5 | 28.0 | 1.00 |
 
 | Command | Mean [ms] | Min [ms] | Max [ms] | Relative |
 |:---|---:|---:|---:|---:|
-| `echo '[1, 2, 3]' \| jq '.[0]'` | 39.9 ± 3.1 | 34.7 | 63.2 | 19.28 ± 5.45 |
-| `echo '[1, 2, 3]' \| jql '.[0]'` | 2.1 ± 0.6 | 1.4 | 9.9 | 1.00 |
+| `echo '[1, 2, 3]' \| jq '.[0]'` | 41.7 ± 2.7 | 35.9 | 51.9 | 20.72 ± 7.50 |
+| `echo '[1, 2, 3]' \| jql '.[0]'` | 2.0 ± 0.7 | 1.1 | 8.2 | 1.00 |
 
 | Command | Mean [ms] | Min [ms] | Max [ms] | Relative |
 |:---|---:|---:|---:|---:|
-| `echo '{ "foo": "bar" }' \| jq '.foo'` | 39.8 ± 2.8 | 35.5 | 58.9 | 19.72 ± 11.38 |
-| `echo '{ "foo": "bar" }' \| jql '."foo"'` | 2.0 ± 1.2 | 1.2 | 18.3 | 1.00 |
+| `echo '{ "foo": "bar" }' \| jq '.foo'` | 41.3 ± 2.8 | 36.4 | 58.4 | 20.83 ± 7.44 |
+| `echo '{ "foo": "bar" }' \| jql '."foo"'` | 2.0 ± 0.7 | 1.2 | 9.4 | 1.00 |
 
 | Command | Mean [ms] | Min [ms] | Max [ms] | Relative |
 |:---|---:|---:|---:|---:|
-| `cat /home/runner/work/jql/jql/assets/github-repositories.json \| jq -r '[.[] \| {name: .name, url: .url, language: .language, stargazers_count: .stargazers_count, watchers_count: .watchers_count}]' > /dev/null` | 175.9 ± 10.7 | 159.5 | 227.7 | 1.31 ± 0.12 |
-| `cat /home/runner/work/jql/jql/assets/github-repositories.json \| jql '.\|{"name", "url", "language", "stargazers_count", "watchers_count"}' > /dev/null` | 134.2 ± 8.6 | 120.1 | 212.2 | 1.00 |
+| `cat /home/runner/work/jql/jql/assets/github-repositories.json \| jq -r '[.[] \| {name: .name, url: .url, language: .language, stargazers_count: .stargazers_count, watchers_count: .watchers_count}]' > /dev/null` | 185.4 ± 9.3 | 166.6 | 230.3 | 1.33 ± 0.10 |
+| `cat /home/runner/work/jql/jql/assets/github-repositories.json \| jql '.\|{"name", "url", "language", "stargazers_count", "watchers_count"}' > /dev/null` | 139.5 ± 8.2 | 124.7 | 194.2 | 1.00 |
 
