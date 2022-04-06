@@ -1,5 +1,7 @@
-use crate::get_selection::get_selection;
-use crate::types::{ExtendedSelections, MaybeArray, Selections, Selector};
+use crate::{
+    get_selection::get_selection,
+    types::{ExtendedSelections, InnerObject, MaybeArray, Selections, Selector},
+};
 
 use rayon::prelude::*;
 use serde_json::{json, Value};
@@ -13,20 +15,56 @@ pub fn apply_filter(
     // Apply the filter iff the provided JSON value is an array.
     match json.as_array() {
         Some(array) => {
+            let lenses = filter_lenses
+                .iter()
+                .filter_map(|selector| match selector {
+                    Selector::Object(inner_objects) => Some(
+                        inner_objects
+                            .par_iter()
+                            .fold_with(Vec::new(), |mut acc, inner_object| {
+                                if let InnerObject::Key(key) = inner_object {
+                                    acc.push(key.to_owned());
+                                }
+
+                                acc
+                            })
+                            .flatten()
+                            .collect::<Vec<String>>(),
+                    ),
+                    _ => None,
+                })
+                .flatten()
+                .collect::<Vec<String>>();
+
+            dbg!(lenses);
+
             let selections: Vec<Selections> = array
                 .par_iter()
                 .cloned()
                 .map(|partial_json| -> Selections {
                     if !filter_lenses.is_empty() {
-                        //TODO
+                        //
                         //
                         if partial_json.is_object() {
-                            return partial_json.as_object().unwrap().iter().filter(
-                                |&(key, value)| {
-                                    return false;
-                                },
-                            );
+                            // let t = partial_json
+                            //     .as_object()
+                            //     .unwrap()
+                            //     .iter()
+                            //     .filter_map(|(key, value)| {
+                            //         // if filter_lenses
+                            //         //     .iter()
+                            //         //     .any(|current_index| index == current_index)
+                            //         // {
+                            //         //     return None;
+                            //         // }
+                            //
+                            //         None
+                            //     })
+                            //     .collect();
+
+                            return Ok(vec![partial_json]);
                         }
+
                         return Ok(vec![partial_json]);
                     }
 
