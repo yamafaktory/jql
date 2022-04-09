@@ -56,6 +56,7 @@ pub fn walker(json: &Value, selectors: &str) -> Selection {
 ///         &json_array,
 ///         &[Group {
 ///             filters: vec![],
+///             filter_lenses: vec![],
 ///             root: None,
 ///             selectors: vec![Index(vec![4])],
 ///             spread: None,
@@ -83,6 +84,7 @@ pub fn groups_walker(json: &Value, groups: &[Group]) -> Selection {
 ///     Ok(vec![
 ///         Group {
 ///             filters: vec![],
+///             filter_lenses: vec![],
 ///             root: None,
 ///             selectors: vec![Default(String::from("range")), Range((Some(5), Some(3)))],
 ///             spread: None,
@@ -90,6 +92,7 @@ pub fn groups_walker(json: &Value, groups: &[Group]) -> Selection {
 ///         },
 ///         Group {
 ///             filters: vec![],
+///             filter_lenses: vec![],
 ///             root: None,
 ///             selectors: vec![Default(String::from("array")), Range((Some(2), Some(1)))],
 ///             spread: None,
