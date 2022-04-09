@@ -15,7 +15,7 @@ fn get_lenses(filter_lenses: &[Selector]) -> Vec<String> {
                 inner_objects
                     .par_iter()
                     .fold_with(Vec::new(), |mut acc, inner_object| {
-                        if let InnerObject::Key(key) = inner_object {
+                        if let InnerObject::KeyValue(key, _) = inner_object {
                             acc.push(key.to_owned());
                         }
 

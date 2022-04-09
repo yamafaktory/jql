@@ -127,18 +127,18 @@ mod tests {
     fn object_selector() {
         assert_eq!(
             "Property {foo}",
-            display_object_selector(&[InnerObject::Key("foo".to_string())], true)
+            display_object_selector(&[InnerObject::KeyValue("foo".to_string(), None)], true)
         );
         assert_eq!(
             "property {foo}",
-            display_object_selector(&[InnerObject::Key("foo".to_string())], false)
+            display_object_selector(&[InnerObject::KeyValue("foo".to_string(), None)], false)
         );
         assert_eq!(
             "Properties {array,foo,index [1],range [1:2],}",
             display_object_selector(
                 &[
                     InnerObject::Array,
-                    InnerObject::Key("foo".to_string()),
+                    InnerObject::KeyValue("foo".to_string(), None),
                     InnerObject::Index([1].to_vec()),
                     InnerObject::Range((Some(1), Some(2)))
                 ],
@@ -150,7 +150,7 @@ mod tests {
             display_object_selector(
                 &[
                     InnerObject::Array,
-                    InnerObject::Key("foo".to_string()),
+                    InnerObject::KeyValue("foo".to_string(), None),
                     InnerObject::Index([1].to_vec()),
                     InnerObject::Range((Some(1), Some(2)))
                 ],
