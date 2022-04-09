@@ -103,6 +103,13 @@ mod tests {
                     "dna": [[[[["c", "a", "c"]]]], "g", "t", [[["a", ["t"]]]]]
                 }
             }
+        ],
+        "lenses": [
+            { "alpha": 1 },
+            { "beta": 2 },
+            { "gamma": 3 },
+            { "alpha": 7 },
+            { "delta": 4 }  
         ]
     }"#;
 
@@ -808,6 +815,7 @@ mod tests {
                 "nested-filter": [],
                 "filter-to-flatten": [],
                 "nested-filter-to-flatten": [],
+                "lenses": []
             })),
             walker(&json, selector)
         );
@@ -845,5 +853,15 @@ mod tests {
         let json: Value = serde_json::from_str(DATA).unwrap();
         let selector = r#""nested-filter-to-flatten"|"fruit"!"#;
         assert_eq!(Ok(json!([{}, {}])), walker(&json, selector));
+    }
+
+    #[test]
+    fn check_lenses() {
+        let json: Value = serde_json::from_str(DATA).unwrap();
+        let selector = r#""lenses"|={"delta","alpha"}"#;
+        assert_eq!(
+            Ok(json!([{"alpha": 1}, {"alpha": 7}, {"delta": 4}])),
+            walker(&json, selector)
+        );
     }
 }

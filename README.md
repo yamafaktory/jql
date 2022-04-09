@@ -12,13 +12,11 @@
 - 💡 Provide meaningful error messages
 - ↔️ Eat JSON as input, process, output JSON back
 
+## ⚠️ Non-goal
+
+This tool has absolutely no plan to be on par with `jq` and such other similar CLI.
+
 ## 🚀 Installation
-
-### Cargo
-
-```sh
-cargo install jql
-```
 
 ### Archlinux
 
@@ -28,11 +26,39 @@ The AUR package is maintained by @barklan.
 yay -S jql
 ```
 
+### Cargo
+
+```sh
+cargo install jql
+```
+
+### Fedora
+
+```sh
+dnf install jql
+```
+
 ### Homebrew
 
 ```sh
 brew install jql
 ```
+
+### Nix
+
+```sh
+nix-env -i jql
+```
+
+### openSUSE
+
+```sh
+zypper install jql
+```
+
+### Manual installation from GitHub
+
+Compiled binary versions are automatically uploaded to GitHub when a new release is made. You can install `jql` manually by [downloading a release](https://github.com/yamafaktory/jql/releases).
 
 ## 🛠️ Usage
 
@@ -425,6 +451,40 @@ jql '.."dna"' example.json
 ["c", "a", "c", "g", "t", "a", "t"]
 ```
 
+### Lens
+
+Lenses enable filtering an array of objects by keys:
+
+```json
+{
+  "nested": [
+    { "alpha": 1 },
+    { "beta": 2 },
+    { "gamma": 3 },
+    { "alpha": 7 },
+    { "delta": 4 }
+  ]
+}
+```
+
+```sh
+jql '"nested"|={"alpha","delta"}' example.json
+```
+
+```json
+[
+  {
+    "alpha": 1
+  },
+  {
+    "alpha": 7
+  },
+  {
+    "delta": 4
+  }
+]
+```
+
 ### Truncate
 
 The truncate selector `!` can be used to stop walking the children's values and to explore an unknown JSON file / structure.
@@ -475,6 +535,9 @@ jql '"foo"!' example.json
 ```
 
 ### Special characters
+
+In order to be fully compliant with JSON's object keys, `jql` always expect selectors to be
+**double-quoted**.
 
 ```json
 {
