@@ -140,14 +140,17 @@ pub fn selectors_parser(selectors: &str) -> Result<Vec<Group>, String> {
                                 [0]
                             .clone(),
                         )),
+
                         // Index
                         Rule::index => group.selectors.push(span_to_index(inner_span)),
                         Rule::filter_index => group.filters.push(span_to_index(inner_span)),
+
                         // Range
                         Rule::range => group.selectors.push(span_to_range(inner_pair)),
                         Rule::filter_range => group
                             .filters
                             .push(span_to_range(inner_pair.into_inner().next().unwrap())),
+
                         // Property
                         Rule::property => group
                             .selectors
@@ -155,10 +158,18 @@ pub fn selectors_parser(selectors: &str) -> Result<Vec<Group>, String> {
                         Rule::filter_property => group
                             .filters
                             .push(Selector::Object(get_inner_object_from_pair(inner_pair))),
+
+                        // Filter lenses property.
+                        Rule::filter_lens_property => group
+                            .filter_lenses
+                            .push(Selector::Object(get_inner_object_from_pair(inner_pair))),
+
                         // Root
                         Rule::root => group.root = Some(()),
+
                         // Spread
                         Rule::spread => group.spread = Some(()),
+
                         // Truncate
                         Rule::truncate => group.truncate = Some(()),
                         _ => (),

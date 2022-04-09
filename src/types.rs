@@ -68,6 +68,8 @@ impl Display for InnerObject {
 pub struct Group {
     /// Filters.
     pub filters: Vec<Selector>,
+    /// Filter lenses.
+    pub filter_lenses: Vec<Selector>,
     /// Root marker.
     pub root: Option<()>,
     /// Selectors.
@@ -84,6 +86,7 @@ impl Group {
     pub fn new() -> Self {
         Self {
             filters: Vec::new(),
+            filter_lenses: Vec::new(),
             root: None,
             selectors: Vec::new(),
             spread: None,

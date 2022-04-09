@@ -17,6 +17,7 @@ fn integration_selectors_parser() {
         Ok(vec![
             Group {
                 filters: vec![],
+                filter_lenses: vec![],
                 root: None,
                 selectors: vec![Default(String::from("range")), Range((Some(5), Some(3)))],
                 spread: None,
@@ -24,6 +25,7 @@ fn integration_selectors_parser() {
             },
             Group {
                 filters: vec![],
+                filter_lenses: vec![],
                 root: None,
                 selectors: vec![Default(String::from("array")), Range((Some(2), Some(1)))],
                 spread: None,
@@ -42,6 +44,7 @@ fn integration_groups_walker() {
             &json_array,
             &[Group {
                 filters: vec![],
+                filter_lenses: vec![],
                 root: None,
                 selectors: vec![Index(vec![4])],
                 spread: None,
