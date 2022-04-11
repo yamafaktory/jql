@@ -27,8 +27,8 @@ pub enum InnerObject {
     Array,
     /// Index variant.
     Index(Vec<usize>),
-    /// Key variant.
-    Key(String),
+    /// Key / Value variant.
+    KeyValue(String, Option<String>),
     /// Range variant.
     Range((Option<usize>, Option<usize>)),
 }
@@ -57,7 +57,7 @@ impl Display for InnerObject {
         match self {
             InnerObject::Array => display_array_selector(capitalized),
             InnerObject::Index(indexes) => display_index_selector(indexes, capitalized),
-            InnerObject::Key(key) => key.to_string(),
+            InnerObject::KeyValue(key, _value) => key.to_string(),
             InnerObject::Range(range) => display_range_selector(*range, capitalized),
         }
     }

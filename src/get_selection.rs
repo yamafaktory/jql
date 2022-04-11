@@ -117,7 +117,7 @@ pub fn get_selection(selectors: &[Selector], json: &Value) -> Selections {
                                             }
                                         }
                                     }
-                                    InnerObject::Key(key) => {
+                                    InnerObject::KeyValue(key, _) => {
                                         let data = data.lock().unwrap();
 
                                         match apply_selector(&data, map_index, key, selectors) {
@@ -331,14 +331,20 @@ mod tests {
         assert_eq!(
             Ok(vec![json!({ "A": 10 })]),
             get_selection(
-                &[Selector::Object(vec![InnerObject::Key("A".to_string())])],
+                &[Selector::Object(vec![InnerObject::KeyValue(
+                    "A".to_string(),
+                    None
+                )])],
                 &json!({ "A": 10, "B": 20, "C": 30 })
             )
         );
         assert_eq!(
             Err(String::from("Node \"D\" not found on the parent element")),
             get_selection(
-                &[Selector::Object(vec![InnerObject::Key("D".to_string())])],
+                &[Selector::Object(vec![InnerObject::KeyValue(
+                    "D".to_string(),
+                    None
+                )])],
                 &json!({ "A": 10, "B": 20, "C": 30 })
             )
         );
@@ -378,7 +384,7 @@ mod tests {
             Ok(vec![json!({"A": 10, "2": 30, "3": 40})]),
             get_selection(
                 &[Selector::Object(vec![
-                    InnerObject::Key("A".to_string()),
+                    InnerObject::KeyValue("A".to_string(), None),
                     InnerObject::Range((Some(2), Some(3)))
                 ]),],
                 &json!({ "A": 10, "B": 20, "C": 30, "D": 40, "E": 50 })
