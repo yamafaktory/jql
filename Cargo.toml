@@ -5,7 +5,6 @@ description = "A JSON query language CLI tool"
 edition = "2021"
 exclude = [
     ".github",
-    ".travis.yml",
     "assets/**/*",
     "benches/**/*",
     "performance.sh",

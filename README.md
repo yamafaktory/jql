@@ -453,14 +453,15 @@ jql '.."dna"' example.json
 
 ### Lens
 
-Lenses enable filtering an array of objects by keys:
+Lenses enable filtering an array of objects by key, key/value pair or a combination of both. Please
+note that only `number`, `string` and `null` primitive can be used as value.
 
 ```json
 {
-  "nested": [
-    { "alpha": 1 },
+  "lenses": [
+    { "alpha": 1, "beta": null },
     { "beta": 2 },
-    { "gamma": 3 },
+    { "gamma": 3, "delta": "something" },
     { "alpha": 7 },
     { "delta": 4 }
   ]
@@ -468,19 +469,60 @@ Lenses enable filtering an array of objects by keys:
 ```
 
 ```sh
-jql '"nested"|={"alpha","delta"}' example.json
+jql '"lenses"|={"alpha","delta"}' example.json
 ```
 
 ```json
 [
   {
-    "alpha": 1
+    "alpha": 1,
+    "beta": null
+  },
+  {
+    "gamma": 3,
+    "delta": "something"
   },
   {
     "alpha": 7
   },
   {
     "delta": 4
+  }
+]
+```
+
+```sh
+jql '"lenses"|={"alpha":"7","beta":"null"}' example.json
+```
+
+```json
+[
+  {
+    "alpha": 1,
+    "beta": null
+  },
+  {
+    "alpha": 7
+  }
+]
+```
+
+```sh
+jql '"lenses"|={"delta":"something","alpha"}' example.json
+```
+
+```json
+[
+  {
+    "alpha": 1,
+    "beta": null
+  },
+  {
+    "gamma": 3,
+    "delta": "something"
+  },
+  {
+    "alpha": 7
   }
 ]
 ```

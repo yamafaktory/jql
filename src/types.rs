@@ -27,7 +27,7 @@ pub enum InnerObject {
     Array,
     /// Index variant.
     Index(Vec<usize>),
-    /// Key variant.
+    /// Key / Value variant.
     KeyValue(String, Option<String>),
     /// Range variant.
     Range((Option<usize>, Option<usize>)),

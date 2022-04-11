@@ -105,9 +105,9 @@ mod tests {
             }
         ],
         "lenses": [
-            { "alpha": 1 },
+            { "alpha": 1, "beta": null },
             { "beta": 2 },
-            { "gamma": 3 },
+            { "gamma": 3, "delta": "something" },
             { "alpha": 7 },
             { "delta": 4 }  
         ]
@@ -858,10 +858,45 @@ mod tests {
     #[test]
     fn check_lenses() {
         let json: Value = serde_json::from_str(DATA).unwrap();
-        let selector = r#""lenses"|={"delta","alpha"}"#;
+        let selector_keys_only = r#""lenses"|={"delta","alpha"}"#;
+        let selector_key_value_number = r#""lenses"|={"delta":"4"}"#;
+        let selector_key_value_null = r#""lenses"|={"beta":"null"}"#;
+        let selector_key_value_string = r#""lenses"|={"delta":"something"}"#;
+        let selector_key_value_multiple =
+            r#""lenses"|={"delta":"something", "delta":"4", "alpha"}"#;
         assert_eq!(
-            Ok(json!([{"alpha": 1}, {"alpha": 7}, {"delta": 4}])),
-            walker(&json, selector)
+            Ok(json!([
+                {"alpha": 1, "beta": Value::Null},
+                {"gamma": 3, "delta": "something"},
+                {"alpha": 7},
+                {"delta": 4}
+            ])),
+            walker(&json, selector_keys_only)
+        );
+        assert_eq!(
+            Ok(json!([{"delta": 4}])),
+            walker(&json, selector_key_value_number)
+        );
+        assert_eq!(
+            Ok(json!([
+                {"alpha": 1, "beta": Value::Null},
+            ])),
+            walker(&json, selector_key_value_null)
+        );
+        assert_eq!(
+            Ok(json!([
+                {"gamma": 3, "delta": "something"},
+            ])),
+            walker(&json, selector_key_value_string)
+        );
+        assert_eq!(
+            Ok(json!([
+                {"alpha": 1, "beta": Value::Null},
+                {"gamma": 3, "delta": "something"},
+                {"alpha": 7},
+                {"delta": 4}
+            ])),
+            walker(&json, selector_key_value_multiple)
         );
     }
 }

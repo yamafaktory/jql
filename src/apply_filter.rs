@@ -4,10 +4,10 @@ use crate::{
 };
 
 use rayon::prelude::*;
-use serde_json::{json, Map, Value};
+use serde_json::{json, Value};
 
 /// Gets the lenses from the filter lenses.
-fn get_lenses(filter_lenses: &[Selector]) -> Vec<String> {
+fn get_lenses(filter_lenses: &[Selector]) -> Vec<(&str, Option<&str>)> {
     filter_lenses
         .iter()
         .filter_map(|selector| match selector {
@@ -15,22 +15,43 @@ fn get_lenses(filter_lenses: &[Selector]) -> Vec<String> {
                 inner_objects
                     .par_iter()
                     .fold_with(Vec::new(), |mut acc, inner_object| {
-                        if let InnerObject::KeyValue(key, _) = inner_object {
-                            acc.push(key.to_owned());
+                        if let InnerObject::KeyValue(key, value) = inner_object {
+                            acc.push((key.as_str(), value.as_deref()));
                         }
 
                         acc
                     })
                     .flatten()
-                    .collect::<Vec<String>>(),
+                    .collect::<Vec<(&str, Option<&str>)>>(),
             ),
             _ => None,
         })
         .flatten()
-        .collect::<Vec<String>>()
+        .collect::<Vec<(&str, Option<&str>)>>()
 }
 
-/// Apply the filter selectors to a JSON value and returns a selection.
+/// Check if a given key/value pair matches some lenses.
+fn match_lenses(lenses: &[(&str, Option<&str>)], (key, value): (&String, &Value)) -> bool {
+    lenses.iter().any(|(lens_key, lens_value)| {
+        match *lens_value {
+            // Both key and value.
+            Some(lens_value) => {
+                key == lens_key
+                    && match value {
+                        Value::String(string) => lens_value == string,
+                        Value::Number(number) => lens_value == number.to_string(),
+                        Value::Null => lens_value == "null",
+                        // We don't want to perform any other comparison for
+                        // other primitives.
+                        _ => false,
+                    }
+            }
+            // Based on the key only.
+            None => key == lens_key,
+        }
+    })
+}
+
 pub fn apply_filter(
     filter_selectors: &[Selector],
     filter_lenses: &[Selector],
@@ -50,26 +71,24 @@ pub fn apply_filter(
                         // Lenses can only be applied to JSON objects.
                         if partial_json.is_object() {
                             let object = partial_json.as_object().unwrap();
-                            let map = object.iter().fold(
-                                Map::with_capacity(object.len()),
-                                |mut acc, (key, value)| {
-                                    // Push to the map if we have a matching
-                                    // lens.
-                                    if lenses.iter().any(|lens| lens == key) {
-                                        acc.insert(key.to_string(), value.to_owned());
+                            let matches = object.iter().fold(
+                                Vec::with_capacity(object.len()),
+                                |mut acc, key_value| {
+                                    if match_lenses(&lenses, key_value) {
+                                        acc.push(partial_json.clone());
                                     }
 
                                     acc
                                 },
                             );
 
-                            // Avoid returning an empty map if no match has
+                            // Avoid returning an empty vector if no match has
                             // been found.
-                            if map.is_empty() {
+                            if matches.is_empty() {
                                 return Ok(vec![]);
                             }
 
-                            return Ok(vec![json!(map)]);
+                            return Ok(matches);
                         }
 
                         return Ok(vec![partial_json]);

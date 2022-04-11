@@ -85,6 +85,7 @@ fn get_chars_from_pair(pair: PestPair<'_>) -> Vec<String> {
             if inner_pair.as_rule() == Rule::chars {
                 acc.push(String::from(inner_pair.clone().as_span().as_str()));
             }
+
             acc
         })
 }
@@ -101,25 +102,23 @@ fn get_inner_object_from_pair(pair: PestPair<'_>) -> Vec<InnerObject> {
                     ));
                 }
                 Rule::filter_lens_key_value_pair => {
-                    acc.push(InnerObject::KeyValue(
-                        get_chars_from_pair(
-                            inner_pair
-                                .clone()
-                                .into_inner()
-                                .into_iter()
-                                .next()
-                                .unwrap()
-                                .into_inner()
-                                .next()
-                                .unwrap(),
-                        )[0]
-                        .clone(),
+                    let key = &get_chars_from_pair(
                         inner_pair
+                            .clone()
                             .into_inner()
                             .into_iter()
-                            .nth(1)
-                            .map(|pair| get_chars_from_pair(pair)[0].clone()),
-                    ));
+                            .next()
+                            .unwrap()
+                            .into_inner()
+                            .next()
+                            .unwrap(),
+                    )[0];
+
+                    let maybe_value = inner_pair.into_inner().into_iter().nth(1).map(|pair| {
+                        get_chars_from_pair(pair.into_inner().next().unwrap())[0].clone()
+                    });
+
+                    acc.push(InnerObject::KeyValue(key.to_string(), maybe_value));
                 }
                 Rule::object_range => {
                     acc.push(span_to_object_range(

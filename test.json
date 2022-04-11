@@ -1,6 +1,0 @@
-[
-  { "key": "give-me-this", "another-key": 42 },
-  { "key": "dont-give-me-this", "another-key": 13 },
-  { "key": "give-me-this", "another-key": 69 },
-  { "unrelated": 234 }
-]
