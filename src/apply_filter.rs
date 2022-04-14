@@ -65,40 +65,27 @@ pub fn apply_filter(
             let selections: Vec<Selections> = array
                 .par_iter()
                 .cloned()
+                .filter(|partial_json| {
+                    // Check whether we have some lenses or not and if this is
+                    // an object since lenses can only be applied to objects.
+                    if !lenses.is_empty() && partial_json.is_object() {
+                        // We can safely unwrap here based on the conditional
+                        // above.
+                        let object = partial_json.as_object().unwrap();
+
+                        object
+                            .iter()
+                            .any(|key_value| match_lenses(&lenses, key_value))
+                    } else {
+                        true
+                    }
+                })
                 .map(|partial_json| -> Selections {
-                    // Check whether we have some lenses or not.
-                    if !lenses.is_empty() {
-                        // Lenses can only be applied to JSON objects.
-                        if partial_json.is_object() {
-                            let object = partial_json.as_object().unwrap();
-                            let matches = object.iter().fold(
-                                Vec::with_capacity(object.len()),
-                                |mut acc, key_value| {
-                                    if match_lenses(&lenses, key_value) {
-                                        acc.push(partial_json.clone());
-                                    }
-
-                                    acc
-                                },
-                            );
-
-                            // Avoid returning an empty vector if no match has
-                            // been found.
-                            if matches.is_empty() {
-                                return Ok(vec![]);
-                            }
-
-                            return Ok(matches);
-                        }
-
-                        return Ok(vec![partial_json]);
-                    }
-
                     if filter_selectors.is_empty() {
-                        return Ok(vec![partial_json]);
+                        Ok(vec![partial_json])
+                    } else {
+                        get_selection(filter_selectors, &partial_json)
                     }
-
-                    get_selection(filter_selectors, &partial_json)
                 })
                 .collect();
 
