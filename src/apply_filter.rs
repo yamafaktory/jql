@@ -1,10 +1,10 @@
+use rayon::prelude::*;
+use serde_json::{json, Value};
+
 use crate::{
     get_selection::get_selection,
     types::{ExtendedSelections, InnerObject, MaybeArray, Selections, Selector},
 };
-
-use rayon::prelude::*;
-use serde_json::{json, Value};
 
 /// Gets the lenses from the filter lenses.
 fn get_lenses(filter_lenses: &[Selector]) -> Vec<(&str, Option<&str>)> {

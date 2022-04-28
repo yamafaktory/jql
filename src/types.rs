@@ -1,9 +1,9 @@
+use serde_json::Value;
+
 use crate::utils::{
     display_array_selector, display_default_selector, display_index_selector,
     display_object_selector, display_range_selector,
 };
-
-use serde_json::Value;
 
 /// Selectors.
 #[derive(Debug, PartialEq, Eq)]

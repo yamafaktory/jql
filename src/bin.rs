@@ -3,14 +3,13 @@
 mod cli;
 mod panic;
 
-use cli::get_matches;
-use jql::walker;
-use panic::use_custom_panic_hook;
-
 use anyhow::Result;
 use async_std::{fs, io, path::Path, prelude::*, process::exit};
 use clap::ArgMatches;
+use cli::get_matches;
 use colored_json::{ColoredFormatter, CompactFormatter, PrettyFormatter};
+use jql::walker;
+use panic::use_custom_panic_hook;
 use serde_json::{Deserializer, Value};
 
 /// Try to serialize the raw JSON content, output the selection or throw an
