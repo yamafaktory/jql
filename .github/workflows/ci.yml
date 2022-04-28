@@ -106,6 +106,7 @@ jobs:
           if !echo "{\"foo\":\"bar\"}" | cargo run -- -f selectors.txt | grep -q \"bar\"; then exit 1; fi
 
   bench:
+    if: "!contains(github.ref, 'refs/heads/main')"
     name: ⚡bench
     runs-on: ${{ matrix.os }}
     strategy:
