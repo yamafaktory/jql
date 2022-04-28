@@ -1,11 +1,11 @@
+use rayon::prelude::*;
+use serde_json::{json, Value};
+
 use crate::{
     group_walker::group_walker,
     parser::selectors_parser,
     types::{Group, Selection, Selections},
 };
-
-use rayon::prelude::*;
-use serde_json::{json, Value};
 
 /// Walks over the Serde JSON value based on the provided selectors.
 pub fn walker(json: &Value, selectors: &str) -> Selection {

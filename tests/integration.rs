@@ -5,7 +5,6 @@ use jql::{
     groups_walker, selectors_parser, walker, Group,
     Selector::{Default, Index, Range},
 };
-
 use serde_json::json;
 
 #[test]

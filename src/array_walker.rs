@@ -1,7 +1,7 @@
-use crate::types::{Display, Selection, Selections, Selector};
-
 use rayon::prelude::*;
 use serde_json::{json, Value};
+
+use crate::types::{Display, Selection, Selections, Selector};
 
 /// Walks through a JSON array. Iterate over the indexes of the array, returns
 /// a Result of one value or an Err early on.

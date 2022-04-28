@@ -1,5 +1,6 @@
-use async_std::process::exit;
 use std::panic;
+
+use async_std::process::exit;
 
 /// Use a custom hook to manage broken pipe errors.
 /// See #86.

@@ -8,12 +8,14 @@ jobs:
   performance:
     runs-on: ubuntu-latest
     steps:
-      - uses: hecrj/setup-rust-action@v1
-        with:
-          rust-version: stable
       - uses: actions/checkout@v2
         with:
           ref: "main"
+      - uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: ${{ matrix.rust }}
+          override: true
       - name: Install hyperfine and jql - jq is already available!
         run: cargo install hyperfine && cargo install jql
       - name: Run performance benchmarks
@@ -37,84 +39,84 @@ jobs:
       fail-fast: false
       matrix:
         include:
-        # Linux
-        - os: ubuntu-latest
-          target: x86_64-unknown-linux-musl
-          archive: tar.gz
-          archive-cmd: tar czf
-          sha-cmd: sha256sum
-        - os: ubuntu-latest
-          target: aarch64-unknown-linux-musl
-          archive: tar.gz
-          archive-cmd: tar czf
-          sha-cmd: sha256sum
-        - os: ubuntu-latest
-          target: arm-unknown-linux-musleabihf
-          archive: tar.gz
-          archive-cmd: tar czf
-          sha-cmd: sha256sum
+          # Linux
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-musl
+            archive: tar.gz
+            archive-cmd: tar czf
+            sha-cmd: sha256sum
+          - os: ubuntu-latest
+            target: aarch64-unknown-linux-musl
+            archive: tar.gz
+            archive-cmd: tar czf
+            sha-cmd: sha256sum
+          - os: ubuntu-latest
+            target: arm-unknown-linux-musleabihf
+            archive: tar.gz
+            archive-cmd: tar czf
+            sha-cmd: sha256sum
 
-        # Darwin
-        - os: macos-latest
-          target: x86_64-apple-darwin
-          archive: zip
-          archive-cmd: zip -r
-          sha-cmd: shasum -a 256
-        - os: macos-latest
-          target: aarch64-apple-darwin
-          archive: zip
-          archive-cmd: zip -r
-          sha-cmd: shasum -a 256
+          # Darwin
+          - os: macos-latest
+            target: x86_64-apple-darwin
+            archive: zip
+            archive-cmd: zip -r
+            sha-cmd: shasum -a 256
+          - os: macos-latest
+            target: aarch64-apple-darwin
+            archive: zip
+            archive-cmd: zip -r
+            sha-cmd: shasum -a 256
 
-        # Windows
-        - os: windows-latest
-          target: x86_64-pc-windows-msvc
-          archive: zip
-          archive-cmd: 7z a
-          sha-cmd: sha256sum
+          # Windows
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            archive: zip
+            archive-cmd: 7z a
+            sha-cmd: sha256sum
 
     steps:
-    - name: Checkout repo
-      uses: actions/checkout@v2
+      - name: Checkout repo
+        uses: actions/checkout@v2
 
-    - name: Setup Rust toolchain
-      uses: actions-rs/toolchain@v1
-      with:
-        profile: minimal
-        override: true
-        target: ${{ matrix.target }}
-        toolchain: stable
+      - name: Setup Rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          override: true
+          target: ${{ matrix.target }}
+          toolchain: stable
 
-    - name: Build
-      uses: actions-rs/cargo@v1
-      with:
-        use-cross: true
-        command: build
-        args: --release --target ${{ matrix.target }}
+      - name: Build
+        uses: actions-rs/cargo@v1
+        with:
+          use-cross: true
+          command: build
+          args: --release --target ${{ matrix.target }}
 
-    - name: Package Artifacts
-      shell: bash
-      run: |
-        src=$(pwd)
-        stage=$(mktemp -d)
-        ver=${GITHUB_REF#refs/tags/}
-        asset_name="jql-$ver-${{ matrix.target }}.${{ matrix.archive }}"
-        ASSET_PATH="$src/$asset_name"
-        CHECKSUM_PATH="$ASSET_PATH.sha256"
-        cp target/${{ matrix.target }}/release/jql $stage/
-        cd $stage
-        ${{ matrix.archive-cmd }} $ASSET_PATH *
-        cd $src
-        ${{ matrix.sha-cmd }} $asset_name > $CHECKSUM_PATH
-        echo "ASSET_PATH=$ASSET_PATH" >> $GITHUB_ENV
-        echo "CHECKSUM_PATH=$CHECKSUM_PATH" >> $GITHUB_ENV
+      - name: Package Artifacts
+        shell: bash
+        run: |
+          src=$(pwd)
+          stage=$(mktemp -d)
+          ver=${GITHUB_REF#refs/tags/}
+          asset_name="jql-$ver-${{ matrix.target }}.${{ matrix.archive }}"
+          ASSET_PATH="$src/$asset_name"
+          CHECKSUM_PATH="$ASSET_PATH.sha256"
+          cp target/${{ matrix.target }}/release/jql $stage/
+          cd $stage
+          ${{ matrix.archive-cmd }} $ASSET_PATH *
+          cd $src
+          ${{ matrix.sha-cmd }} $asset_name > $CHECKSUM_PATH
+          echo "ASSET_PATH=$ASSET_PATH" >> $GITHUB_ENV
+          echo "CHECKSUM_PATH=$CHECKSUM_PATH" >> $GITHUB_ENV
 
-    - name: Release
-      uses: softprops/action-gh-release@v1
-      if: startsWith(github.ref, 'refs/tags/')
-      with:
-        files: |
-          ${{ env.ASSET_PATH }}
-          ${{ env.CHECKSUM_PATH }}
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Release
+        uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: |
+            ${{ env.ASSET_PATH }}
+            ${{ env.CHECKSUM_PATH }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

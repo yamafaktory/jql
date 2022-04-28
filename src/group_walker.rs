@@ -1,3 +1,5 @@
+use serde_json::{json, Value};
+
 use crate::{
     apply_filter::apply_filter,
     flatten_json_array::flatten_json_array,
@@ -5,8 +7,6 @@ use crate::{
     truncate::truncate_json,
     types::{Group, MaybeArray, Selection},
 };
-
-use serde_json::{json, Value};
 
 /// Walks through a group.
 pub fn group_walker(

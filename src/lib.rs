@@ -19,9 +19,9 @@ mod types;
 mod utils;
 
 // Expose all the types.
-pub use crate::types::*;
-
 use serde_json::Value;
+
+pub use crate::types::*;
 
 /// Walks over the Serde JSON value based on the provided selectors.
 ///

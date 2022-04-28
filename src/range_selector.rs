@@ -1,7 +1,7 @@
-use crate::types::{Display, Selection, Selector};
-
 use rayon::prelude::*;
 use serde_json::{json, Value};
+
+use crate::types::{Display, Selection, Selector};
 
 /// Returns a range selection or an error.
 pub fn range_selector(

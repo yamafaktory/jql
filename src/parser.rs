@@ -1,7 +1,7 @@
-use crate::types::{Group, InnerObject, Selector};
-
 use pest::{iterators as pest_iterators, Parser};
 use pest_derive::Parser;
+
+use crate::types::{Group, InnerObject, Selector};
 
 #[derive(Parser)]
 #[grammar = "grammar.pest"]

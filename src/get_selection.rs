@@ -1,12 +1,13 @@
+use std::sync::{Arc, Mutex};
+
+use rayon::prelude::*;
+use serde_json::{json, Map, Value};
+
 use crate::{
     array_walker::array_walker,
     range_selector::range_selector,
     types::{Display, InnerObject, Selection, Selections, Selector},
 };
-
-use rayon::prelude::*;
-use serde_json::{json, Map, Value};
-use std::sync::{Arc, Mutex};
 
 fn apply_selector(
     inner_json: &Value,
