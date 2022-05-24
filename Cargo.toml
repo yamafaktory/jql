@@ -15,7 +15,7 @@ license = "MIT"
 name = "jql"
 readme = "README.md"
 repository = "https://github.com/yamafaktory/jql"
-version = "4.0.3"
+version = "4.0.4"
 
 [dev-dependencies]
 criterion = "0.3.5"
