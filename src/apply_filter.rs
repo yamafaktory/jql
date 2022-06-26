@@ -122,3 +122,78 @@ pub fn apply_filter(
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn array_apply_filter() {
+        assert_eq!(
+            Ok(MaybeArray::Array(vec![
+                json!("A"),
+                json!("B"),
+                json!("C"),
+                json!("D"),
+                json!("E")
+            ])),
+            apply_filter(&[], &[], &json!(["A", "B", "C", "D", "E"]),)
+        );
+
+        assert_eq!(
+            Err(String::from("Root element is not an array")),
+            apply_filter(
+                &[Selector::Range((Some(1), Some(3))),],
+                &[],
+                &json!(["A", "B", "C", "D", "E"]),
+            )
+        );
+
+        assert_eq!(
+            Ok(MaybeArray::Array(vec![json!(["B", "C", "D"])])),
+            apply_filter(
+                &[Selector::Range((Some(1), Some(3))),],
+                &[],
+                &json!([["A", "B", "C", "D", "E"]]),
+            )
+        );
+
+        assert_eq!(
+            Ok(MaybeArray::Array(vec![
+                json!({ "A": 10, "B": 20, "C": 30, "D": 40, "E": 50 })
+            ])),
+            apply_filter(
+                &[],
+                &[Selector::Object(vec![InnerObject::KeyValue(
+                    "A".to_string(),
+                    Some("10".to_string()),
+                )])],
+                &json!([{ "A": 10, "B": 20, "C": 30, "D": 40, "E": 50 }]),
+            )
+        );
+
+        assert_eq!(
+            Ok(MaybeArray::Array(vec![])),
+            apply_filter(
+                &[],
+                &[Selector::Object(vec![InnerObject::KeyValue(
+                    "A".to_string(),
+                    Some("11".to_string()),
+                )]),],
+                &json!([{ "A": 10, "B": 20, "C": 30, "D": 40, "E": 50 }]),
+            )
+        );
+    }
+
+    #[test]
+    fn not_array_apply_filter() {
+        assert_eq!(
+            Ok(MaybeArray::NonArray(vec![json!("foo")])),
+            apply_filter(&[], &[], &json!("foo"),)
+        );
+        assert_eq!(
+            Err(String::from("A filter can only be applied to an array")),
+            apply_filter(&[Selector::Default("foo".to_string()),], &[], &json!("foo"),)
+        );
+    }
+}

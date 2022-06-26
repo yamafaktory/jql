@@ -102,7 +102,7 @@ impl Default for Group {
 }
 
 #[doc(hidden)]
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum MaybeArray {
     Array(Vec<Value>),
     NonArray(Vec<Value>),
