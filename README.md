@@ -18,6 +18,14 @@ This tool has absolutely no plan to be on par with `jq` and such other similar C
 
 ## 🚀 Installation
 
+### Alpine Linux
+
+The package is maintained by @jirutka.
+
+```sh
+apk add jql
+```
+
 ### Archlinux
 
 The AUR package is maintained by @barklan.
