@@ -101,24 +101,23 @@ fn get_inner_object_from_pair(pair: PestPair<'_>) -> Vec<InnerObject> {
                         None,
                     ));
                 }
-                Rule::filter_lens_key_value_pair => {
-                    let key = &get_chars_from_pair(
-                        inner_pair
-                            .clone()
-                            .into_inner()
-                            .into_iter()
-                            .next()
-                            .unwrap()
-                            .into_inner()
-                            .next()
-                            .unwrap(),
-                    )[0];
+                Rule::filter_lens_key_value => {
+                    let mut pairs = inner_pair.into_inner();
 
-                    let maybe_value = inner_pair.into_inner().into_iter().nth(1).map(|pair| {
-                        get_chars_from_pair(pair.into_inner().next().unwrap())[0].clone()
-                    });
+                    let mut get_char_from_next_pair = || {
+                        pairs.next().map(|pair| {
+                            get_chars_from_pair(pair.into_inner().next().unwrap())[0].clone()
+                        })
+                    };
 
-                    acc.push(InnerObject::KeyValue(key.to_string(), maybe_value));
+                    // We can safely unwrap since our grammar make it explicit
+                    // that we must have a key there.
+                    let key = get_char_from_next_pair().unwrap();
+
+                    // However the value is optional.
+                    let maybe_value = get_char_from_next_pair();
+
+                    acc.push(InnerObject::KeyValue(key, maybe_value));
                 }
                 Rule::object_range => {
                     acc.push(span_to_object_range(
@@ -183,8 +182,8 @@ pub fn selectors_parser(selectors: &str) -> Result<Vec<Group>, String> {
                             Selector::Object(get_inner_object_from_pair(inner_pair)),
                         )),
 
-                        // Filter lenses property.
-                        Rule::filter_lens_key_value => group.filters.push(Filter::Lens(
+                        // Filter lens property.
+                        Rule::filter_lens_property => group.filters.push(Filter::Lens(
                             Selector::Object(get_inner_object_from_pair(inner_pair)),
                         )),
 

@@ -57,8 +57,7 @@ fn object_to_vec(inner_json: &Value) -> Vec<(String, Value)> {
 pub fn get_selection(selectors: &[Selector], json: &Value) -> Selections {
     // Use an Arc to share the JSON data among threads.
     let data = Arc::new(Mutex::new(json.clone()));
-    dbg!(json);
-    dbg!(selectors);
+
     selectors
         .iter()
         .enumerate()

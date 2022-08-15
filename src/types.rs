@@ -14,15 +14,6 @@ pub enum Filter {
     Lens(Selector),
 }
 
-impl Filter {
-    pub fn get_selector(&self) -> Selector {
-        match self {
-            Filter::Default(selector) => selector.to_owned(),
-            Filter::Lens(selector) => selector.to_owned(),
-        }
-    }
-}
-
 /// Selectors.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Selector {

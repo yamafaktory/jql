@@ -6,32 +6,29 @@ use crate::{
     types::{ExtendedSelections, Filter, InnerObject, MaybeArray, Selections, Selector},
 };
 
-/// Gets the lenses from the filter lenses.
-fn get_lenses(filter_lenses: &[Selector]) -> Vec<(&str, Option<&str>)> {
-    filter_lenses
-        .iter()
-        .filter_map(|selector| match selector {
-            Selector::Object(inner_objects) => Some(
-                inner_objects
-                    .par_iter()
-                    .fold_with(Vec::new(), |mut acc, inner_object| {
-                        if let InnerObject::KeyValue(key, value) = inner_object {
-                            acc.push((key.as_str(), value.as_deref()));
-                        }
+type KeyValueTuple<'a> = (&'a str, Option<&'a str>);
 
-                        acc
-                    })
-                    .flatten()
-                    .collect::<Vec<(&str, Option<&str>)>>(),
-            ),
-            _ => None,
-        })
-        .flatten()
-        .collect::<Vec<(&str, Option<&str>)>>()
+/// Gets the lenses from the filter lens.
+fn get_lenses(filter_lens: &Selector) -> Vec<KeyValueTuple> {
+    match filter_lens {
+        Selector::Object(inner_objects) => inner_objects
+            .par_iter()
+            .fold_with(Vec::new(), |mut acc, inner_object| {
+                if let InnerObject::KeyValue(key, value) = inner_object {
+                    acc.push((key.as_str(), value.as_deref()));
+                }
+
+                acc
+            })
+            .flatten()
+            .collect::<Vec<KeyValueTuple>>(),
+
+        _ => vec![],
+    }
 }
 
 /// Check if a given key/value pair matches some lenses.
-fn match_lenses(lenses: &[(&str, Option<&str>)], (key, value): (&String, &Value)) -> bool {
+fn match_lenses(lenses: &[KeyValueTuple], (key, value): (&String, &Value)) -> bool {
     lenses.iter().any(|(lens_key, lens_value)| {
         match *lens_value {
             // Both key and value.
@@ -56,44 +53,18 @@ pub fn apply_filter(filters: &[Filter], json: &Value) -> ExtendedSelections {
     // Apply the filter iff the provided JSON value is an array.
     match json.as_array() {
         Some(array) => {
-            // let lenses = get_lenses(filter_lenses);
-            // dbg!(filters);
             let selections: Vec<Selections> = array
                 .par_iter()
-                .cloned()
-                // .filter(|partial_json| {
-                //     // Check whether we have some lenses or not and if this is
-                //     // an object since lenses can only be applied to objects.
-                //     if !lenses.is_empty() && partial_json.is_object() {
-                //         // We can safely unwrap here based on the conditional
-                //         // above.
-                //         let object = partial_json.as_object().unwrap();
-                //
-                //         dbg!(object);
-                //         object
-                //             .iter()
-                //             .any(|key_value| match_lenses(&lenses, key_value))
-                //     } else {
-                //         true
-                //     }
-                // })
                 .map(|partial_json| {
-                    let g: Selections = filters.iter().try_fold(
+                    filters.iter().try_fold(
                         vec![partial_json.clone()],
                         |acc: Vec<Value>, filter| {
                             match filter {
                                 Filter::Default(selector) => {
-                                    if filters.is_empty() {
-                                        Ok(acc)
+                                    if let Some(value) = acc.last() {
+                                        get_selection(&[selector.to_owned()], value)
                                     } else {
-                                        let f = selector.clone();
-
-                                        // dbg!("-----------------------------------------");
-                                        // dbg!(f.clone());
-                                        // dbg!(acc.clone());
-                                        let h = get_selection(&[f], acc.last().unwrap());
-                                        // dbg!(h.clone());
-                                        h
+                                        Ok(acc)
                                     }
                                 }
                                 Filter::Lens(selector) => {
@@ -102,32 +73,27 @@ pub fn apply_filter(filters: &[Filter], json: &Value) -> ExtendedSelections {
                                         // above.
                                         let object = partial_json.as_object().unwrap();
 
-                                        dbg!(object);
-                                        // object
-                                        //     .iter()
-                                        //     .any(|key_value| match_lenses(&lenses, key_value))
-                                        Ok(acc)
+                                        let lenses = get_lenses(selector);
+
+                                        Ok(
+                                            if object
+                                                .iter()
+                                                .any(|key_value| match_lenses(&lenses, key_value))
+                                            {
+                                                acc
+                                            } else {
+                                                vec![]
+                                            },
+                                        )
                                     } else {
                                         Ok(acc)
                                     }
                                 }
                             }
-                            // Ok(acc)
                         },
-                    );
-                    // .try_reduce(
-                    //     || vec![partial_json.clone()],
-                    //     |v, w| {
-                    //         // dbg!(w.clone());
-                    //         return Ok(w);
-                    //     },
-                    // );
-
-                    g
+                    )
                 })
                 .collect();
-
-            // dbg!(selections.clone());
 
             // Try to find the first error.
             match selections
@@ -163,77 +129,76 @@ pub fn apply_filter(filters: &[Filter], json: &Value) -> ExtendedSelections {
     }
 }
 
-// #[cfg(test)]
-// mod tests {
-//     use super::*;
-//
-//     #[test]
-//     fn array_apply_filter() {
-//         assert_eq!(
-//             Ok(MaybeArray::Array(vec![
-//                 json!("A"),
-//                 json!("B"),
-//                 json!("C"),
-//                 json!("D"),
-//                 json!("E")
-//             ])),
-//             apply_filter(&[], &[], &json!(["A", "B", "C", "D", "E"]),)
-//         );
-//
-//         assert_eq!(
-//             Err(String::from("Root element is not an array")),
-//             apply_filter(
-//                 &[Selector::Range((Some(1), Some(3))),],
-//                 &[],
-//                 &json!(["A", "B", "C", "D", "E"]),
-//             )
-//         );
-//
-//         assert_eq!(
-//             Ok(MaybeArray::Array(vec![json!(["B", "C", "D"])])),
-//             apply_filter(
-//                 &[Selector::Range((Some(1), Some(3))),],
-//                 &[],
-//                 &json!([["A", "B", "C", "D", "E"]]),
-//             )
-//         );
-//
-//         assert_eq!(
-//             Ok(MaybeArray::Array(vec![
-//                 json!({ "A": 10, "B": 20, "C": 30, "D": 40, "E": 50 })
-//             ])),
-//             apply_filter(
-//                 &[],
-//                 &[Selector::Object(vec![InnerObject::KeyValue(
-//                     "A".to_string(),
-//                     Some("10".to_string()),
-//                 )])],
-//                 &json!([{ "A": 10, "B": 20, "C": 30, "D": 40, "E": 50 }]),
-//             )
-//         );
-//
-//         assert_eq!(
-//             Ok(MaybeArray::Array(vec![])),
-//             apply_filter(
-//                 &[],
-//                 &[Selector::Object(vec![InnerObject::KeyValue(
-//                     "A".to_string(),
-//                     Some("11".to_string()),
-//                 )]),],
-//                 &json!([{ "A": 10, "B": 20, "C": 30, "D": 40, "E": 50 }]),
-//             )
-//         );
-//     }
-//
-//     #[test]
-//     fn not_array_apply_filter() {
-//         assert_eq!(
-//             Ok(MaybeArray::NonArray(vec![json!("foo")])),
-//             apply_filter(&[], &[], &json!("foo"),)
-//         );
-//         assert_eq!(
-//             Err(String::from("A filter can only be applied to an array")),
-//             apply_filter(&[Selector::Default("foo".to_string()),], &[], &json!("foo"),)
-//         );
-//     }
-// }
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn array_apply_filter() {
+        assert_eq!(
+            Ok(MaybeArray::Array(vec![
+                json!("A"),
+                json!("B"),
+                json!("C"),
+                json!("D"),
+                json!("E")
+            ])),
+            apply_filter(&[], &json!(["A", "B", "C", "D", "E"]),)
+        );
+
+        assert_eq!(
+            Err(String::from("Root element is not an array")),
+            apply_filter(
+                &[Filter::Default(Selector::Range((Some(1), Some(3))))],
+                &json!(["A", "B", "C", "D", "E"]),
+            )
+        );
+
+        assert_eq!(
+            Ok(MaybeArray::Array(vec![json!(["B", "C", "D"])])),
+            apply_filter(
+                &[Filter::Default(Selector::Range((Some(1), Some(3))))],
+                &json!([["A", "B", "C", "D", "E"]]),
+            )
+        );
+
+        assert_eq!(
+            Ok(MaybeArray::Array(vec![
+                json!({ "A": 10, "B": 20, "C": 30, "D": 40, "E": 50 })
+            ])),
+            apply_filter(
+                &[Filter::Lens(Selector::Object(vec![InnerObject::KeyValue(
+                    "A".to_string(),
+                    Some("10".to_string()),
+                )]))],
+                &json!([{ "A": 10, "B": 20, "C": 30, "D": 40, "E": 50 }]),
+            )
+        );
+
+        assert_eq!(
+            Ok(MaybeArray::Array(vec![])),
+            apply_filter(
+                &[Filter::Lens(Selector::Object(vec![InnerObject::KeyValue(
+                    "A".to_string(),
+                    Some("11".to_string()),
+                )]))],
+                &json!([{ "A": 10, "B": 20, "C": 30, "D": 40, "E": 50 }]),
+            )
+        );
+    }
+
+    #[test]
+    fn not_array_apply_filter() {
+        assert_eq!(
+            Ok(MaybeArray::NonArray(vec![json!("foo")])),
+            apply_filter(&[], &json!("foo"),)
+        );
+        assert_eq!(
+            Err(String::from("A filter can only be applied to an array")),
+            apply_filter(
+                &[Filter::Default(Selector::Default("foo".to_string()))],
+                &json!("foo"),
+            )
+        );
+    }
+}
