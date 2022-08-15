@@ -37,9 +37,8 @@ groups = _{ selection ~ ("," ~ selection)* }
                 filter_object = _{ "{" ~ filter_property ~ "}" }
                     filter_property = { (default | object_array) ~ ("," ~ (default | object_array))* }
                 filter_lens = _{ "=" ~ "{" ~ filter_lens_property ~ "}" }
-		    filter_lens_property= _{ filter_lens_key_value ~ ("," ~ filter_lens_key_value)* }
-                        filter_lens_key_value = { filter_lens_key_value_pair } 
-                        filter_lens_key_value_pair = { filter_lens_key ~ (":" ~ filter_lens_value)? } 
+		    filter_lens_property= { filter_lens_key_value ~ ("," ~ filter_lens_key_value)* }
+                        filter_lens_key_value = { filter_lens_key ~ (":" ~ filter_lens_value)? } 
                         filter_lens_key = { default }
                         filter_lens_value = { default }
 

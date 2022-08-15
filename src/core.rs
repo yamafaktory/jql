@@ -871,6 +871,7 @@ mod tests {
         let selector_key_value_string = r#""lenses"|={"delta":"something"}"#;
         let selector_key_value_multiple =
             r#""lenses"|={"delta":"something", "delta":"4", "alpha"}"#;
+        let selector_combined = r#""lenses"|={"delta","alpha"}|={"delta":"4"}"#;
         assert_eq!(
             Ok(json!([
                 {"alpha": 1, "beta": Value::Null},
@@ -904,6 +905,12 @@ mod tests {
                 {"delta": 4}
             ])),
             walker(&json, selector_key_value_multiple)
+        );
+        assert_eq!(
+            Ok(json!([
+                {"delta": 4}
+            ])),
+            walker(&json, selector_combined)
         );
     }
 
