@@ -18,10 +18,10 @@ repository = "https://github.com/yamafaktory/jql"
 version = "5.0.1"
 
 [dev-dependencies]
-criterion = "0.3.6"
+criterion = "0.4.0"
 
 [dependencies]
-anyhow = "1.0.63"
+anyhow = "1.0.64"
 # Mark clap and colored_json as optional.
 # See: https://github.com/rust-lang/cargo/issues/1982
 clap = { version = "3.2.20", features = ["cargo"], optional = true }
