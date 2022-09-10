@@ -649,7 +649,7 @@ jql --help
 The command will return a matching exit code based on the validity of the JSON content or file provided. No selector is needed in this case!
 
 ```sh
-jql --c example.json
+jql -c example.json
 jql --check example.json
 ```
 
@@ -660,7 +660,7 @@ Please note that this flag is exclusive.
 The command will reads the provided selectors from a file rather than from a command line.
 
 ```sh
-jql --f selector.txt example.json
+jql -f selector.txt example.json
 jql --from-file selector.txt example.json
 ```
 
