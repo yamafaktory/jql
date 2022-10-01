@@ -443,7 +443,9 @@ jql '"laptops".[1:0]|"laptop"|"brand","laptops"|"laptop"|"brand"' example.json
 ]
 ```
 
-### Flatten arrays
+### Flatten
+
+#### Arrays
 
 ```json
 {
@@ -457,6 +459,26 @@ jql '.."dna"' example.json
 
 ```json
 ["c", "a", "c", "g", "t", "a", "t"]
+```
+
+#### Objects
+
+```json
+{
+  "test": {
+    "foo": {
+      "bar": false
+    }
+  }
+}
+```
+
+```sh
+jql '.."test"' example.json
+```
+
+```json
+{ "foo.bar": false }
 ```
 
 ### Lens

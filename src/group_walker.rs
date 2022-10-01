@@ -3,6 +3,7 @@ use serde_json::{json, Value};
 use crate::{
     apply_filter::apply_filter,
     flatten_json_array::flatten_json_array,
+    flatten_json_object::flatten_json_object,
     get_selection::get_selection,
     truncate::truncate_json,
     types::{Group, MaybeArray, Selection},
@@ -44,14 +45,14 @@ pub fn group_walker(
                         json!(array)
                     }),
                     MaybeArray::NonArray(single_value) => {
-                        if is_spreading {
-                            Err(String::from("Only arrays can be flattened"))
+                        Ok(if is_spreading {
+                            flatten_json_object(&json!(single_value[0]))
                         } else {
                             // We know that we are holding a single value
                             // wrapped inside a MaybeArray::NonArray enum.
                             // We need to pick the first item of the vector.
-                            Ok(json!(single_value[0]))
-                        }
+                            json!(single_value[0])
+                        })
                     }
                 },
                 Err(error) => Err(error),

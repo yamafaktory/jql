@@ -8,7 +8,7 @@ exclude = [
     "assets/**/*",
     "benches/**/*",
     "performance.sh",
-    "rustfmt.toml"
+    "rustfmt.toml",
 ]
 keywords = ["cli", "json", "terminal", "tool", "query"]
 license = "MIT"
@@ -42,7 +42,7 @@ version = "1.0.85"
 
 # See comment above.
 [features]
-default = ["async-std", "clap", "colored_json"] 
+default = ["async-std", "clap", "colored_json"]
 
 [[bench]]
 harness = false
