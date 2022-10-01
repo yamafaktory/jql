@@ -68,3 +68,106 @@ pub fn group_walker(
         Err(items) => Err(items),
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::types::{Filter, InnerObject, Selector};
+
+    #[test]
+    fn empty_group_walker() {
+        assert_eq!(
+            group_walker(&Default::default(), &json!({ "A": 10, "B": 20, "C": 30 }),),
+            Err(String::from("Empty group"))
+        );
+    }
+
+    #[test]
+    fn valid_group_walker() {
+        assert_eq!(
+            group_walker(
+                &Group {
+                    selectors: vec![Selector::Index(vec![0, 2])],
+                    ..Default::default()
+                },
+                &json!([["A"], ["B", "C"], ["D", "E"]]),
+            ),
+            Ok(json!([["A"], ["D", "E"]])),
+        );
+
+        assert_eq!(
+            group_walker(
+                &Group {
+                    selectors: vec![Selector::Index(vec![0, 2])],
+                    spread: Some(()),
+                    ..Default::default()
+                },
+                &json!([["A"], ["B", "C"], ["D", "E"]]),
+            ),
+            Ok(json!(["A", "D", "E"])),
+        );
+
+        assert_eq!(
+            group_walker(
+                &Group {
+                    selectors: vec![Selector::Index(vec![0, 2])],
+                    filters: vec![Filter::Default(Selector::Index(vec![0]))],
+                    ..Default::default()
+                },
+                &json!([["A"], ["B", "C"], ["D", "E"]]),
+            ),
+            Ok(json!(["A", "D"])),
+        );
+
+        assert_eq!(
+            group_walker(
+                &Group {
+                    selectors: vec![Selector::Object(vec![InnerObject::Index(vec![0, 2])])],
+                    ..Default::default()
+                },
+                &json!({ "A": 10, "B": 20, "C": 30 }),
+            ),
+            Ok(json!({ "0" : 10, "2": 30 })),
+        );
+
+        assert_eq!(
+            group_walker(
+                &Group {
+                    selectors: vec![Selector::Index(vec![0, 2])],
+                    truncate: Some(()),
+                    ..Default::default()
+                },
+                &json!([["A"], ["B", "C"], ["D", "E"]]),
+            ),
+            Ok(json!([[], []])),
+        );
+    }
+
+    #[test]
+    fn invalid_group_walker() {
+        assert_eq!(
+            group_walker(
+                &Group {
+                    selectors: vec![Selector::Object(vec![InnerObject::Index(vec![10])])],
+                    ..Default::default()
+                },
+                &json!({ "A": 10, "B": 20, "C": 30 }),
+            ),
+            Err(String::from(
+                "Index [10] is out of bound, object contains 3 properties"
+            )),
+        );
+
+        assert_eq!(
+            group_walker(
+                &Group {
+                    selectors: vec![Selector::Object(vec![InnerObject::Index(vec![1])])],
+                    spread: Some(()),
+                    ..Default::default()
+                },
+                &json!({ "A": 10, "B": 20, "C": 30 }),
+            ),
+            Err(String::from("Only arrays can be flattened")),
+        );
+    }
+}
