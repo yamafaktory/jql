@@ -30,7 +30,7 @@ pub fn get_matches() -> ArgMatches {
                 .help("Reads selectors from file rather than from a command line")
                 .long("from-file")
                 .short('f')
-                .takes_value(true)
+                .num_args(1)
                 .use_value_delimiter(false)
                 .value_name("FILE")
         )

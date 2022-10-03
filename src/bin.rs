@@ -15,12 +15,12 @@ use serde_json::{Deserializer, Value};
 /// Try to serialize the raw JSON content, output the selection or throw an
 /// error.
 async fn render_output(json_content: &str, cli: &ArgMatches) {
-    let check = cli.is_present("check");
-    let inline = cli.is_present("inline");
-    let raw_output = cli.is_present("raw-output");
-    let from_file = cli.is_present("from-file");
+    let check = cli.get_flag("check");
+    let inline = cli.get_flag("inline");
+    let raw_output = cli.get_flag("raw-output");
+    let from_file = cli.get_flag("from-file");
     let selectors = if from_file {
-        let file = cli.value_of("from-file").unwrap();
+        let file: &String = cli.get_one("from-file").unwrap();
         let path = Path::new(file);
         let contents = fs::read_to_string(path).await;
 
@@ -32,7 +32,7 @@ async fn render_output(json_content: &str, cli: &ArgMatches) {
             }
         }
     } else {
-        cli.value_of("selectors").map(|s| s.to_string())
+        cli.get_one::<String>("selectors").map(|s| s.to_owned())
     };
 
     // Early check of the JSON content with matching exit code based on result.
@@ -118,8 +118,8 @@ async fn main() -> Result<()> {
     use_custom_panic_hook();
 
     let cli = get_matches();
-    let check = cli.is_present("check");
-    let from_file = cli.is_present("from-file");
+    let check = cli.get_flag("check");
+    let from_file = cli.get_flag("from-file");
 
     // Use a hack here since we can't conditionally define indexes of
     // positional arguments with clap.
@@ -131,7 +131,7 @@ async fn main() -> Result<()> {
         "JSON"
     };
 
-    match cli.value_of(json_arg) {
+    match cli.get_one::<String>(json_arg) {
         // JSON content coming from the CLI.
         Some(json) => {
             let path = Path::new(json);
@@ -144,7 +144,7 @@ async fn main() -> Result<()> {
 
         // JSON content coming from stdin.
         None => {
-            let stream = cli.is_present("stream");
+            let stream = cli.get_flag("stream");
             let mut stdin = io::stdin();
             let mut stdout = io::stdout();
 
