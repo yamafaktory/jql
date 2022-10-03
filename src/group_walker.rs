@@ -142,6 +142,18 @@ mod tests {
             ),
             Ok(json!([[], []])),
         );
+
+        assert_eq!(
+            group_walker(
+                &Group {
+                    selectors: vec![Selector::Object(vec![InnerObject::Index(vec![0])])],
+                    spread: Some(()),
+                    ..Default::default()
+                },
+                &json!({"0" : { "A": 10, "B": 20, "C": 30 }}),
+            ),
+            Ok(json!({"0.A": 10, "0.B": 20, "0.C": 30})),
+        );
     }
 
     #[test]
@@ -157,18 +169,6 @@ mod tests {
             Err(String::from(
                 "Index [10] is out of bound, object contains 3 properties"
             )),
-        );
-
-        assert_eq!(
-            group_walker(
-                &Group {
-                    selectors: vec![Selector::Object(vec![InnerObject::Index(vec![0])])],
-                    spread: Some(()),
-                    ..Default::default()
-                },
-                &json!({"0" : { "A": 10, "B": 20, "C": 30 }}),
-            ),
-            Ok(json!({"0.A": 10, "0.B": 20, "0.C": 30})),
         );
     }
 }
