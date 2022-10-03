@@ -3,6 +3,7 @@ use serde_json::{json, Value};
 use crate::{
     apply_filter::apply_filter,
     flatten_json_array::flatten_json_array,
+    flatten_json_object::flatten_json_object,
     get_selection::get_selection,
     truncate::truncate_json,
     types::{Group, MaybeArray, Selection},
@@ -44,14 +45,14 @@ pub fn group_walker(
                         json!(array)
                     }),
                     MaybeArray::NonArray(single_value) => {
-                        if is_spreading {
-                            Err(String::from("Only arrays can be flattened"))
+                        Ok(if is_spreading {
+                            flatten_json_object(&json!(single_value[0]))
                         } else {
                             // We know that we are holding a single value
                             // wrapped inside a MaybeArray::NonArray enum.
                             // We need to pick the first item of the vector.
-                            Ok(json!(single_value[0]))
-                        }
+                            json!(single_value[0])
+                        })
                     }
                 },
                 Err(error) => Err(error),
@@ -141,6 +142,18 @@ mod tests {
             ),
             Ok(json!([[], []])),
         );
+
+        assert_eq!(
+            group_walker(
+                &Group {
+                    selectors: vec![Selector::Object(vec![InnerObject::Index(vec![0])])],
+                    spread: Some(()),
+                    ..Default::default()
+                },
+                &json!({"0" : { "A": 10, "B": 20, "C": 30 }}),
+            ),
+            Ok(json!({"0.A": 10, "0.B": 20, "0.C": 30})),
+        );
     }
 
     #[test]
@@ -156,18 +169,6 @@ mod tests {
             Err(String::from(
                 "Index [10] is out of bound, object contains 3 properties"
             )),
-        );
-
-        assert_eq!(
-            group_walker(
-                &Group {
-                    selectors: vec![Selector::Object(vec![InnerObject::Index(vec![1])])],
-                    spread: Some(()),
-                    ..Default::default()
-                },
-                &json!({ "A": 10, "B": 20, "C": 30 }),
-            ),
-            Err(String::from("Only arrays can be flattened")),
         );
     }
 }
