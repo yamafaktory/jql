@@ -162,13 +162,13 @@ mod tests {
         assert_eq!(
             group_walker(
                 &Group {
-                    selectors: vec![Selector::Object(vec![InnerObject::Index(vec![1])])],
+                    selectors: vec![Selector::Object(vec![InnerObject::Index(vec![0])])],
                     spread: Some(()),
                     ..Default::default()
                 },
-                &json!({ "A": 10, "B": 20, "C": 30 }),
+                &json!({"0" : { "A": 10, "B": 20, "C": 30 }}),
             ),
-            Err(String::from("Only arrays can be flattened")),
+            Ok(json!({"0.A": 10, "0.B": 20, "0.C": 30})),
         );
     }
 }
