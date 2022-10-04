@@ -18,7 +18,8 @@ async fn render_output(json_content: &str, cli: &ArgMatches) {
     let check = cli.get_flag("check");
     let inline = cli.get_flag("inline");
     let raw_output = cli.get_flag("raw-output");
-    let from_file = cli.get_flag("from-file");
+    let from_file = cli.value_source("from-file").is_some();
+
     let selectors = if from_file {
         let file: &String = cli.get_one("from-file").unwrap();
         let path = Path::new(file);
@@ -119,7 +120,7 @@ async fn main() -> Result<()> {
 
     let cli = get_matches();
     let check = cli.get_flag("check");
-    let from_file = cli.get_flag("from-file");
+    let from_file = cli.value_source("from-file").is_some();
 
     // Use a hack here since we can't conditionally define indexes of
     // positional arguments with clap.

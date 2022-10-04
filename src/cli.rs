@@ -1,4 +1,7 @@
-use clap::{crate_authors, crate_description, crate_name, crate_version, Arg, ArgMatches, Command};
+use clap::{
+    crate_authors, crate_description, crate_name, crate_version, Arg, ArgAction, ArgMatches,
+    Command,
+};
 
 /// Get the CLI matches.
 pub fn get_matches() -> ArgMatches {
@@ -10,7 +13,7 @@ pub fn get_matches() -> ArgMatches {
             Arg::new("selectors")
                 .help("Selectors to apply")
                 .index(1)
-                .required_unless_present_any(&["check", "from-file"])
+                .required_unless_present_any(["check", "from-file"])
         )
         .arg(
            Arg::new("JSON")
@@ -20,8 +23,8 @@ pub fn get_matches() -> ArgMatches {
         )
         .arg(
             Arg::new("check")
-                .help("Checks if the input is valid JSON")
-                .long("check")
+                .action(ArgAction::SetTrue)
+                .help("Checks if the input is valid JSON") .long("check")
                 .short('c')
         )
         .arg(
@@ -29,29 +32,32 @@ pub fn get_matches() -> ArgMatches {
                 .conflicts_with("check")
                 .help("Reads selectors from file rather than from a command line")
                 .long("from-file")
-                .short('f')
                 .num_args(1)
+                .short('f')
                 .use_value_delimiter(false)
                 .value_name("FILE")
         )
         .arg(
             Arg::new("inline")
-                .help("Inlines JSON output")
+                .action(ArgAction::SetTrue)
                 .conflicts_with("check")
+                .help("Inlines JSON output")
                 .long("inline")
                 .short('i')
         )
         .arg(
             Arg::new("raw-output")
-                .help("Writes raw string selection directly to standard output without JSON double-quotes")
+                .action(ArgAction::SetTrue)
                 .conflicts_with("check")
+                .help("Writes raw string selection directly to standard output without JSON double-quotes")
                 .long("raw-output")
                 .short('r')
         )
         .arg(
             Arg::new("stream")
-                .help("Reads a stream of JSON data line by line")
+                .action(ArgAction::SetTrue)
                 .conflicts_with("check")
+                .help("Reads a stream of JSON data line by line")
                 .long("stream")
                 .short('s')
         )
