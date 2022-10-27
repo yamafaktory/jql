@@ -101,6 +101,10 @@ jobs:
           stage=$(mktemp -d)
           ver=${GITHUB_REF#refs/tags/}
           asset_name="jql-$ver-${{ matrix.target }}.${{ matrix.archive }}"
+          echo $src
+          echo $stage
+          echo $ver
+          echo $asset_name
           ASSET_PATH="$src/$asset_name"
           CHECKSUM_PATH="$ASSET_PATH.sha256"
           cp target/${{ matrix.target }}/release/jql $stage/
@@ -111,12 +115,12 @@ jobs:
           echo "ASSET_PATH=$ASSET_PATH" >> $GITHUB_ENV
           echo "CHECKSUM_PATH=$CHECKSUM_PATH" >> $GITHUB_ENV
 
-      - name: Release
-        uses: softprops/action-gh-release@v1
-        if: startsWith(github.ref, 'refs/tags/')
-        with:
-          files: |
-            ${{ env.ASSET_PATH }}
-            ${{ env.CHECKSUM_PATH }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      # - name: Release
+      #   uses: softprops/action-gh-release@v1
+      #   if: startsWith(github.ref, 'refs/tags/')
+      #   with:
+      #     files: |
+      #       ${{ env.ASSET_PATH }}
+      #       ${{ env.CHECKSUM_PATH }}
+      #   env:
+      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
