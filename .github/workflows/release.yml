@@ -108,8 +108,13 @@ jobs:
           ${{ matrix.archive-cmd }} $ASSET_PATH *
           cd $src
           ${{ matrix.sha-cmd }} $asset_name > $CHECKSUM_PATH
-          echo "ASSET_PATH=$ASSET_PATH" >> $GITHUB_ENV
-          echo "CHECKSUM_PATH=$CHECKSUM_PATH" >> $GITHUB_ENV
+          if [ "$RUNNER_OS" == "Windows" ]; then
+            echo "ASSET_PATH=$(cygpath -w $ASSET_PATH)" >> $GITHUB_ENV
+            echo "CHECKSUM_PATH=$(cygpath -w $CHECKSUM_PATH)" >> $GITHUB_ENV
+          else
+            echo "ASSET_PATH=$ASSET_PATH" >> $GITHUB_ENV
+            echo "CHECKSUM_PATH=$CHECKSUM_PATH" >> $GITHUB_ENV
+          fi
 
       - name: Release
         uses: softprops/action-gh-release@v1
