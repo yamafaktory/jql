@@ -1,6 +1,6 @@
-# JQL
+# jql
 
-![GitHub Workflow Status](https://img.shields.io/github/workflow/status/yamafaktory/jql/ci?style=for-the-badge) ![Crates.io](https://img.shields.io/crates/v/jql?style=for-the-badge)
+![GitHub Workflow Status](https://img.shields.io/github/workflow/status/yamafaktory/jql/ci?style=for-the-badge) ![Crates.io](https://img.shields.io/crates/v/jql?style=for-the-badge) [![contribute.design](https://contribute.design/api/shield/yamafaktory/jql)](https://contribute.design/yamafaktory/jql)
 
 > A JSON Query Language CLI tool built with Rust 🦀
 
@@ -313,7 +313,7 @@ jql '{[1:2]}' example.json
 }
 ```
 
-This is pretty unusual but it might help in some scenarios when e.g. one wants to extract some properties out of a complex JSON structure based on their order:
+This is pretty unusual, but it might help in some scenarios when e.g. one wants to extract some properties out of a complex JSON structure based on their order:
 
 ```json
 {
@@ -560,7 +560,7 @@ jql '"lenses"|={"delta":"something","alpha"}' example.json
 ### Truncate
 
 The truncate selector `!` can be used to stop walking the children's values and to explore an unknown JSON file / structure.
-Each children is then transformed into a JSON primitive for convenience, e.g.:
+Each child is then transformed into a JSON primitive for convenience, e.g.:
 
 | primitive | value                        | result  |
 | --------- | ---------------------------- | ------- |
