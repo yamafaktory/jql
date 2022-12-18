@@ -93,7 +93,7 @@ async fn render_output(json_content: &str, cli: &ArgMatches) {
                                 })
                             ),
                             Err(error) => {
-                                eprintln!("{}", error);
+                                eprintln!("{error}");
                                 exit(1);
                             }
                         }
@@ -183,7 +183,7 @@ async fn main() -> Result<()> {
                     Ok(())
                 }
                 Err(error) => {
-                    eprintln!("{}", error);
+                    eprintln!("{error}");
                     exit(1);
                 }
             }

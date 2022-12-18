@@ -1,6 +1,6 @@
 # jql
 
-![GitHub Workflow Status](https://img.shields.io/github/workflow/status/yamafaktory/jql/ci?style=for-the-badge) ![Crates.io](https://img.shields.io/crates/v/jql?style=for-the-badge) [![contribute.design](https://contribute.design/api/shield/yamafaktory/jql)](https://contribute.design/yamafaktory/jql)
+[![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/yamafaktory/jql/ci.yml?branch=main&logo=github&style=flat-square)](https://github.com/yamafaktory/jql/actions/workflows/ci.yml) [![Crates.io](https://img.shields.io/crates/v/jql?style=flat-square)](https://crates.io/crates/jql) [![contribute.design](https://contribute.design/api/shield/yamafaktory/jql)](https://contribute.design/yamafaktory/jql)
 
 > A JSON Query Language CLI tool built with Rust 🦀
 
