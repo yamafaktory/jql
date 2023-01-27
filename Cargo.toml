@@ -22,13 +22,13 @@ version = "5.1.4"
 criterion = "0.4.0"
 
 [dependencies]
-anyhow = "1.0.67"
+anyhow = "1.0.68"
 # Mark clap and colored_json as optional.
 # See: https://github.com/rust-lang/cargo/issues/1982
-clap = { version = "4.0.29", features = ["cargo"], optional = true }
+clap = { version = "4.1.4", features = ["cargo"], optional = true }
 colored_json = { version = "3.0.1", optional = true }
-pest = "2.5.1"
-pest_derive = "2.5.1"
+pest = "2.5.4"
+pest_derive = "2.5.4"
 rayon = "1.6.1"
 
 [dependencies.async-std]
@@ -39,7 +39,7 @@ optional = true
 [dependencies.serde_json]
 default-features = false
 features = ["preserve_order", "unbounded_depth"]
-version = "1.0.90"
+version = "1.0.91"
 
 # See comment above.
 [features]
