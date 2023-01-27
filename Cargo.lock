@@ -635,7 +635,7 @@ checksum = "1aab8fc367588b89dcee83ab0fd66b72b50b72fa1904d7095045ace2b0c81c35"
 
 [[package]]
 name = "jql"
-version = "5.1.4"
+version = "5.1.5"
 dependencies = [
  "anyhow",
  "async-std",
