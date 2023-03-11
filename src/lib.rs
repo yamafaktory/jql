@@ -1,4 +1,4 @@
-#![deny(clippy::pedantic, clippy::clone_on_ref_ptr)]
+#![deny(clippy::pedantic)]
 #![allow(
     clippy::module_name_repetitions,
     clippy::must_use_candidate,
