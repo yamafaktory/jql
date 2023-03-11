@@ -97,7 +97,7 @@ mod tests {
                 &[Selector::Default("foo".to_string()),],
                 None,
             )
-        )
+        );
     }
 
     #[test]
@@ -112,7 +112,7 @@ mod tests {
                 &[Selector::Default("foo".to_string()),],
                 None,
             )
-        )
+        );
     }
 
     #[test]
@@ -127,7 +127,7 @@ mod tests {
                 &[Selector::Default("foo".to_string()),],
                 Some(1),
             )
-        )
+        );
     }
 
     #[test]
@@ -199,6 +199,6 @@ mod tests {
                 &[Selector::Default("foo".to_string()),],
                 Some(100),
             )
-        )
+        );
     }
 }

@@ -85,7 +85,7 @@ pub fn display_range_selector(
 ) -> String {
     let position_to_string = |position: Option<usize>| match position {
         Some(value) => value.to_string(),
-        None => String::from(""),
+        None => String::new(),
     };
     let (start, end) = (position_to_string(start), position_to_string(end));
 

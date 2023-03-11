@@ -73,12 +73,12 @@ pub fn group_walker(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::types::{Filter, InnerObject, Selector};
+    use crate::types::{Filter, Group, InnerObject, Selector};
 
     #[test]
     fn empty_group_walker() {
         assert_eq!(
-            group_walker(&Default::default(), &json!({ "A": 10, "B": 20, "C": 30 }),),
+            group_walker(&Group::default(), &json!({ "A": 10, "B": 20, "C": 30 }),),
             Err(String::from("Empty group"))
         );
     }

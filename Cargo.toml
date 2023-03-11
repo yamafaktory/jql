@@ -39,7 +39,7 @@ optional = true
 [dependencies.serde_json]
 default-features = false
 features = ["preserve_order", "unbounded_depth"]
-version = "1.0.93"
+version = "1.0.94"
 
 # See comment above.
 [features]

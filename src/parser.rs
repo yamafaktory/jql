@@ -159,7 +159,7 @@ pub fn selectors_parser(selectors: &str) -> Result<Vec<Group>, String> {
                             group.filters.push(Filter::Default(span_to_default(
                                 &get_chars_from_pair(inner_pair.into_inner().next().unwrap())[0]
                                     .clone(),
-                            )))
+                            )));
                         }
 
                         // Index

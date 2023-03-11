@@ -24,15 +24,15 @@ fn apply_selector(
                 r#"" not found on the parent element"#,
             ]
             .join(""));
-        } else {
-            return Err([
-                r#"Node ""#,
-                raw_selector,
-                r#"" not found on parent "#,
-                &selectors[map_index - 1].as_str(false),
-            ]
-            .join(""));
         }
+
+        return Err([
+            r#"Node ""#,
+            raw_selector,
+            r#"" not found on parent "#,
+            &selectors[map_index - 1].as_str(false),
+        ]
+        .join(""));
     }
 
     // Default case.
@@ -77,46 +77,45 @@ pub fn get_selection(selectors: &[Selector], json: &Value) -> Selections {
                                         let properties = key_and_values.len();
                                         let last_index = properties - 1;
 
-                                        match indexes.par_iter().find_last(|&&x| x > last_index) {
-                                            Some(index) => {
-                                                let reference = if map_index > 0 {
-                                                    selectors[map_index - 1].as_str(false)
+                                        if let Some(index) =
+                                            indexes.par_iter().find_last(|&&x| x > last_index)
+                                        {
+                                            let reference = if map_index > 0 {
+                                                selectors[map_index - 1].as_str(false)
+                                            } else {
+                                                "object".to_string()
+                                            };
+
+                                            return Err([
+                                                "Index [",
+                                                index.to_string().as_str(),
+                                                "] is out of bound, ",
+                                                reference.as_str(),
+                                                " contains ",
+                                                &(properties).to_string(),
+                                                if properties == 1 {
+                                                    " property"
                                                 } else {
-                                                    "object".to_string()
-                                                };
+                                                    " properties"
+                                                },
+                                            ]
+                                            .join(""));
+                                        }
 
-                                                return Err([
-                                                    "Index [",
-                                                    index.to_string().as_str(),
-                                                    "] is out of bound, ",
-                                                    reference.as_str(),
-                                                    " contains ",
-                                                    &(properties).to_string(),
-                                                    if properties == 1 {
-                                                        " property"
-                                                    } else {
-                                                        " properties"
-                                                    },
-                                                ]
-                                                .join(""));
-                                            }
-                                            None => {
-                                                let map = indexes.iter().fold(
-                                                    Map::with_capacity(indexes.len()),
-                                                    |mut acc, index| {
-                                                        acc.insert(
-                                                            index.to_string(),
-                                                            key_and_values[*index].1.clone(),
-                                                        );
-
-                                                        acc
-                                                    },
+                                        let map = indexes.iter().fold(
+                                            Map::with_capacity(indexes.len()),
+                                            |mut acc, index| {
+                                                acc.insert(
+                                                    index.to_string(),
+                                                    key_and_values[*index].1.clone(),
                                                 );
 
-                                                *data = json!(map);
-                                                Ok(json!(map))
-                                            }
-                                        }
+                                                acc
+                                            },
+                                        );
+
+                                        *data = json!(map);
+                                        Ok(json!(map))
                                     }
                                     InnerObject::KeyValue(key, _) => {
                                         let data = data.lock().unwrap();
@@ -408,7 +407,7 @@ mod tests {
                 &[Selector::Default("D".to_string()),],
                 &json!({ "A": 10, "B": 20, "C": 30 })
             )
-        )
+        );
     }
 
     #[test]

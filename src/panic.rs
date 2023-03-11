@@ -18,6 +18,6 @@ pub fn use_custom_panic_hook() {
         }
 
         // Hook back to default.
-        (hook)(panic_info)
+        (hook)(panic_info);
     }));
 }

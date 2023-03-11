@@ -6,7 +6,7 @@ pub fn truncate_json(mut value: Value) -> Value {
     let to_primitive = |value: &Value| match value {
         _ if value.is_array() => json!([]),
         _ if value.is_object() => json!({}),
-        _ => value.to_owned(),
+        _ => value.clone(),
     };
 
     match value {
