@@ -1,3 +1,9 @@
+#![deny(clippy::pedantic, clippy::clone_on_ref_ptr)]
+#![allow(
+    clippy::module_name_repetitions,
+    clippy::must_use_candidate,
+    clippy::too_many_lines
+)]
 #![deny(unsafe_code, nonstandard_style)]
 #![warn(missing_debug_implementations, missing_docs)]
 #![forbid(rust_2021_compatibility)]
@@ -37,6 +43,10 @@ pub use crate::types::*;
 ///
 /// assert_eq!(walker(&json_array, "[4]"), Ok(json!(11)));
 /// ```
+///
+/// # Errors
+///
+/// Will return an error if the JSON content can't be parsed or walked.
 pub fn walker(json: &Value, selectors: &str) -> Selection {
     core::walker(json, selectors)
 }
@@ -66,6 +76,10 @@ pub fn walker(json: &Value, selectors: &str) -> Selection {
 ///     Ok(json!(11))
 /// );
 /// ```
+///
+/// # Errors
+///
+/// Will return an error if the JSON content can't be parsed or walked.
 pub fn groups_walker(json: &Value, groups: &[Group]) -> Selection {
     core::groups_walker(json, groups)
 }
@@ -99,6 +113,10 @@ pub fn groups_walker(json: &Value, groups: &[Group]) -> Selection {
 ///     ])
 /// );
 /// ```
+///
+/// # Errors
+///
+/// Will return an error if the selectors can't be parsed.
 pub fn selectors_parser(selectors: &str) -> Result<Vec<Group>, String> {
     parser::selectors_parser(selectors)
 }

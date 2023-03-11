@@ -62,7 +62,7 @@ pub fn apply_filter(filters: &[Filter], json: &Value) -> ExtendedSelections {
                             match filter {
                                 Filter::Default(selector) => {
                                     if let Some(value) = acc.last() {
-                                        get_selection(&[selector.to_owned()], value)
+                                        get_selection(&[selector.clone()], value)
                                     } else {
                                         Ok(acc)
                                     }

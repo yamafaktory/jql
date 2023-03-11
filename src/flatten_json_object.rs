@@ -4,7 +4,7 @@ use serde_json::{json, Map, Value};
 /// Flatten nested objects provided as a JSON value.
 pub fn flatten_json_object(value: &Value) -> Value {
     let mut flat = Map::<String, Value>::new();
-    flatten_value(value, "".to_owned(), 0, &mut flat);
+    flatten_value(value, String::new(), 0, &mut flat);
     json!(flat)
 }
 
