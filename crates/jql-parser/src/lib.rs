@@ -33,19 +33,17 @@ where
 //     let f = map.insert(key.to_string(), Value::Null);
 // }
 
-fn my_u64<'a>(input: &'a str) -> IResult<&'a str, u64> {
+fn parse_number(input: &str) -> IResult<&str, usize> {
     map_res(recognize(digit1), str::parse)(input)
 }
 
-fn parse_indexes(input: &str) -> IResult<&str, Vec<u64>> {
-    separated_list1(tag(","), my_u64)(input)
+fn parse_indexes(input: &str) -> IResult<&str, Vec<usize>> {
+    separated_list1(trim(tag(",")), trim(parse_number))(input)
 }
 
 /// A combinator which parses a key surrounded by double quotes.
-fn parse_array_index<'a, E: ParseError<&'a str>>(
-    input: &'a str,
-) -> impl FnMut(&'a str) -> IResult<&'a str, &'a str, E> {
-    trim(delimited(char('['), parse_indexes(input), char(']')))
+fn parse_array_index<'a>() -> impl FnMut(&'a str) -> IResult<&'a str, Vec<usize>> {
+    trim(delimited(char('['), parse_indexes, char(']')))
 }
 
 /// A combinator which parses a key surrounded by double quotes.
@@ -65,22 +63,20 @@ fn parse_filter<'a, E: ParseError<&'a str>>() -> impl FnMut(&'a str) -> IResult<
 }
 
 /// Parses the provided input and map to the matching grammar selector.
-fn parse<'a, E>(input: &'a str) -> IResult<&'a str, Grammar<'a>, E>
-where
-    E: ParseError<&'a str> + FromExternalError<&'a str, std::num::ParseIntError>,
-{
+fn parse(input: &str) -> IResult<&str, Grammar> {
     alt((
         value(Grammar::DotSelector, parse_dot()),
         value(Grammar::FilterSelector, parse_filter()),
         map(parse_key(), Grammar::KeySelector),
+        map(parse_array_index(), Grammar::ArrayIndexSelector),
     ))(input)
 }
 
 /// TODO
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Grammar<'a> {
     /// Array index selector.
-    ArrayIndexSelector(&'a [usize]),
+    ArrayIndexSelector(Vec<usize>),
     /// Array range selector.
     ArrayRangeSelector((Option<usize>, Option<usize>)),
     /// Dot selector.
@@ -101,21 +97,25 @@ mod tests {
     #[test]
     fn check() {
         // Dot selector.
-        assert_eq!(parse::<()>(r#"."#), Ok(("", Grammar::DotSelector)));
-        assert_eq!(parse::<()>(r#" . "#), Ok(("", Grammar::DotSelector)));
+        assert_eq!(parse(r#"."#), Ok(("", Grammar::DotSelector)));
+        assert_eq!(parse(r#" . "#), Ok(("", Grammar::DotSelector)));
 
         // Filter selector.
-        assert_eq!(parse::<()>(r#"|"#), Ok(("", Grammar::FilterSelector)));
-        assert_eq!(parse::<()>(r#" | "#), Ok(("", Grammar::FilterSelector)));
+        assert_eq!(parse(r#"|"#), Ok(("", Grammar::FilterSelector)));
+        assert_eq!(parse(r#" | "#), Ok(("", Grammar::FilterSelector)));
 
         // Key selector.
+        assert_eq!(parse(r#""one""#), Ok(("", Grammar::KeySelector("one"))));
+        assert_eq!(parse(r#" "one" "#), Ok(("", Grammar::KeySelector("one"))));
+
+        // Array index selector.
         assert_eq!(
-            parse::<()>(r#""one""#),
-            Ok(("", Grammar::KeySelector("one")))
+            parse(r#"[0,1,2]"#),
+            Ok(("", Grammar::ArrayIndexSelector(vec![0, 1, 2])))
         );
         assert_eq!(
-            parse::<()>(r#" "one" "#),
-            Ok(("", Grammar::KeySelector("one")))
+            parse(r#" [ 0 , 1 , 2 ] "#),
+            Ok(("", Grammar::ArrayIndexSelector(vec![0, 1, 2])))
         );
     }
 }
