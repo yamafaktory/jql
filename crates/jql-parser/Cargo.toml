@@ -1,0 +1,22 @@
+[package]
+authors = ["Davy Duperron <yamafaktory@gmail.com>"]
+categories = ["command-line-utilities", "filesystem"]
+description = "A JSON query language CLI tool"
+edition = "2021"
+keywords = ["cli", "json", "terminal", "tool", "query"]
+license = "MIT"
+name = "jql-parser"
+readme = "README.md"
+repository = "https://github.com/yamafaktory/jql"
+version = "5.2.0"
+
+[dependencies]
+nom = "7.1.3"
+
+[dependencies.serde_json]
+default-features = false
+features = ["preserve_order", "unbounded_depth"]
+version = "1.0.94"
+
+[lib]
+path = "src/lib.rs"
