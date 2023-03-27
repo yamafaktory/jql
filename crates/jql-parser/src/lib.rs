@@ -30,11 +30,6 @@ where
     delimited(multispace0, inner, multispace0)
 }
 
-// fn todo(key: &str) -> bool {
-//     let mut map = Map::new();
-//     let f = map.insert(key.to_string(), Value::Null);
-// }
-
 fn parse_number(input: &str) -> IResult<&str, Index> {
     map_res(recognize(digit1), |index: &str| {
         index.parse::<u32>().map(Index)
@@ -91,8 +86,15 @@ fn parse_fragment(input: &str) -> IResult<&str, Grammar> {
     ))(input)
 }
 
+fn grammar_to_string(grammar: Vec<Grammar>) -> String {
+    grammar
+        .iter()
+        .map(|token| token.to_string())
+        .collect::<Vec<String>>()
+        .join(", ")
+}
+
 /// TODO
-///
 ///
 /// # Errors
 /// TODO
@@ -104,16 +106,15 @@ pub fn parse(input: &str) -> Result<Vec<Grammar>, JqlParserError> {
     match result {
         Ok((rest, _)) => {
             if !rest.is_empty() {
-                return Err(JqlParserError::EnableToParseInput(rest));
+                return Err(JqlParserError::UnableToParseInput {
+                    rest,
+                    grammar: grammar_to_string(parsed),
+                });
             }
 
             Ok(parsed)
         }
-        Err(err) => {
-            dbg!(err);
-            Ok(parsed)
-            // return Err(JqlParserError::EnableToParseInput);
-        }
+        Err(_) => Err(JqlParserError::UnknownError),
     }
 }
 
@@ -124,7 +125,7 @@ pub struct Index(u32);
 
 impl fmt::Display for Index {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "Array Index Selector [{}]", self.0)
+        write!(f, "Index ({})", self.0)
     }
 }
 
@@ -147,19 +148,45 @@ impl<'a> fmt::Display for Grammar<'a> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             Grammar::ArrayIndexSelector(indexes) => {
-                write!(f, "Array Index Selector [{}]", indexes[0])
+                let formatted_indexes = indexes
+                    .iter()
+                    .map(|index| index.to_string())
+                    .collect::<Vec<String>>()
+                    .join(", ");
+
+                write!(f, "Array Index Selector [{}]", formatted_indexes)
             }
-            Grammar::ArrayRangeSelector(range) => {
-                write!(f, "Array Range Selector []")
+            Grammar::ArrayRangeSelector((start, end)) => {
+                let format_bound = |bound: &Option<Index>| match bound {
+                    Some(index) => index.to_string(),
+                    None => "".to_string(),
+                };
+
+                write!(
+                    f,
+                    "Array Range Selector [{}:{}]",
+                    format_bound(start),
+                    format_bound(end)
+                )
             }
-            _ => write!(f, ""),
+            Grammar::FilterSelector => {
+                write!(f, "Filter Selector")
+            }
+            Grammar::KeySelector(key) => {
+                write!(f, "Key Selector {}", key)
+            }
+            Grammar::MultiKeySelector(multi_key) => {
+                let formatted_keys = multi_key.join(", ");
+
+                write!(f, "Key Selector {}", formatted_keys)
+            }
         }
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use super::{parse, parse_fragment, Grammar, Index};
+    use super::{grammar_to_string, parse, parse_fragment, Grammar, Index, JqlParserError};
 
     #[test]
     fn check() {
@@ -226,8 +253,21 @@ mod tests {
 
         // Full parser.
         assert_eq!(
-            parse(r#"[9,0]sdf"#),
-            Ok(vec![Grammar::KeySelector("country")])
+            parse(r#""this"[9,0]"#),
+            Ok(vec![
+                Grammar::KeySelector("this"),
+                Grammar::ArrayIndexSelector(vec![Index(9), Index(0)])
+            ]),
+        );
+        assert_eq!(
+            parse(r#"[9,0]nope"#),
+            Err(JqlParserError::UnableToParseInput {
+                rest: "nope",
+                grammar: grammar_to_string(vec![Grammar::ArrayIndexSelector(vec![
+                    Index(9),
+                    Index(0)
+                ])]),
+            })
         );
     }
 }

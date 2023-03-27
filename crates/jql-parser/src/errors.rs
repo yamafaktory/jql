@@ -2,11 +2,15 @@ use thiserror::Error;
 
 #[derive(Debug, Error, PartialEq)]
 pub enum JqlParserError<'a> {
+    /// Unknown error.
+    #[error("Unknown error")]
+    UnknownError,
+
     /// Empty input error.
     #[error("No input provided")]
     NoInputProvided,
 
-    /// General parsing error.
-    #[error("Enable to parse input {0}")]
-    EnableToParseInput(&'a str),
+    /// Unable to parse error.
+    #[error("Unable to parse input {rest} after {grammar}")]
+    UnableToParseInput { grammar: String, rest: &'a str },
 }
