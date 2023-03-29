@@ -11,6 +11,6 @@ pub enum JqlParserError<'a> {
     NoInputProvided,
 
     /// Unable to parse error.
-    #[error("Unable to parse input {rest} after {grammar}")]
-    UnableToParseInput { grammar: String, rest: &'a str },
+    #[error("Unable to parse input {rest} after {tokens}")]
+    UnableToParseInput { tokens: String, rest: &'a str },
 }

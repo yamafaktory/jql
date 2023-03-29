@@ -23,23 +23,35 @@ mod errors;
 /// A combinator which takes an `inner` parser and produces a parser which also
 /// consumes both leading and trailing whitespace, returning the output of
 /// `inner`.
-fn trim<'a, F, O, E: ParseError<&'a str>>(inner: F) -> impl FnMut(&'a str) -> IResult<&'a str, O, E>
+fn trim<'a, F, O, E>(inner: F) -> impl FnMut(&'a str) -> IResult<&'a str, O, E>
 where
+    E: ParseError<&'a str>,
     F: FnMut(&'a str) -> IResult<&'a str, O, E>,
 {
     delimited(multispace0, inner, multispace0)
 }
 
+/// A combinator which parses a stringified number as an `Index`.
 fn parse_number(input: &str) -> IResult<&str, Index> {
     map_res(recognize(digit1), |index: &str| {
         index.parse::<u32>().map(Index)
     })(input)
 }
 
+/// A combinator which parses a key surrounded by double quotes.
+fn parse_key<'a, E>() -> impl FnMut(&'a str) -> IResult<&'a str, &'a str, E>
+where
+    E: ParseError<&'a str>,
+{
+    trim(delimited(char('"'), take_until(r#"""#), char('"')))
+}
+
+/// A combinator which parses a list of `Index`.
 fn parse_indexes(input: &str) -> IResult<&str, Vec<Index>> {
     separated_list1(trim(tag(",")), trim(parse_number))(input)
 }
 
+/// A combinator which parses a list of keys.
 fn parse_keys(input: &str) -> IResult<&str, Vec<&str>> {
     separated_list1(trim(tag(",")), trim(parse_key()))(input)
 }
@@ -49,12 +61,12 @@ fn parse_multi_key<'a>() -> impl FnMut(&'a str) -> IResult<&'a str, Vec<&'a str>
     trim(delimited(char('{'), parse_keys, char('}')))
 }
 
-/// A combinator which parses a key surrounded by double quotes.
+/// A combinator which parses an array of `Index`.
 fn parse_array_index<'a>() -> impl FnMut(&'a str) -> IResult<&'a str, Vec<Index>> {
     trim(delimited(char('['), parse_indexes, char(']')))
 }
 
-/// A combinator which parses a key surrounded by double quotes.
+/// A combinator which parses an array of `Range`.
 fn parse_array_range<'a>() -> impl FnMut(&'a str) -> IResult<&'a str, (Option<Index>, Option<Index>)>
 {
     trim(delimited(
@@ -65,42 +77,88 @@ fn parse_array_range<'a>() -> impl FnMut(&'a str) -> IResult<&'a str, (Option<In
 }
 
 /// A combinator which parses a key surrounded by double quotes.
-fn parse_key<'a, E: ParseError<&'a str>>() -> impl FnMut(&'a str) -> IResult<&'a str, &'a str, E> {
-    trim(delimited(char('"'), take_until(r#"""#), char('"')))
+fn parse_object_index<'a>() -> impl FnMut(&'a str) -> IResult<&'a str, Vec<Index>> {
+    trim(delimited(char('{'), parse_indexes, char('}')))
 }
 
-/// A combinator which parses a filter selector.
-fn parse_filter<'a, E: ParseError<&'a str>>() -> impl FnMut(&'a str) -> IResult<&'a str, &'a str, E>
+/// A combinator which parses a key surrounded by double quotes.
+fn parse_object_range<'a>()
+-> impl FnMut(&'a str) -> IResult<&'a str, (Option<Index>, Option<Index>)> {
+    trim(delimited(
+        char('{'),
+        separated_pair(opt(parse_number), tag(":"), opt(parse_number)),
+        char('}'),
+    ))
+}
+
+/// A combinator which parses a flatten operator.
+fn parse_flatten<'a, E>() -> impl FnMut(&'a str) -> IResult<&'a str, &'a str, E>
+where
+    E: ParseError<&'a str>,
 {
-    trim(tag("|"))
+    trim(tag(".."))
 }
 
-/// Parses the provided input and map to the matching grammar selector.
-fn parse_fragment(input: &str) -> IResult<&str, Grammar> {
-    alt((
-        value(Grammar::FilterSelector, parse_filter()),
-        map(parse_key(), Grammar::KeySelector),
-        map(parse_array_index(), Grammar::ArrayIndexSelector),
-        map(parse_array_range(), Grammar::ArrayRangeSelector),
-        map(parse_multi_key(), Grammar::MultiKeySelector),
-    ))(input)
+/// A combinator which parses a pipe in operator.
+fn parse_pipe_in<'a, E>() -> impl FnMut(&'a str) -> IResult<&'a str, &'a str, E>
+where
+    E: ParseError<&'a str>,
+{
+    trim(tag("|>"))
 }
 
-fn grammar_to_string(grammar: Vec<Grammar>) -> String {
-    grammar
+/// A combinator which parses a pipe out operator.
+fn parse_pipe_out<'a, E>() -> impl FnMut(&'a str) -> IResult<&'a str, &'a str, E>
+where
+    E: ParseError<&'a str>,
+{
+    trim(tag("<|"))
+}
+
+/// A combinator which parses a truncate operator.
+fn parse_truncate<'a, E>() -> impl FnMut(&'a str) -> IResult<&'a str, &'a str, E>
+where
+    E: ParseError<&'a str>,
+{
+    trim(tag("!"))
+}
+
+fn tokens_to_string(tokens: &[Token]) -> String {
+    tokens
         .iter()
-        .map(|token| token.to_string())
+        .map(std::string::ToString::to_string)
         .collect::<Vec<String>>()
         .join(", ")
 }
 
-/// TODO
+/// Parses the provided input and map it to the first matching token.
+fn parse_fragment(input: &str) -> IResult<&str, Token> {
+    alt((
+        map(parse_array_index(), Token::ArrayIndexSelector),
+        map(parse_array_range(), |(start, end)| {
+            Token::ArrayRangeSelector(Range(start, end))
+        }),
+        map(parse_key(), Token::KeySelector),
+        map(parse_multi_key(), Token::MultiKeySelector),
+        map(parse_object_index(), Token::ObjectIndexSelector),
+        map(parse_object_range(), |(start, end)| {
+            Token::ObjectRangeSelector(Range(start, end))
+        }),
+        value(Token::FlattenOperator, parse_flatten()),
+        value(Token::PipeInOperator, parse_pipe_in()),
+        value(Token::PipeOutOperator, parse_pipe_out()),
+        value(Token::TruncateOperator, parse_truncate()),
+    ))(input)
+}
+
+/// Parses the provided input and returns a vector of tokens.
 ///
 /// # Errors
-/// TODO
-pub fn parse(input: &str) -> Result<Vec<Grammar>, JqlParserError> {
+///
+/// Returns a `JqlParserError` on failure.
+pub fn parse(input: &str) -> Result<Vec<Token>, JqlParserError> {
     let mut parser_iterator = iterator(input, parse_fragment);
-    let parsed = parser_iterator.collect::<Vec<Grammar>>();
+    let parsed = parser_iterator.collect::<Vec<Token>>();
     let result: IResult<_, _> = parser_iterator.finish();
 
     match result {
@@ -108,7 +166,7 @@ pub fn parse(input: &str) -> Result<Vec<Grammar>, JqlParserError> {
             if !rest.is_empty() {
                 return Err(JqlParserError::UnableToParseInput {
                     rest,
-                    grammar: grammar_to_string(parsed),
+                    tokens: tokens_to_string(&parsed),
                 });
             }
 
@@ -118,8 +176,8 @@ pub fn parse(input: &str) -> Result<Vec<Grammar>, JqlParserError> {
     }
 }
 
-/// Index used for arrays and objects.
-/// Internally uses a `u32` with the newtype pattern.
+/// `Index` used for arrays and objects.
+/// Internally mapped to a `u32` with the newtype pattern.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Index(u32);
 
@@ -129,56 +187,97 @@ impl fmt::Display for Index {
     }
 }
 
-/// Parser grammar.
+/// `Range` used for arrays and objects.
+/// Internally mapped to a tuple of `Option` of `Index`.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum Grammar<'a> {
+pub struct Range(Option<Index>, Option<Index>);
+
+impl fmt::Display for Range {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let format_bound = |bound: &Option<Index>| match bound {
+            Some(index) => index.to_string(),
+            None => String::new(),
+        };
+
+        write!(
+            f,
+            "Range [{}:{}]",
+            format_bound(&self.0),
+            format_bound(&self.1)
+        )
+    }
+}
+
+/// Parser tokens.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Token<'a> {
     /// Array index selector.
     ArrayIndexSelector(Vec<Index>),
     /// Array range selector.
-    ArrayRangeSelector((Option<Index>, Option<Index>)),
-    /// Filter selector.
-    FilterSelector,
+    ArrayRangeSelector(Range),
+    /// Flatten operator.
+    FlattenOperator,
     /// Key selector.
     KeySelector(&'a str),
     /// Multi key selector.
     MultiKeySelector(Vec<&'a str>),
+    /// Object index selector.
+    ObjectIndexSelector(Vec<Index>),
+    /// Object range selector.
+    ObjectRangeSelector(Range),
+    /// Pipe in operator.
+    PipeInOperator,
+    /// Pipe out operator.
+    PipeOutOperator,
+    /// Truncate operator.
+    TruncateOperator,
 }
 
-impl<'a> fmt::Display for Grammar<'a> {
+impl<'a> Token<'a> {
+    fn get_name(&self) -> &'a str {
+        match self {
+            Token::ArrayIndexSelector(_) => "Array Index Selector",
+            Token::ArrayRangeSelector(_) => "Array Range Selector",
+            Token::FlattenOperator => "Flatten Operator",
+            Token::KeySelector(_) => "Key Selector",
+            Token::MultiKeySelector(_) => "Multi Key Selector",
+            Token::ObjectIndexSelector(_) => "Object Index Selector",
+            Token::ObjectRangeSelector(_) => "Object Range Selector",
+            Token::PipeInOperator => "Pipe In Operator",
+            Token::PipeOutOperator => "Pipe Out Operator",
+            Token::TruncateOperator => "Truncate Operator",
+        }
+    }
+}
+
+impl<'a> fmt::Display for Token<'a> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            Grammar::ArrayIndexSelector(indexes) => {
+            Token::ArrayIndexSelector(indexes) | Token::ObjectIndexSelector(indexes) => {
                 let formatted_indexes = indexes
                     .iter()
-                    .map(|index| index.to_string())
+                    .map(std::string::ToString::to_string)
                     .collect::<Vec<String>>()
                     .join(", ");
 
-                write!(f, "Array Index Selector [{}]", formatted_indexes)
+                write!(f, "{} [{formatted_indexes}]", self.get_name())
             }
-            Grammar::ArrayRangeSelector((start, end)) => {
-                let format_bound = |bound: &Option<Index>| match bound {
-                    Some(index) => index.to_string(),
-                    None => "".to_string(),
-                };
-
-                write!(
-                    f,
-                    "Array Range Selector [{}:{}]",
-                    format_bound(start),
-                    format_bound(end)
-                )
+            Token::ArrayRangeSelector(range) | Token::ObjectRangeSelector(range) => {
+                write!(f, "{} {}", self.get_name(), range)
             }
-            Grammar::FilterSelector => {
-                write!(f, "Filter Selector")
+            Token::KeySelector(key) => {
+                write!(f, "{} {key}", self.get_name())
             }
-            Grammar::KeySelector(key) => {
-                write!(f, "Key Selector {}", key)
-            }
-            Grammar::MultiKeySelector(multi_key) => {
+            Token::MultiKeySelector(multi_key) => {
                 let formatted_keys = multi_key.join(", ");
 
-                write!(f, "Key Selector {}", formatted_keys)
+                write!(f, "{} {formatted_keys}", self.get_name())
+            }
+            Token::FlattenOperator
+            | Token::PipeInOperator
+            | Token::PipeOutOperator
+            | Token::TruncateOperator => {
+                write!(f, "{}", self.get_name())
             }
         }
     }
@@ -186,88 +285,166 @@ impl<'a> fmt::Display for Grammar<'a> {
 
 #[cfg(test)]
 mod tests {
-    use super::{grammar_to_string, parse, parse_fragment, Grammar, Index, JqlParserError};
+    use super::{parse, parse_fragment, tokens_to_string, Index, JqlParserError, Range, Token};
 
     #[test]
-    fn check() {
-        // Filter selector.
-        assert_eq!(parse_fragment(r#"|"#), Ok(("", Grammar::FilterSelector)));
-        assert_eq!(parse_fragment(r#" | "#), Ok(("", Grammar::FilterSelector)));
-
-        // Key selector.
-        assert_eq!(
-            parse_fragment(r#""one""#),
-            Ok(("", Grammar::KeySelector("one")))
-        );
-        assert_eq!(
-            parse_fragment(r#" "one" "#),
-            Ok(("", Grammar::KeySelector("one")))
-        );
-
-        // Array index selector.
+    fn check_array_index_selector() {
         assert_eq!(
             parse_fragment(r#"[0,1,2]"#),
             Ok((
                 "",
-                Grammar::ArrayIndexSelector(vec![Index(0), Index(1), Index(2)])
+                Token::ArrayIndexSelector(vec![Index(0), Index(1), Index(2)])
             ))
         );
         assert_eq!(
             parse_fragment(r#" [ 0 , 1 , 2 ] "#),
             Ok((
                 "",
-                Grammar::ArrayIndexSelector(vec![Index(0), Index(1), Index(2)])
+                Token::ArrayIndexSelector(vec![Index(0), Index(1), Index(2)])
             ))
         );
+    }
 
-        // Array range selector.
+    #[test]
+    fn check_array_range_selector() {
         assert_eq!(
             parse_fragment(r#"[0:2]"#),
             Ok((
                 "",
-                Grammar::ArrayRangeSelector((Some(Index(0)), Some(Index(2))))
+                Token::ArrayRangeSelector(Range(Some(Index(0)), Some(Index(2))))
             ))
         );
         assert_eq!(
             parse_fragment(r#"[:2]"#),
-            Ok(("", Grammar::ArrayRangeSelector((None, Some(Index(2))))))
+            Ok(("", Token::ArrayRangeSelector(Range(None, Some(Index(2))))))
         );
         assert_eq!(
             parse_fragment(r#"[0:]"#),
-            Ok(("", Grammar::ArrayRangeSelector((Some(Index(0)), None))))
+            Ok(("", Token::ArrayRangeSelector(Range(Some(Index(0)), None))))
         );
         assert_eq!(
             parse_fragment(r#"[:]"#),
-            Ok(("", Grammar::ArrayRangeSelector((None, None))))
+            Ok(("", Token::ArrayRangeSelector(Range(None, None))))
         );
+    }
 
-        // Multi key selector.
+    #[test]
+    fn check_key_selector() {
+        assert_eq!(
+            parse_fragment(r#""one""#),
+            Ok(("", Token::KeySelector("one")))
+        );
+        assert_eq!(
+            parse_fragment(r#" "one" "#),
+            Ok(("", Token::KeySelector("one")))
+        );
+    }
+
+    #[test]
+    fn check_multi_key_selector() {
         assert_eq!(
             parse_fragment(r#"{"one","two","three"}"#),
-            Ok(("", Grammar::MultiKeySelector(vec!["one", "two", "three"])))
+            Ok(("", Token::MultiKeySelector(vec!["one", "two", "three"])))
         );
         assert_eq!(
             parse_fragment(r#" { "one", "two" , "three" } "#),
-            Ok(("", Grammar::MultiKeySelector(vec!["one", "two", "three"])))
+            Ok(("", Token::MultiKeySelector(vec!["one", "two", "three"])))
         );
+    }
 
-        // Full parser.
+    #[test]
+    fn check_object_index_selector() {
+        assert_eq!(
+            parse_fragment(r#"{0,1,2}"#),
+            Ok((
+                "",
+                Token::ObjectIndexSelector(vec![Index(0), Index(1), Index(2)])
+            ))
+        );
+        assert_eq!(
+            parse_fragment(r#" { 0 , 1 , 2 } "#),
+            Ok((
+                "",
+                Token::ObjectIndexSelector(vec![Index(0), Index(1), Index(2)])
+            ))
+        );
+    }
+
+    #[test]
+    fn check_object_range_selector() {
+        assert_eq!(
+            parse_fragment(r#"{0:2}"#),
+            Ok((
+                "",
+                Token::ObjectRangeSelector(Range(Some(Index(0)), Some(Index(2))))
+            ))
+        );
+        assert_eq!(
+            parse_fragment(r#"{:2}"#),
+            Ok(("", Token::ObjectRangeSelector(Range(None, Some(Index(2))))))
+        );
+        assert_eq!(
+            parse_fragment(r#"{0:}"#),
+            Ok(("", Token::ObjectRangeSelector(Range(Some(Index(0)), None))))
+        );
+        assert_eq!(
+            parse_fragment(r#"{:}"#),
+            Ok(("", Token::ObjectRangeSelector(Range(None, None))))
+        );
+    }
+
+    #[test]
+    fn check_flatten_operator() {
+        assert_eq!(parse_fragment(r#".."#), Ok(("", Token::FlattenOperator)));
+        assert_eq!(parse_fragment(r#" .. "#), Ok(("", Token::FlattenOperator)));
+    }
+
+    #[test]
+    fn check_pipe_in_operator() {
+        assert_eq!(parse_fragment(r#"|>"#), Ok(("", Token::PipeInOperator)));
+        assert_eq!(parse_fragment(r#" |> "#), Ok(("", Token::PipeInOperator)));
+    }
+
+    #[test]
+    fn check_pipe_out_operator() {
+        assert_eq!(parse_fragment(r#"<|"#), Ok(("", Token::PipeOutOperator)));
+        assert_eq!(parse_fragment(r#" <| "#), Ok(("", Token::PipeOutOperator)));
+    }
+
+    #[test]
+    fn check_truncate_operator() {
+        assert_eq!(parse_fragment(r#"!"#), Ok(("", Token::TruncateOperator)));
+        assert_eq!(parse_fragment(r#" ! "#), Ok(("", Token::TruncateOperator)));
+    }
+
+    #[test]
+    fn check_full_parser() {
         assert_eq!(
             parse(r#""this"[9,0]"#),
             Ok(vec![
-                Grammar::KeySelector("this"),
-                Grammar::ArrayIndexSelector(vec![Index(9), Index(0)])
+                Token::KeySelector("this"),
+                Token::ArrayIndexSelector(vec![Index(9), Index(0)])
             ]),
         );
         assert_eq!(
             parse(r#"[9,0]nope"#),
             Err(JqlParserError::UnableToParseInput {
                 rest: "nope",
-                grammar: grammar_to_string(vec![Grammar::ArrayIndexSelector(vec![
-                    Index(9),
-                    Index(0)
-                ])]),
+                tokens: tokens_to_string(&[Token::ArrayIndexSelector(vec![Index(9), Index(0)])]),
             })
+        );
+        assert_eq!(
+            parse(r#".."this"[9,0]|>"some"<|"ok"!"#),
+            Ok(vec![
+                Token::FlattenOperator,
+                Token::KeySelector("this"),
+                Token::ArrayIndexSelector(vec![Index(9), Index(0)]),
+                Token::PipeInOperator,
+                Token::KeySelector("some"),
+                Token::PipeOutOperator,
+                Token::KeySelector("ok"),
+                Token::TruncateOperator
+            ]),
         );
     }
 }
