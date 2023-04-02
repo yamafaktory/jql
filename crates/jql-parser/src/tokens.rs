@@ -1,4 +1,7 @@
-use std::{fmt, string::ToString};
+use std::{
+    fmt,
+    string::ToString,
+};
 
 /// `Index` used for arrays and objects.
 /// Internally mapped to a `u32` with the newtype pattern.
@@ -87,6 +90,8 @@ pub enum Token<'a> {
     ArrayRangeSelector(Range),
     /// Flatten operator.
     FlattenOperator,
+    /// Group separator.
+    GroupSeparator,
     /// Key selector.
     KeySelector(&'a str),
     /// Lens selector.
@@ -111,6 +116,7 @@ impl<'a> Token<'a> {
             Token::ArrayIndexSelector(_) => "Array Index Selector",
             Token::ArrayRangeSelector(_) => "Array Range Selector",
             Token::FlattenOperator => "Flatten Operator",
+            Token::GroupSeparator => "Group Separator",
             Token::KeySelector(_) => "Key Selector",
             Token::LensSelector(_) => "Lens Selector",
             Token::MultiKeySelector(_) => "Multi Key Selector",
@@ -156,6 +162,7 @@ impl<'a> fmt::Display for Token<'a> {
                 write!(f, "{} {formatted_keys}", self.get_name())
             }
             Token::FlattenOperator
+            | Token::GroupSeparator
             | Token::PipeInOperator
             | Token::PipeOutOperator
             | Token::TruncateOperator => {

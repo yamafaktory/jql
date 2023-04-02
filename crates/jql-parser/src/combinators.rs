@@ -1,15 +1,36 @@
 use nom::{
     branch::alt,
-    bytes::complete::{tag, take_until},
-    character::complete::{char, digit1, multispace0},
-    combinator::{map, map_res, opt, recognize, value},
+    bytes::complete::{
+        tag,
+        take_until,
+    },
+    character::complete::{
+        char,
+        digit1,
+        multispace0,
+    },
+    combinator::{
+        map,
+        map_res,
+        opt,
+        recognize,
+        value,
+    },
     error::ParseError,
     multi::separated_list1,
-    sequence::{delimited, pair, preceded, separated_pair},
+    sequence::{
+        delimited,
+        pair,
+        preceded,
+        separated_pair,
+    },
     IResult,
 };
 
-use crate::tokens::{Index, LensValue};
+use crate::tokens::{
+    Index,
+    LensValue,
+};
 
 /// A combinator which takes an `inner` parser and produces a parser which also
 /// consumes both leading and trailing whitespaces, returning the output of
@@ -166,17 +187,46 @@ where
     trim(tag("!"))
 }
 
+/// A combinator which parses a group separator.
+pub(crate) fn parse_group_separator<'a, E>() -> impl FnMut(&'a str) -> IResult<&'a str, &'a str, E>
+where
+    E: ParseError<&'a str>,
+{
+    trim(tag(","))
+}
+
 #[cfg(test)]
 mod tests {
-    use nom::{bytes::complete::tag, error::Error};
+    use nom::{
+        bytes::complete::tag,
+        error::Error,
+    };
 
     use super::{
-        parse_array_index, parse_array_range, parse_flatten_operator, parse_indexes, parse_key,
-        parse_lens, parse_lenses, parse_multi_key, parse_null_lens_value, parse_number,
-        parse_number_lens_value, parse_object_index, parse_object_range, parse_pipe_in_operator,
-        parse_pipe_out_operator, parse_string_lens_value, parse_truncate_operator, trim,
+        parse_array_index,
+        parse_array_range,
+        parse_flatten_operator,
+        parse_group_separator,
+        parse_indexes,
+        parse_key,
+        parse_lens,
+        parse_lenses,
+        parse_multi_key,
+        parse_null_lens_value,
+        parse_number,
+        parse_number_lens_value,
+        parse_object_index,
+        parse_object_range,
+        parse_pipe_in_operator,
+        parse_pipe_out_operator,
+        parse_string_lens_value,
+        parse_truncate_operator,
+        trim,
     };
-    use crate::tokens::{Index, LensValue};
+    use crate::tokens::{
+        Index,
+        LensValue,
+    };
 
     #[test]
     fn check_trim() {
@@ -278,7 +328,7 @@ mod tests {
     }
 
     #[test]
-    fn check_parse_flatten() {
+    fn check_parse_flatten_operator() {
         assert_eq!(
             parse_flatten_operator::<Error<_>>()("..").unwrap(),
             ("", "..")
@@ -287,7 +337,7 @@ mod tests {
     }
 
     #[test]
-    fn check_parse_pipe_in() {
+    fn check_parse_pipe_in_operator() {
         assert_eq!(
             parse_pipe_in_operator::<Error<_>>()("|>").unwrap(),
             ("", "|>")
@@ -296,7 +346,7 @@ mod tests {
     }
 
     #[test]
-    fn check_parse_pipe_out() {
+    fn check_parse_pipe_out_operator() {
         assert_eq!(
             parse_pipe_out_operator::<Error<_>>()("<|").unwrap(),
             ("", "<|")
@@ -305,12 +355,18 @@ mod tests {
     }
 
     #[test]
-    fn check_parse_truncate() {
+    fn check_parse_truncate_operator() {
         assert_eq!(
             parse_truncate_operator::<Error<_>>()("!").unwrap(),
             ("", "!")
         );
         assert!(parse_truncate_operator::<Error<_>>()("").is_err());
+    }
+
+    #[test]
+    fn check_parse_group_separator() {
+        assert_eq!(parse_group_separator::<Error<_>>()(",").unwrap(), ("", ","));
+        assert!(parse_group_separator::<Error<_>>()("").is_err());
     }
 
     #[test]

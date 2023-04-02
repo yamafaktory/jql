@@ -1,17 +1,35 @@
 use nom::{
     branch::alt,
-    combinator::{iterator, map, value},
+    combinator::{
+        iterator,
+        map,
+        value,
+    },
     IResult,
 };
 
 use crate::{
     combinators::{
-        parse_array_index, parse_array_range, parse_flatten_operator, parse_key, parse_lenses,
-        parse_multi_key, parse_object_index, parse_object_range, parse_pipe_in_operator,
-        parse_pipe_out_operator, parse_truncate_operator,
+        parse_array_index,
+        parse_array_range,
+        parse_flatten_operator,
+        parse_group_separator,
+        parse_key,
+        parse_lenses,
+        parse_multi_key,
+        parse_object_index,
+        parse_object_range,
+        parse_pipe_in_operator,
+        parse_pipe_out_operator,
+        parse_truncate_operator,
     },
     errors::JqlParserError,
-    tokens::{Lens, Range, Token, View},
+    tokens::{
+        Lens,
+        Range,
+        Token,
+        View,
+    },
 };
 
 /// Parses the provided input and map it to the first matching token.
@@ -36,8 +54,10 @@ fn parse_fragment(input: &str) -> IResult<&str, Token> {
             )
         }),
         value(Token::FlattenOperator, parse_flatten_operator()),
+        value(Token::GroupSeparator, parse_group_separator()),
         value(Token::PipeInOperator, parse_pipe_in_operator()),
         value(Token::PipeOutOperator, parse_pipe_out_operator()),
+        value(Token::TruncateOperator, parse_truncate_operator()),
         value(Token::TruncateOperator, parse_truncate_operator()),
     ))(input)
 }
@@ -69,23 +89,33 @@ pub fn parse(input: &str) -> Result<Vec<Token>, JqlParserError> {
 
 #[cfg(test)]
 mod tests {
-    use super::{parse, parse_fragment};
+    use super::{
+        parse,
+        parse_fragment,
+    };
     use crate::{
         errors::JqlParserError,
-        tokens::{Index, Lens, LensValue, Range, Token, View},
+        tokens::{
+            Index,
+            Lens,
+            LensValue,
+            Range,
+            Token,
+            View,
+        },
     };
 
     #[test]
     fn check_array_index_selector() {
         assert_eq!(
-            parse_fragment(r#"[0,1,2]"#),
+            parse_fragment("[0,1,2]"),
             Ok((
                 "",
                 Token::ArrayIndexSelector(vec![Index(0), Index(1), Index(2)])
             ))
         );
         assert_eq!(
-            parse_fragment(r#" [ 0 , 1 , 2 ] "#),
+            parse_fragment(" [ 0 , 1 , 2 ] "),
             Ok((
                 "",
                 Token::ArrayIndexSelector(vec![Index(0), Index(1), Index(2)])
@@ -96,22 +126,22 @@ mod tests {
     #[test]
     fn check_array_range_selector() {
         assert_eq!(
-            parse_fragment(r#"[0:2]"#),
+            parse_fragment("[0:2]"),
             Ok((
                 "",
                 Token::ArrayRangeSelector(Range(Some(Index(0)), Some(Index(2))))
             ))
         );
         assert_eq!(
-            parse_fragment(r#"[:2]"#),
+            parse_fragment("[:2]"),
             Ok(("", Token::ArrayRangeSelector(Range(None, Some(Index(2))))))
         );
         assert_eq!(
-            parse_fragment(r#"[0:]"#),
+            parse_fragment("[0:]"),
             Ok(("", Token::ArrayRangeSelector(Range(Some(Index(0)), None))))
         );
         assert_eq!(
-            parse_fragment(r#"[:]"#),
+            parse_fragment("[:]"),
             Ok(("", Token::ArrayRangeSelector(Range(None, None))))
         );
     }
@@ -143,14 +173,14 @@ mod tests {
     #[test]
     fn check_object_index_selector() {
         assert_eq!(
-            parse_fragment(r#"{0,1,2}"#),
+            parse_fragment("{0,1,2}"),
             Ok((
                 "",
                 Token::ObjectIndexSelector(vec![Index(0), Index(1), Index(2)])
             ))
         );
         assert_eq!(
-            parse_fragment(r#" { 0 , 1 , 2 } "#),
+            parse_fragment(" { 0 , 1 , 2 } "),
             Ok((
                 "",
                 Token::ObjectIndexSelector(vec![Index(0), Index(1), Index(2)])
@@ -161,22 +191,22 @@ mod tests {
     #[test]
     fn check_object_range_selector() {
         assert_eq!(
-            parse_fragment(r#"{0:2}"#),
+            parse_fragment("{0:2}"),
             Ok((
                 "",
                 Token::ObjectRangeSelector(Range(Some(Index(0)), Some(Index(2))))
             ))
         );
         assert_eq!(
-            parse_fragment(r#"{:2}"#),
+            parse_fragment("{:2}"),
             Ok(("", Token::ObjectRangeSelector(Range(None, Some(Index(2))))))
         );
         assert_eq!(
-            parse_fragment(r#"{0:}"#),
+            parse_fragment("{0:}"),
             Ok(("", Token::ObjectRangeSelector(Range(Some(Index(0)), None))))
         );
         assert_eq!(
-            parse_fragment(r#"{:}"#),
+            parse_fragment("{:}"),
             Ok(("", Token::ObjectRangeSelector(Range(None, None))))
         );
     }
@@ -199,26 +229,32 @@ mod tests {
 
     #[test]
     fn check_flatten_operator() {
-        assert_eq!(parse_fragment(r#".."#), Ok(("", Token::FlattenOperator)));
-        assert_eq!(parse_fragment(r#" .. "#), Ok(("", Token::FlattenOperator)));
+        assert_eq!(parse_fragment(".."), Ok(("", Token::FlattenOperator)));
+        assert_eq!(parse_fragment(" .. "), Ok(("", Token::FlattenOperator)));
     }
 
     #[test]
     fn check_pipe_in_operator() {
-        assert_eq!(parse_fragment(r#"|>"#), Ok(("", Token::PipeInOperator)));
-        assert_eq!(parse_fragment(r#" |> "#), Ok(("", Token::PipeInOperator)));
+        assert_eq!(parse_fragment("|>"), Ok(("", Token::PipeInOperator)));
+        assert_eq!(parse_fragment(" |> "), Ok(("", Token::PipeInOperator)));
     }
 
     #[test]
     fn check_pipe_out_operator() {
-        assert_eq!(parse_fragment(r#"<|"#), Ok(("", Token::PipeOutOperator)));
-        assert_eq!(parse_fragment(r#" <| "#), Ok(("", Token::PipeOutOperator)));
+        assert_eq!(parse_fragment("<|"), Ok(("", Token::PipeOutOperator)));
+        assert_eq!(parse_fragment(" <| "), Ok(("", Token::PipeOutOperator)));
     }
 
     #[test]
     fn check_truncate_operator() {
-        assert_eq!(parse_fragment(r#"!"#), Ok(("", Token::TruncateOperator)));
-        assert_eq!(parse_fragment(r#" ! "#), Ok(("", Token::TruncateOperator)));
+        assert_eq!(parse_fragment("!"), Ok(("", Token::TruncateOperator)));
+        assert_eq!(parse_fragment(" ! "), Ok(("", Token::TruncateOperator)));
+    }
+
+    #[test]
+    fn check_group_separator() {
+        assert_eq!(parse_fragment(","), Ok(("", Token::GroupSeparator)));
+        assert_eq!(parse_fragment(" , "), Ok(("", Token::GroupSeparator)));
     }
 
     #[test]
@@ -231,7 +267,7 @@ mod tests {
             ]),
         );
         assert_eq!(
-            parse(r#"[9,0]nope"#),
+            parse("[9,0]nope"),
             Err(JqlParserError::UnableToParseInput {
                 tokens: [Token::ArrayIndexSelector(vec![Index(9), Index(0)])].stringify(),
                 unparsed: "nope",
