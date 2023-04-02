@@ -1,0 +1,13 @@
+use thiserror::Error;
+
+/// Error type returned by the runner.
+#[derive(Debug, Error, PartialEq)]
+pub enum JqlRunnerError {
+    /// Empty input error.
+    #[error("No input provided")]
+    NoInputProvided,
+
+    /// Unknown error.
+    #[error("Unknown error")]
+    UnknownError,
+}
