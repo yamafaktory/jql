@@ -6,11 +6,12 @@ use nom::{
 
 use crate::{
     combinators::{
-        parse_array_index, parse_array_range, parse_flatten, parse_key, parse_multi_key,
-        parse_object_index, parse_object_range, parse_pipe_in, parse_pipe_out, parse_truncate,
+        parse_array_index, parse_array_range, parse_flatten_operator, parse_key, parse_lenses,
+        parse_multi_key, parse_object_index, parse_object_range, parse_pipe_in_operator,
+        parse_pipe_out_operator, parse_truncate_operator,
     },
     errors::JqlParserError,
-    tokens::{Range, Token, View},
+    tokens::{Lens, Range, Token, View},
 };
 
 /// Parses the provided input and map it to the first matching token.
@@ -26,10 +27,18 @@ fn parse_fragment(input: &str) -> IResult<&str, Token> {
         map(parse_object_range(), |(start, end)| {
             Token::ObjectRangeSelector(Range(start, end))
         }),
-        value(Token::FlattenOperator, parse_flatten()),
-        value(Token::PipeInOperator, parse_pipe_in()),
-        value(Token::PipeOutOperator, parse_pipe_out()),
-        value(Token::TruncateOperator, parse_truncate()),
+        map(parse_lenses(), |lenses| {
+            Token::LensSelector(
+                lenses
+                    .into_iter()
+                    .map(|(key, value)| Lens(key, value))
+                    .collect(),
+            )
+        }),
+        value(Token::FlattenOperator, parse_flatten_operator()),
+        value(Token::PipeInOperator, parse_pipe_in_operator()),
+        value(Token::PipeOutOperator, parse_pipe_out_operator()),
+        value(Token::TruncateOperator, parse_truncate_operator()),
     ))(input)
 }
 
@@ -63,7 +72,7 @@ mod tests {
     use super::{parse, parse_fragment};
     use crate::{
         errors::JqlParserError,
-        tokens::{Index, Range, Token, View},
+        tokens::{Index, Lens, LensValue, Range, Token, View},
     };
 
     #[test]
@@ -169,6 +178,22 @@ mod tests {
         assert_eq!(
             parse_fragment(r#"{:}"#),
             Ok(("", Token::ObjectRangeSelector(Range(None, None))))
+        );
+    }
+
+    #[test]
+    fn check_lens_selector() {
+        assert_eq!(
+            parse_fragment(r#"|={"abc","bcd"=123,"efg"=null,"hij"="test"}"#),
+            Ok((
+                "",
+                Token::LensSelector(vec![
+                    Lens("abc", None),
+                    Lens("bcd", Some(LensValue::Number(123))),
+                    Lens("efg", Some(LensValue::Null)),
+                    Lens("hij", Some(LensValue::String("test"))),
+                ])
+            ))
         );
     }
 

@@ -1,4 +1,4 @@
-use std::fmt;
+use std::{fmt, string::ToString};
 
 /// `Index` used for arrays and objects.
 /// Internally mapped to a `u32` with the newtype pattern.
@@ -32,7 +32,53 @@ impl fmt::Display for Range {
     }
 }
 
-/// Parser tokens.
+/// `Lens` used for `LensSelector`.
+/// Internally mapped to a tuple of `Option` of `Index`.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Lens<'a>(pub(crate) &'a str, pub(crate) Option<LensValue<'a>>);
+
+impl<'a> fmt::Display for Lens<'a> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(
+            f,
+            "{}{}",
+            self.0,
+            match &self.1 {
+                Some(lens_value) => {
+                    lens_value.to_string()
+                }
+                None => String::new(),
+            }
+        )
+    }
+}
+
+/// Lens value type.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum LensValue<'a> {
+    /// Variant for a JSON number.
+    Number(u32),
+    /// Variant for JSON null.
+    Null,
+    /// Variant for a JSON string.
+    String(&'a str),
+}
+
+impl<'a> fmt::Display for LensValue<'a> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            LensValue::Null => {
+                write!(f, "null")
+            }
+            LensValue::String(string) => write!(f, "{string}"),
+            LensValue::Number(number) => {
+                write!(f, "{number}")
+            }
+        }
+    }
+}
+
+/// Parser tokens type.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Token<'a> {
     /// Array index selector.
@@ -43,6 +89,8 @@ pub enum Token<'a> {
     FlattenOperator,
     /// Key selector.
     KeySelector(&'a str),
+    /// Lens selector.
+    LensSelector(Vec<Lens<'a>>),
     /// Multi key selector.
     MultiKeySelector(Vec<&'a str>),
     /// Object index selector.
@@ -64,6 +112,7 @@ impl<'a> Token<'a> {
             Token::ArrayRangeSelector(_) => "Array Range Selector",
             Token::FlattenOperator => "Flatten Operator",
             Token::KeySelector(_) => "Key Selector",
+            Token::LensSelector(_) => "Lens Selector",
             Token::MultiKeySelector(_) => "Multi Key Selector",
             Token::ObjectIndexSelector(_) => "Object Index Selector",
             Token::ObjectRangeSelector(_) => "Object Range Selector",
@@ -80,7 +129,7 @@ impl<'a> fmt::Display for Token<'a> {
             Token::ArrayIndexSelector(indexes) | Token::ObjectIndexSelector(indexes) => {
                 let formatted_indexes = indexes
                     .iter()
-                    .map(std::string::ToString::to_string)
+                    .map(ToString::to_string)
                     .collect::<Vec<String>>()
                     .join(", ");
 
@@ -91,6 +140,15 @@ impl<'a> fmt::Display for Token<'a> {
             }
             Token::KeySelector(key) => {
                 write!(f, "{} {key}", self.get_name())
+            }
+            Token::LensSelector(lenses) => {
+                let formatted_indexes = lenses
+                    .iter()
+                    .map(ToString::to_string)
+                    .collect::<Vec<String>>()
+                    .join(", ");
+
+                write!(f, "{} [{formatted_indexes}]", self.get_name())
             }
             Token::MultiKeySelector(multi_key) => {
                 let formatted_keys = multi_key.join(", ");
@@ -117,7 +175,7 @@ impl<'a, T: AsRef<[Token<'a>]>> View for T {
     fn stringify(&self) -> String {
         self.as_ref()
             .iter()
-            .map(std::string::ToString::to_string)
+            .map(ToString::to_string)
             .collect::<Vec<String>>()
             .join(", ")
     }
