@@ -35,11 +35,11 @@ mod tests {
 
     #[test]
     fn check_split() {
+        assert!(split(&[Token::GroupSeparator,]).is_empty());
         assert_eq!(
             split(&[Token::KeySelector("abc")]),
             vec![vec![&Token::KeySelector("abc")]]
         );
-        assert!(split(&[Token::GroupSeparator,]).is_empty());
         assert_eq!(
             split(&[
                 Token::GroupSeparator,

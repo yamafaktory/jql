@@ -145,7 +145,7 @@ impl<'a> fmt::Display for Token<'a> {
                 write!(f, "{} {}", self.get_name(), range)
             }
             Token::KeySelector(key) => {
-                write!(f, "{} {key}", self.get_name())
+                write!(f, r#"{} "{key}""#, self.get_name())
             }
             Token::LensSelector(lenses) => {
                 let formatted_indexes = lenses

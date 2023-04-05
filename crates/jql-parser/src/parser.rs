@@ -62,7 +62,7 @@ fn parse_fragment(input: &str) -> IResult<&str, Token> {
     ))(input)
 }
 
-/// Parses the provided input and returns a vector of tokens.
+/// Parses the provided input and returns a vector of `Tokens`.
 ///
 /// # Errors
 ///
@@ -77,7 +77,7 @@ pub fn parse(input: &str) -> Result<Vec<Token>, JqlParserError> {
             if !unparsed.is_empty() {
                 return Err(JqlParserError::UnableToParseInput {
                     tokens: parsed.stringify(),
-                    unparsed,
+                    unparsed: unparsed.to_string(),
                 });
             }
 
@@ -270,7 +270,7 @@ mod tests {
             parse("[9,0]nope"),
             Err(JqlParserError::UnableToParseInput {
                 tokens: [Token::ArrayIndexSelector(vec![Index(9), Index(0)])].stringify(),
-                unparsed: "nope",
+                unparsed: "nope".to_string(),
             })
         );
         assert_eq!(

@@ -2,7 +2,7 @@ use thiserror::Error;
 
 /// Error type returned by the parser.
 #[derive(Debug, Error, PartialEq)]
-pub enum JqlParserError<'a> {
+pub enum JqlParserError {
     /// Empty input error.
     #[error("No input provided")]
     NoInputProvided,
@@ -13,7 +13,7 @@ pub enum JqlParserError<'a> {
         /// Tokens found while parsing.
         tokens: String,
         /// Unparsed content.
-        unparsed: &'a str,
+        unparsed: String,
     },
 
     /// Unknown error.

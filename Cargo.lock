@@ -355,7 +355,9 @@ dependencies = [
 name = "jql-runner"
 version = "5.2.0"
 dependencies = [
+ "itertools",
  "jql-parser",
+ "rayon",
  "serde_json",
  "thiserror",
 ]
