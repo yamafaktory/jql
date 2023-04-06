@@ -5,11 +5,11 @@ use thiserror::Error;
 pub enum JqlParserError {
     /// Empty input error.
     #[error("No input provided")]
-    NoInputProvided,
+    NoInputProvidedError,
 
     /// Unable to parse error.
     #[error("Unable to parse input {unparsed} after {tokens}")]
-    UnableToParseInput {
+    UnableToParseInputError {
         /// Tokens found while parsing.
         tokens: String,
         /// Unparsed content.

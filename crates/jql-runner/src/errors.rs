@@ -6,11 +6,29 @@ use thiserror::Error;
 pub enum JqlRunnerError {
     /// Empty input error.
     #[error("No input provided")]
-    NoInputProvided,
+    NoInputProvidedError,
 
     /// Parsing error.
     #[error("Parsing failed")]
-    Parsing(#[from] JqlParserError),
+    ParsingError(#[from] JqlParserError),
+
+    /// Index not found error.
+    #[error("index {index} doesn't exist on parent {parent}")]
+    IndexNotFoundError {
+        /// Index not found.
+        index: usize,
+        /// Parent node.
+        parent: String,
+    },
+
+    /// Key not found error.
+    #[error("Key {key} doesn't exist on parent {parent}")]
+    KeyNotFoundError {
+        /// Key not found.
+        key: String,
+        /// Parent node.
+        parent: String,
+    },
 
     /// Unknown error.
     #[error("Unknown error")]

@@ -1,5 +1,4 @@
 use jql_parser::{
-    errors::JqlParserError,
     group::split,
     parser::parse,
     tokens::Token,
@@ -10,12 +9,18 @@ use serde_json::{
     Value,
 };
 
-use crate::errors::JqlRunnerError;
+use crate::{
+    errors::JqlRunnerError,
+    json::{
+        get_indexes,
+        get_key,
+    },
+};
 
 /// Takes a raw input to parse and a JSON `Value`.
 pub fn runner(input: &str, json: &Value) -> Result<Value, JqlRunnerError> {
     if input.is_empty() {
-        return Err(JqlRunnerError::NoInputProvided);
+        return Err(JqlRunnerError::NoInputProvidedError);
     }
 
     let parsed = parse(input)?;
@@ -37,24 +42,24 @@ pub fn runner(input: &str, json: &Value) -> Result<Value, JqlRunnerError> {
             },
         );
 
-    result.map(|v| json!(v))
+    result.map(|group| {
+        if groups.len() == 1 {
+            json!(group[0])
+        } else {
+            json!(group)
+        }
+    })
 }
 
 fn group_runner(tokens: &Vec<&Token>, json: &Value) -> Result<Value, JqlRunnerError> {
-    let result: Result<Value, JqlRunnerError> = tokens
-        .par_iter()
-        .try_fold_with(json!(null), |mut acc: Value, &token| match token {
-            Token::ArrayIndexSelector(_) => todo!(),
+    tokens
+        .iter()
+        .try_fold(json.clone(), |acc: Value, &token| match token {
+            Token::ArrayIndexSelector(indexes) => get_indexes(indexes, &acc),
             Token::ArrayRangeSelector(_) => todo!(),
             Token::FlattenOperator => todo!(),
             Token::GroupSeparator => todo!(),
-            Token::KeySelector(key) => {
-                if let Some(value) = json.get(key) {
-                    Ok(value.clone())
-                } else {
-                    Err(JqlRunnerError::UnknownError)
-                }
-            }
+            Token::KeySelector(key) => get_key(key, &acc),
             Token::LensSelector(_) => todo!(),
             Token::MultiKeySelector(_) => todo!(),
             Token::ObjectIndexSelector(_) => todo!(),
@@ -63,9 +68,6 @@ fn group_runner(tokens: &Vec<&Token>, json: &Value) -> Result<Value, JqlRunnerEr
             Token::PipeOutOperator => todo!(),
             Token::TruncateOperator => todo!(),
         })
-        .try_reduce(|| json!(null), |mut a, b| Ok(b));
-
-    result
 }
 
 #[cfg(test)]
@@ -83,20 +85,65 @@ mod tests {
     use crate::errors::JqlRunnerError;
 
     #[test]
-    fn check_runner() {
-        assert_eq!(runner("", &json!("")), Err(JqlRunnerError::NoInputProvided));
+    fn check_runner_no_input_provided() {
+        assert_eq!(
+            runner("", &json!("")),
+            Err(JqlRunnerError::NoInputProvidedError)
+        );
+    }
+
+    #[test]
+    fn check_runner_parsing_error() {
         assert_eq!(
             runner(r#""a"b"#, &json!({ "a": 1 })),
-            Err(JqlRunnerError::Parsing(
-                JqlParserError::UnableToParseInput {
+            Err(JqlRunnerError::ParsingError(
+                JqlParserError::UnableToParseInputError {
                     tokens: [Token::KeySelector("a")].stringify(),
                     unparsed: "b".to_string(),
                 }
             ))
         );
+    }
+
+    #[test]
+    fn check_runner_no_key_found_error() {
+        let parent = json!({ "a": 1 });
+
+        assert_eq!(
+            runner(r#""b""#, &parent),
+            Err(JqlRunnerError::KeyNotFoundError {
+                key: "b".to_string(),
+                parent: parent.to_string()
+            })
+        );
+    }
+
+    #[test]
+    fn check_runner_index_not_found_error() {
+        let parent = json!(["a"]);
+
+        assert_eq!(
+            runner("[1]", &parent),
+            Err(JqlRunnerError::IndexNotFoundError {
+                index: 1,
+                parent: parent.to_string()
+            })
+        );
+    }
+
+    #[test]
+    fn check_runner_success() {
         assert_eq!(
             runner(r#""a","b""#, &json!({ "a": 1, "b": 2 })),
             Ok(json!([1, 2]))
+        );
+        assert_eq!(
+            runner(r#""a""b""#, &json!({ "a": { "b": 2 } })),
+            Ok(json!(2))
+        );
+        assert_eq!(
+            runner("[4,2,0]", &json!(["a", "b", "c", "d", "e"])),
+            Ok(json!(["e", "c", "a"]))
         );
     }
 }

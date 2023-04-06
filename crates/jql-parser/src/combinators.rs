@@ -46,7 +46,7 @@ where
 /// A combinator which parses a stringified number as an `Index`.
 pub(crate) fn parse_number(input: &str) -> IResult<&str, Index> {
     map_res(recognize(digit1), |index: &str| {
-        index.parse::<u32>().map(Index)
+        index.parse::<usize>().map(Index)
     })(input)
 }
 
@@ -123,7 +123,7 @@ where
 /// A combinator which parses a `LensValue::Number`.
 pub(crate) fn parse_number_lens_value(input: &str) -> IResult<&str, LensValue> {
     map_res(recognize(digit1), |index: &str| {
-        index.parse::<u32>().map(LensValue::Number)
+        index.parse::<usize>().map(LensValue::Number)
     })(input)
 }
 

@@ -75,7 +75,7 @@ pub fn parse(input: &str) -> Result<Vec<Token>, JqlParserError> {
     match result {
         Ok((unparsed, _)) => {
             if !unparsed.is_empty() {
-                return Err(JqlParserError::UnableToParseInput {
+                return Err(JqlParserError::UnableToParseInputError {
                     tokens: parsed.stringify(),
                     unparsed: unparsed.to_string(),
                 });
@@ -268,7 +268,7 @@ mod tests {
         );
         assert_eq!(
             parse("[9,0]nope"),
-            Err(JqlParserError::UnableToParseInput {
+            Err(JqlParserError::UnableToParseInputError {
                 tokens: [Token::ArrayIndexSelector(vec![Index(9), Index(0)])].stringify(),
                 unparsed: "nope".to_string(),
             })

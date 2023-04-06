@@ -4,9 +4,15 @@ use std::{
 };
 
 /// `Index` used for arrays and objects.
-/// Internally mapped to a `u32` with the newtype pattern.
+/// Internally mapped to a `usize` with the newtype pattern.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Index(pub(crate) u32);
+pub struct Index(pub(crate) usize);
+
+impl From<Index> for usize {
+    fn from(index: Index) -> usize {
+        index.0
+    }
+}
 
 impl fmt::Display for Index {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -60,7 +66,7 @@ impl<'a> fmt::Display for Lens<'a> {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum LensValue<'a> {
     /// Variant for a JSON number.
-    Number(u32),
+    Number(usize),
     /// Variant for JSON null.
     Null,
     /// Variant for a JSON string.

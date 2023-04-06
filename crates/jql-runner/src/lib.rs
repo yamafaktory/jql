@@ -7,5 +7,7 @@
 
 /// Parser errors.
 pub mod errors;
+/// JSON utilities.
+mod json;
 /// Runner utilities.
 pub mod runner;
