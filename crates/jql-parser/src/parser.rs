@@ -1,35 +1,17 @@
 use nom::{
     branch::alt,
-    combinator::{
-        iterator,
-        map,
-        value,
-    },
+    combinator::{iterator, map, value},
     IResult,
 };
 
 use crate::{
     combinators::{
-        parse_array_index,
-        parse_array_range,
-        parse_flatten_operator,
-        parse_group_separator,
-        parse_key,
-        parse_lenses,
-        parse_multi_key,
-        parse_object_index,
-        parse_object_range,
-        parse_pipe_in_operator,
-        parse_pipe_out_operator,
-        parse_truncate_operator,
+        parse_array_index, parse_array_range, parse_flatten_operator, parse_group_separator,
+        parse_key, parse_lenses, parse_multi_key, parse_object_index, parse_object_range,
+        parse_pipe_in_operator, parse_pipe_out_operator, parse_truncate_operator,
     },
     errors::JqlParserError,
-    tokens::{
-        Lens,
-        Range,
-        Token,
-        View,
-    },
+    tokens::{Lens, Range, Token, View},
 };
 
 /// Parses the provided input and map it to the first matching token.
@@ -75,7 +57,7 @@ pub fn parse(input: &str) -> Result<Vec<Token>, JqlParserError> {
     match result {
         Ok((unparsed, _)) => {
             if !unparsed.is_empty() {
-                return Err(JqlParserError::UnableToParseInputError {
+                return Err(JqlParserError::ParsingError {
                     tokens: parsed.stringify(),
                     unparsed: unparsed.to_string(),
                 });
@@ -89,20 +71,10 @@ pub fn parse(input: &str) -> Result<Vec<Token>, JqlParserError> {
 
 #[cfg(test)]
 mod tests {
-    use super::{
-        parse,
-        parse_fragment,
-    };
+    use super::{parse, parse_fragment};
     use crate::{
         errors::JqlParserError,
-        tokens::{
-            Index,
-            Lens,
-            LensValue,
-            Range,
-            Token,
-            View,
-        },
+        tokens::{Index, Lens, LensValue, Range, Token, View},
     };
 
     #[test]
@@ -268,7 +240,7 @@ mod tests {
         );
         assert_eq!(
             parse("[9,0]nope"),
-            Err(JqlParserError::UnableToParseInputError {
+            Err(JqlParserError::ParsingError {
                 tokens: [Token::ArrayIndexSelector(vec![Index(9), Index(0)])].stringify(),
                 unparsed: "nope".to_string(),
             })

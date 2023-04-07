@@ -1,26 +1,16 @@
-use jql_parser::{
-    group::split,
-    parser::parse,
-    tokens::Token,
-};
+use jql_parser::{group::split, parser::parse, tokens::Token};
 use rayon::prelude::*;
-use serde_json::{
-    json,
-    Value,
-};
+use serde_json::{json, Value};
 
 use crate::{
     errors::JqlRunnerError,
-    json::{
-        get_indexes,
-        get_key,
-    },
+    json::{get_indexes, get_key, get_range},
 };
 
 /// Takes a raw input to parse and a JSON `Value`.
 pub fn runner(input: &str, json: &Value) -> Result<Value, JqlRunnerError> {
     if input.is_empty() {
-        return Err(JqlRunnerError::NoInputProvidedError);
+        return Err(JqlRunnerError::EmptyInputError);
     }
 
     let parsed = parse(input)?;
@@ -54,9 +44,9 @@ pub fn runner(input: &str, json: &Value) -> Result<Value, JqlRunnerError> {
 fn group_runner(tokens: &Vec<&Token>, json: &Value) -> Result<Value, JqlRunnerError> {
     tokens
         .iter()
-        .try_fold(json.clone(), |acc: Value, &token| match token {
+        .try_fold(json.clone(), |mut acc: Value, &token| match token {
             Token::ArrayIndexSelector(indexes) => get_indexes(indexes, &acc),
-            Token::ArrayRangeSelector(_) => todo!(),
+            Token::ArrayRangeSelector(range) => get_range(range, &mut acc),
             Token::FlattenOperator => todo!(),
             Token::GroupSeparator => todo!(),
             Token::KeySelector(key) => get_key(key, &acc),
@@ -74,10 +64,7 @@ fn group_runner(tokens: &Vec<&Token>, json: &Value) -> Result<Value, JqlRunnerEr
 mod tests {
     use jql_parser::{
         errors::JqlParserError,
-        tokens::{
-            Token,
-            View,
-        },
+        tokens::{Token, View},
     };
     use serde_json::json;
 
@@ -85,23 +72,18 @@ mod tests {
     use crate::errors::JqlRunnerError;
 
     #[test]
-    fn check_runner_no_input_provided() {
-        assert_eq!(
-            runner("", &json!("")),
-            Err(JqlRunnerError::NoInputProvidedError)
-        );
+    fn check_runner_empty_input_error() {
+        assert_eq!(runner("", &json!("")), Err(JqlRunnerError::EmptyInputError));
     }
 
     #[test]
     fn check_runner_parsing_error() {
         assert_eq!(
             runner(r#""a"b"#, &json!({ "a": 1 })),
-            Err(JqlRunnerError::ParsingError(
-                JqlParserError::UnableToParseInputError {
-                    tokens: [Token::KeySelector("a")].stringify(),
-                    unparsed: "b".to_string(),
-                }
-            ))
+            Err(JqlRunnerError::ParsingError(JqlParserError::ParsingError {
+                tokens: [Token::KeySelector("a")].stringify(),
+                unparsed: "b".to_string(),
+            }))
         );
     }
 

@@ -1,12 +1,16 @@
-use std::{
-    fmt,
-    string::ToString,
-};
+use std::{fmt, num::NonZeroUsize, string::ToString};
 
 /// `Index` used for arrays and objects.
 /// Internally mapped to a `usize` with the newtype pattern.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Index(pub(crate) usize);
+
+impl Index {
+    /// Creates a new `Index`.
+    pub fn new(index: usize) -> Index {
+        Index(index)
+    }
+}
 
 impl From<Index> for usize {
     fn from(index: Index) -> usize {
@@ -24,6 +28,23 @@ impl fmt::Display for Index {
 /// Internally mapped to a tuple of `Option` of `Index`.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Range(pub(crate) Option<Index>, pub(crate) Option<Index>);
+
+impl Range {
+    /// Creates a new `Range`.
+    pub fn new(start: Option<Index>, end: Option<Index>) -> Range {
+        Range(start, end)
+    }
+
+    /// Maps a `Range` to a tuple of boundaries as `usize`.
+    /// `start` defaults to 0 if `None`.
+    /// `end` is injected based on `len` if `None`.
+    pub fn to_boundaries(&self, len: NonZeroUsize) -> (usize, usize) {
+        let start = self.0.or(Some(Index(0))).unwrap();
+        let end = self.1.or(Some(Index(len.get() - 1))).unwrap();
+
+        (start.0, end.0)
+    }
+}
 
 impl fmt::Display for Range {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {

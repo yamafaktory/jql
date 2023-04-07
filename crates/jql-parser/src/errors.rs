@@ -4,12 +4,12 @@ use thiserror::Error;
 #[derive(Debug, Error, PartialEq)]
 pub enum JqlParserError {
     /// Empty input error.
-    #[error("No input provided")]
-    NoInputProvidedError,
+    #[error("Empty input")]
+    EmptyInputError,
 
-    /// Unable to parse error.
+    /// Parsing error.
     #[error("Unable to parse input {unparsed} after {tokens}")]
-    UnableToParseInputError {
+    ParsingError {
         /// Tokens found while parsing.
         tokens: String,
         /// Unparsed content.
