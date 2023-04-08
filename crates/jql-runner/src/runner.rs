@@ -4,10 +4,12 @@ use serde_json::{json, Value};
 
 use crate::{
     errors::JqlRunnerError,
-    json::{get_indexes, get_key, get_range},
+    json::{get_array_indexes, get_flattened, get_key, get_multi_key, get_range},
 };
 
-/// Takes a raw input to parse and a JSON `Value`.
+/// Takes a raw input as a slice string to parse and a reference of a JSON
+/// `Value`.
+/// Returns a JSON `Value` or an error.
 pub fn runner(input: &str, json: &Value) -> Result<Value, JqlRunnerError> {
     if input.is_empty() {
         return Err(JqlRunnerError::EmptyInputError);
@@ -41,17 +43,21 @@ pub fn runner(input: &str, json: &Value) -> Result<Value, JqlRunnerError> {
     })
 }
 
-fn group_runner(tokens: &Vec<&Token>, json: &Value) -> Result<Value, JqlRunnerError> {
+/// Takes a slice of references of `Token` and a reference of a JSON `Value`.
+/// Returns a JSON `Value` or an error.
+/// Note: the `GroupSeparator` enum variant is unreachable at this point since
+/// it has been filtered out by the `runner` function.
+fn group_runner(tokens: &[&Token], json: &Value) -> Result<Value, JqlRunnerError> {
     tokens
         .iter()
         .try_fold(json.clone(), |mut acc: Value, &token| match token {
-            Token::ArrayIndexSelector(indexes) => get_indexes(indexes, &acc),
+            Token::ArrayIndexSelector(indexes) => get_array_indexes(indexes, &acc),
             Token::ArrayRangeSelector(range) => get_range(range, &mut acc),
-            Token::FlattenOperator => todo!(),
-            Token::GroupSeparator => todo!(),
+            Token::FlattenOperator => get_flattened(&mut acc),
+            Token::GroupSeparator => unreachable!(),
             Token::KeySelector(key) => get_key(key, &acc),
             Token::LensSelector(_) => todo!(),
-            Token::MultiKeySelector(_) => todo!(),
+            Token::MultiKeySelector(keys) => get_multi_key(keys, &mut acc),
             Token::ObjectIndexSelector(_) => todo!(),
             Token::ObjectRangeSelector(_) => todo!(),
             Token::PipeInOperator => todo!(),
@@ -95,7 +101,7 @@ mod tests {
             runner(r#""b""#, &parent),
             Err(JqlRunnerError::KeyNotFoundError {
                 key: "b".to_string(),
-                parent: parent.to_string()
+                parent
             })
         );
     }
@@ -106,10 +112,7 @@ mod tests {
 
         assert_eq!(
             runner("[1]", &parent),
-            Err(JqlRunnerError::IndexNotFoundError {
-                index: 1,
-                parent: parent.to_string()
-            })
+            Err(JqlRunnerError::IndexNotFoundError { index: 1, parent })
         );
     }
 

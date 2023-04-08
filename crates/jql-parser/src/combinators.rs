@@ -1,36 +1,26 @@
 use nom::{
     branch::alt,
-    bytes::complete::{
-        tag,
-        take_until,
-    },
-    character::complete::{
-        char,
-        digit1,
-        multispace0,
-    },
-    combinator::{
-        map,
-        map_res,
-        opt,
-        recognize,
-        value,
-    },
+    bytes::complete::{tag, take_until},
+    character::complete::{char, digit1, multispace0},
+    combinator::{map, map_res, opt, recognize, value},
     error::ParseError,
     multi::separated_list1,
-    sequence::{
-        delimited,
-        pair,
-        preceded,
-        separated_pair,
-    },
+    sequence::{delimited, pair, preceded, separated_pair},
     IResult,
 };
 
-use crate::tokens::{
-    Index,
-    LensValue,
-};
+use crate::tokens::{Index, LensValue};
+
+/// Flatten operator.
+static FLATTEN: &str = "..";
+/// Group separator.
+static GROUP_SEP: &str = ",";
+/// Pipe in operator.
+static PIPE_IN: &str = "|>";
+/// Pipe out operator.
+static PIPE_OUT: &str = "<|";
+/// Truncate operator.
+static TRUNCATE: &str = "!";
 
 /// A combinator which takes an `inner` parser and produces a parser which also
 /// consumes both leading and trailing whitespaces, returning the output of
@@ -79,8 +69,8 @@ pub(crate) fn parse_array_index<'a>() -> impl FnMut(&'a str) -> IResult<&'a str,
 }
 
 /// A combinator which parses an array range.
-pub(crate) fn parse_array_range<'a>()
--> impl FnMut(&'a str) -> IResult<&'a str, (Option<Index>, Option<Index>)> {
+pub(crate) fn parse_array_range<'a>(
+) -> impl FnMut(&'a str) -> IResult<&'a str, (Option<Index>, Option<Index>)> {
     trim(delimited(
         char('['),
         separated_pair(opt(parse_number), tag(":"), opt(parse_number)),
@@ -94,8 +84,8 @@ pub(crate) fn parse_object_index<'a>() -> impl FnMut(&'a str) -> IResult<&'a str
 }
 
 /// A combinator which parses an object range.
-pub(crate) fn parse_object_range<'a>()
--> impl FnMut(&'a str) -> IResult<&'a str, (Option<Index>, Option<Index>)> {
+pub(crate) fn parse_object_range<'a>(
+) -> impl FnMut(&'a str) -> IResult<&'a str, (Option<Index>, Option<Index>)> {
     trim(delimited(
         char('{'),
         separated_pair(opt(parse_number), tag(":"), opt(parse_number)),
@@ -112,8 +102,8 @@ where
 }
 
 /// A combinator which parses a `LensValue::String`.
-pub(crate) fn parse_string_lens_value<'a, E>()
--> impl FnMut(&'a str) -> IResult<&'a str, LensValue, E>
+pub(crate) fn parse_string_lens_value<'a, E>(
+) -> impl FnMut(&'a str) -> IResult<&'a str, LensValue, E>
 where
     E: ParseError<&'a str>,
 {
@@ -137,8 +127,8 @@ pub(crate) fn parse_lens_value<'a>() -> impl FnMut(&'a str) -> IResult<&'a str, 
 }
 
 /// A combinator which parses a lens.
-pub(crate) fn parse_lens<'a>()
--> impl FnMut(&'a str) -> IResult<&'a str, (&'a str, Option<LensValue>)> {
+pub(crate) fn parse_lens<'a>(
+) -> impl FnMut(&'a str) -> IResult<&'a str, (&'a str, Option<LensValue>)> {
     trim(pair(
         parse_key(),
         opt(preceded(trim(tag("=")), parse_lens_value())),
@@ -146,8 +136,8 @@ pub(crate) fn parse_lens<'a>()
 }
 
 /// A combinator which parses a list of lenses.
-pub(crate) fn parse_lenses<'a>()
--> impl FnMut(&'a str) -> IResult<&'a str, Vec<(&'a str, Option<LensValue<'a>>)>> {
+pub(crate) fn parse_lenses<'a>(
+) -> impl FnMut(&'a str) -> IResult<&'a str, Vec<(&'a str, Option<LensValue<'a>>)>> {
     trim(delimited(
         tag("|={"),
         separated_list1(trim(tag(",")), trim(parse_lens())),
@@ -160,7 +150,7 @@ pub(crate) fn parse_flatten_operator<'a, E>() -> impl FnMut(&'a str) -> IResult<
 where
     E: ParseError<&'a str>,
 {
-    trim(tag(".."))
+    trim(tag(FLATTEN))
 }
 
 /// A combinator which parses a pipe in operator.
@@ -168,7 +158,7 @@ pub(crate) fn parse_pipe_in_operator<'a, E>() -> impl FnMut(&'a str) -> IResult<
 where
     E: ParseError<&'a str>,
 {
-    trim(tag("|>"))
+    trim(tag(PIPE_IN))
 }
 
 /// A combinator which parses a pipe out operator.
@@ -176,7 +166,7 @@ pub(crate) fn parse_pipe_out_operator<'a, E>() -> impl FnMut(&'a str) -> IResult
 where
     E: ParseError<&'a str>,
 {
-    trim(tag("<|"))
+    trim(tag(PIPE_OUT))
 }
 
 /// A combinator which parses a truncate operator.
@@ -184,7 +174,7 @@ pub(crate) fn parse_truncate_operator<'a, E>() -> impl FnMut(&'a str) -> IResult
 where
     E: ParseError<&'a str>,
 {
-    trim(tag("!"))
+    trim(tag(TRUNCATE))
 }
 
 /// A combinator which parses a group separator.
@@ -192,41 +182,21 @@ pub(crate) fn parse_group_separator<'a, E>() -> impl FnMut(&'a str) -> IResult<&
 where
     E: ParseError<&'a str>,
 {
-    trim(tag(","))
+    trim(tag(GROUP_SEP))
 }
 
 #[cfg(test)]
 mod tests {
-    use nom::{
-        bytes::complete::tag,
-        error::Error,
-    };
+    use nom::{bytes::complete::tag, error::Error};
 
     use super::{
-        parse_array_index,
-        parse_array_range,
-        parse_flatten_operator,
-        parse_group_separator,
-        parse_indexes,
-        parse_key,
-        parse_lens,
-        parse_lenses,
-        parse_multi_key,
-        parse_null_lens_value,
-        parse_number,
-        parse_number_lens_value,
-        parse_object_index,
-        parse_object_range,
-        parse_pipe_in_operator,
-        parse_pipe_out_operator,
-        parse_string_lens_value,
-        parse_truncate_operator,
-        trim,
+        parse_array_index, parse_array_range, parse_flatten_operator, parse_group_separator,
+        parse_indexes, parse_key, parse_lens, parse_lenses, parse_multi_key, parse_null_lens_value,
+        parse_number, parse_number_lens_value, parse_object_index, parse_object_range,
+        parse_pipe_in_operator, parse_pipe_out_operator, parse_string_lens_value,
+        parse_truncate_operator, trim, FLATTEN, GROUP_SEP, PIPE_IN, PIPE_OUT, TRUNCATE,
     };
-    use crate::tokens::{
-        Index,
-        LensValue,
-    };
+    use crate::tokens::{Index, LensValue};
 
     #[test]
     fn check_trim() {
@@ -331,7 +301,7 @@ mod tests {
     fn check_parse_flatten_operator() {
         assert_eq!(
             parse_flatten_operator::<Error<_>>()("..").unwrap(),
-            ("", "..")
+            ("", FLATTEN)
         );
         assert!(parse_flatten_operator::<Error<_>>()("").is_err());
     }
@@ -340,7 +310,7 @@ mod tests {
     fn check_parse_pipe_in_operator() {
         assert_eq!(
             parse_pipe_in_operator::<Error<_>>()("|>").unwrap(),
-            ("", "|>")
+            ("", PIPE_IN)
         );
         assert!(parse_pipe_in_operator::<Error<_>>()("").is_err());
     }
@@ -349,7 +319,7 @@ mod tests {
     fn check_parse_pipe_out_operator() {
         assert_eq!(
             parse_pipe_out_operator::<Error<_>>()("<|").unwrap(),
-            ("", "<|")
+            ("", PIPE_OUT)
         );
         assert!(parse_pipe_out_operator::<Error<_>>()("").is_err());
     }
@@ -358,14 +328,17 @@ mod tests {
     fn check_parse_truncate_operator() {
         assert_eq!(
             parse_truncate_operator::<Error<_>>()("!").unwrap(),
-            ("", "!")
+            ("", TRUNCATE)
         );
         assert!(parse_truncate_operator::<Error<_>>()("").is_err());
     }
 
     #[test]
     fn check_parse_group_separator() {
-        assert_eq!(parse_group_separator::<Error<_>>()(",").unwrap(), ("", ","));
+        assert_eq!(
+            parse_group_separator::<Error<_>>()(",").unwrap(),
+            ("", GROUP_SEP)
+        );
         assert!(parse_group_separator::<Error<_>>()("").is_err());
     }
 
