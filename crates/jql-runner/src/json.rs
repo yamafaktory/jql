@@ -109,15 +109,16 @@ pub(crate) fn get_multi_key(keys: &[&str], json: &mut Value) -> Result<Value, Jq
         )?;
 
     let keys_set: HashSet<String> = keys.iter().map(ToString::to_string).collect();
-    let not_found: Vec<String> = result
+    let mut keys_not_found: Vec<String> = result
         .1
         .symmetric_difference(&keys_set)
         .map(ToString::to_string)
         .collect();
 
-    if !not_found.is_empty() {
+    if !keys_not_found.is_empty() {
+        keys_not_found.sort();
         return Err(JqlRunnerError::MultiKeyNotFoundError {
-            keys: not_found,
+            keys: keys_not_found,
             parent: json.clone(),
         });
     }
@@ -325,9 +326,13 @@ mod tests {
             Ok(json!({ "a": 1, "b": 2, "c": 3 }))
         );
         assert_eq!(
+            get_multi_key(&["c", "a", "b"], &mut value.clone()),
+            Ok(json!({ "c": 3, "a": 1, "b": 2 }))
+        );
+        assert_eq!(
             get_multi_key(&["w", "a", "t"], &mut value.clone()),
             Err(JqlRunnerError::MultiKeyNotFoundError {
-                keys: vec!["w".to_string(), "t".to_string()],
+                keys: vec!["t".to_string(), "w".to_string()],
                 parent: value,
             })
         );

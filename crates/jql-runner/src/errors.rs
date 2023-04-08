@@ -4,10 +4,11 @@ use thiserror::Error;
 
 static SLICE_SEP: &str = " ... ";
 static SLICE_LEN: usize = 7;
+static SEP: &str = ", ";
 
 /// Joins multiple `String`.
 fn join(values: &Vec<String>) -> String {
-    values.join(", ")
+    values.join(SEP)
 }
 
 /// Shortens a JSON `Value` for error injection.
@@ -44,7 +45,7 @@ pub enum JqlRunnerError {
     InvalidObjectError(Value),
 
     /// Key not found error.
-    #[error("Key {key} doesn't exist in parent {}", shorten(.parent))]
+    #[error("Key {key} doesn't exist in parent {}", shorten(parent))]
     KeyNotFoundError {
         /// Key not found.
         key: String,
@@ -53,7 +54,7 @@ pub enum JqlRunnerError {
     },
 
     /// Keys not found error.
-    #[error("Keys {} don't exist in parent {}", join(.keys), shorten(.parent))]
+    #[error("Keys {} don't exist in parent {}", join(keys), shorten(parent))]
     MultiKeyNotFoundError {
         /// Keys not found.
         keys: Vec<String>,
