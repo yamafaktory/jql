@@ -5,9 +5,11 @@
 
 //! TODO
 
+/// Array utilities.
+mod array;
 /// Parser errors.
 pub mod errors;
-/// JSON utilities.
-mod json;
+/// Object utilities.
+mod object;
 /// Runner utilities.
 pub mod runner;

@@ -27,21 +27,25 @@ pub enum JqlRunnerError {
     #[error("Input is empty")]
     EmptyInputError,
 
+    /// Flatten error.
+    #[error("Value {0} is neither an array nor an object and can't be flattened")]
+    FlattenError(Value),
+
     /// Index not found error.
     #[error("Index {index} doesn't exist in parent {parent}")]
     IndexNotFoundError {
         /// Index not found.
         index: usize,
-        /// Parent node.
+        /// Parent value.
         parent: Value,
     },
 
     /// Invalid array error.
-    #[error("Node {0} is not a JSON array")]
+    #[error("Value {0} is not a JSON array")]
     InvalidArrayError(Value),
 
     /// Invalid object error.
-    #[error("Node {0} is not a JSON object")]
+    #[error("Value {0} is not a JSON object")]
     InvalidObjectError(Value),
 
     /// Key not found error.
@@ -49,7 +53,7 @@ pub enum JqlRunnerError {
     KeyNotFoundError {
         /// Key not found.
         key: String,
-        /// Parent node.
+        /// Parent value.
         parent: Value,
     },
 
@@ -58,7 +62,7 @@ pub enum JqlRunnerError {
     MultiKeyNotFoundError {
         /// Keys not found.
         keys: Vec<String>,
-        /// Parent node.
+        /// Parent value.
         parent: Value,
     },
 
@@ -73,7 +77,7 @@ pub enum JqlRunnerError {
         start: usize,
         /// End range.
         end: usize,
-        /// parent node.
+        /// parent value.
         parent: Value,
     },
 

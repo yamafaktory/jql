@@ -1,17 +1,35 @@
 use nom::{
     branch::alt,
-    combinator::{iterator, map, value},
+    combinator::{
+        iterator,
+        map,
+        value,
+    },
     IResult,
 };
 
 use crate::{
     combinators::{
-        parse_array_index, parse_array_range, parse_flatten_operator, parse_group_separator,
-        parse_key, parse_lenses, parse_multi_key, parse_object_index, parse_object_range,
-        parse_pipe_in_operator, parse_pipe_out_operator, parse_truncate_operator,
+        parse_array_index,
+        parse_array_range,
+        parse_flatten_operator,
+        parse_group_separator,
+        parse_key,
+        parse_lenses,
+        parse_multi_key,
+        parse_object_index,
+        parse_object_range,
+        parse_pipe_in_operator,
+        parse_pipe_out_operator,
+        parse_truncate_operator,
     },
     errors::JqlParserError,
-    tokens::{Lens, Range, Token, View},
+    tokens::{
+        Lens,
+        Range,
+        Token,
+        View,
+    },
 };
 
 /// Parses the provided input and map it to the first matching token.
@@ -40,7 +58,6 @@ fn parse_fragment(input: &str) -> IResult<&str, Token> {
         value(Token::PipeInOperator, parse_pipe_in_operator()),
         value(Token::PipeOutOperator, parse_pipe_out_operator()),
         value(Token::TruncateOperator, parse_truncate_operator()),
-        value(Token::TruncateOperator, parse_truncate_operator()),
     ))(input)
 }
 
@@ -51,19 +68,30 @@ fn parse_fragment(input: &str) -> IResult<&str, Token> {
 /// Returns a `JqlParserError` on failure.
 pub fn parse(input: &str) -> Result<Vec<Token>, JqlParserError> {
     let mut parser_iterator = iterator(input, parse_fragment);
-    let parsed = parser_iterator.collect::<Vec<Token>>();
+    let tokens = parser_iterator.collect::<Vec<Token>>();
     let result: IResult<_, _> = parser_iterator.finish();
 
     match result {
         Ok((unparsed, _)) => {
             if !unparsed.is_empty() {
                 return Err(JqlParserError::ParsingError {
-                    tokens: parsed.stringify(),
+                    tokens: tokens.stringify(),
                     unparsed: unparsed.to_string(),
                 });
             }
 
-            Ok(parsed)
+            let truncate_count = tokens
+                .iter()
+                .filter(|&token| *token == Token::TruncateOperator)
+                .count();
+
+            if truncate_count > 1
+                || (truncate_count == 1 && tokens.last() != Some(&Token::TruncateOperator))
+            {
+                return Err(JqlParserError::TruncateError(tokens.stringify()));
+            }
+
+            Ok(tokens)
         }
         Err(_) => Err(JqlParserError::UnknownError),
     }
@@ -71,10 +99,20 @@ pub fn parse(input: &str) -> Result<Vec<Token>, JqlParserError> {
 
 #[cfg(test)]
 mod tests {
-    use super::{parse, parse_fragment};
+    use super::{
+        parse,
+        parse_fragment,
+    };
     use crate::{
         errors::JqlParserError,
-        tokens::{Index, Lens, LensValue, Range, Token, View},
+        tokens::{
+            Index,
+            Lens,
+            LensValue,
+            Range,
+            Token,
+            View,
+        },
     };
 
     #[test]
@@ -258,5 +296,16 @@ mod tests {
                 Token::TruncateOperator
             ]),
         );
+        assert_eq!(
+            parse(r#""a"!"b""#),
+            Err(JqlParserError::TruncateError(
+                [
+                    Token::KeySelector("a"),
+                    Token::TruncateOperator,
+                    Token::KeySelector("b")
+                ]
+                .stringify()
+            ))
+        )
     }
 }

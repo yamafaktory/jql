@@ -1,22 +1,46 @@
-use jql_parser::{group::split, parser::parse, tokens::Token};
+use jql_parser::{
+    group::split,
+    parser::parse,
+    tokens::Token,
+};
 use rayon::prelude::*;
-use serde_json::{json, Value};
+use serde_json::{
+    json,
+    Value,
+};
 
 use crate::{
+    array::{
+        get_array_indexes,
+        get_array_range,
+        get_flattened_array,
+    },
     errors::JqlRunnerError,
-    json::{get_array_indexes, get_flattened, get_key, get_multi_key, get_range},
+    object::{
+        get_flattened_object,
+        get_object_key,
+        get_object_multi_key,
+    },
 };
 
 /// Takes a raw input as a slice string to parse and a reference of a JSON
 /// `Value`.
 /// Returns a JSON `Value` or an error.
-pub fn runner(input: &str, json: &Value) -> Result<Value, JqlRunnerError> {
+pub fn raw_runner(input: &str, json: &Value) -> Result<Value, JqlRunnerError> {
     if input.is_empty() {
         return Err(JqlRunnerError::EmptyInputError);
     }
 
-    let parsed = parse(input)?;
-    let groups = split(&parsed);
+    let tokens = parse(input)?;
+
+    token_runner(tokens, json)
+}
+
+/// Takes a vector of `Tokens` to parse and a reference of a JSON
+/// `Value`.
+/// Returns a JSON `Value` or an error.
+pub fn token_runner(tokens: Vec<Token>, json: &Value) -> Result<Value, JqlRunnerError> {
+    let groups = split(&tokens);
 
     let result = groups
         .par_iter()
@@ -46,19 +70,23 @@ pub fn runner(input: &str, json: &Value) -> Result<Value, JqlRunnerError> {
 /// Takes a slice of references of `Token` and a reference of a JSON `Value`.
 /// Returns a JSON `Value` or an error.
 /// Note: the `GroupSeparator` enum variant is unreachable at this point since
-/// it has been filtered out by the `runner` function.
+/// it has been filtered out by any of the public `runner` functions.
 fn group_runner(tokens: &[&Token], json: &Value) -> Result<Value, JqlRunnerError> {
     tokens
         .iter()
         .try_fold(json.clone(), |mut acc: Value, &token| match token {
             Token::ArrayIndexSelector(indexes) => get_array_indexes(indexes, &acc),
-            Token::ArrayRangeSelector(range) => get_range(range, &mut acc),
-            Token::FlattenOperator => get_flattened(&mut acc),
+            Token::ArrayRangeSelector(range) => get_array_range(range, &mut acc),
+            Token::FlattenOperator => match acc {
+                Value::Array(_) => get_flattened_array(&acc),
+                Value::Object(_) => get_flattened_object(&acc),
+                _ => Err(JqlRunnerError::FlattenError(acc)),
+            },
             Token::GroupSeparator => unreachable!(),
-            Token::KeySelector(key) => get_key(key, &acc),
+            Token::KeySelector(key) => get_object_key(key, &acc),
             Token::LensSelector(_) => todo!(),
-            Token::MultiKeySelector(keys) => get_multi_key(keys, &mut acc),
-            Token::ObjectIndexSelector(_) => todo!(),
+            Token::MultiKeySelector(keys) => get_object_multi_key(keys, &mut acc),
+            Token::ObjectIndexSelector(indexes) => todo!(),
             Token::ObjectRangeSelector(_) => todo!(),
             Token::PipeInOperator => todo!(),
             Token::PipeOutOperator => todo!(),
@@ -70,22 +98,28 @@ fn group_runner(tokens: &[&Token], json: &Value) -> Result<Value, JqlRunnerError
 mod tests {
     use jql_parser::{
         errors::JqlParserError,
-        tokens::{Token, View},
+        tokens::{
+            Token,
+            View,
+        },
     };
     use serde_json::json;
 
-    use super::runner;
+    use super::raw_runner;
     use crate::errors::JqlRunnerError;
 
     #[test]
     fn check_runner_empty_input_error() {
-        assert_eq!(runner("", &json!("")), Err(JqlRunnerError::EmptyInputError));
+        assert_eq!(
+            raw_runner("", &json!("")),
+            Err(JqlRunnerError::EmptyInputError)
+        );
     }
 
     #[test]
     fn check_runner_parsing_error() {
         assert_eq!(
-            runner(r#""a"b"#, &json!({ "a": 1 })),
+            raw_runner(r#""a"b"#, &json!({ "a": 1 })),
             Err(JqlRunnerError::ParsingError(JqlParserError::ParsingError {
                 tokens: [Token::KeySelector("a")].stringify(),
                 unparsed: "b".to_string(),
@@ -98,7 +132,7 @@ mod tests {
         let parent = json!({ "a": 1 });
 
         assert_eq!(
-            runner(r#""b""#, &parent),
+            raw_runner(r#""b""#, &parent),
             Err(JqlRunnerError::KeyNotFoundError {
                 key: "b".to_string(),
                 parent
@@ -111,7 +145,7 @@ mod tests {
         let parent = json!(["a"]);
 
         assert_eq!(
-            runner("[1]", &parent),
+            raw_runner("[1]", &parent),
             Err(JqlRunnerError::IndexNotFoundError { index: 1, parent })
         );
     }
@@ -119,15 +153,15 @@ mod tests {
     #[test]
     fn check_runner_success() {
         assert_eq!(
-            runner(r#""a","b""#, &json!({ "a": 1, "b": 2 })),
+            raw_runner(r#""a","b""#, &json!({ "a": 1, "b": 2 })),
             Ok(json!([1, 2]))
         );
         assert_eq!(
-            runner(r#""a""b""#, &json!({ "a": { "b": 2 } })),
+            raw_runner(r#""a""b""#, &json!({ "a": { "b": 2 } })),
             Ok(json!(2))
         );
         assert_eq!(
-            runner("[4,2,0]", &json!(["a", "b", "c", "d", "e"])),
+            raw_runner("[4,2,0]", &json!(["a", "b", "c", "d", "e"])),
             Ok(json!(["e", "c", "a"]))
         );
     }

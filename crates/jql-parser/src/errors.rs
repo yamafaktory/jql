@@ -16,6 +16,10 @@ pub enum JqlParserError {
         unparsed: String,
     },
 
+    /// Truncate error.
+    #[error("Truncate operator found as non last element or multiple times in {0}")]
+    TruncateError(String),
+
     /// Unknown error.
     #[error("Unknown error")]
     UnknownError,
