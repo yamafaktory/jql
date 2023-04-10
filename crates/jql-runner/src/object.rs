@@ -3,6 +3,7 @@ use std::{
     string::ToString,
 };
 
+use jql_parser::tokens::Index;
 use rayon::prelude::*;
 use serde_json::{
     json,
@@ -46,7 +47,7 @@ pub(crate) fn get_object_multi_key(
 ) -> Result<Value, JqlRunnerError> {
     let len = keys.len();
 
-    let result = as_object_mut(json)?
+    let (new_map, found_keys) = as_object_mut(json)?
         .iter_mut()
         .par_bridge()
         .try_fold_with(
@@ -61,7 +62,7 @@ pub(crate) fn get_object_multi_key(
             },
         )
         .try_reduce(
-            || (Map::with_capacity(keys.len()), HashSet::new()),
+            || (Map::with_capacity(len), HashSet::with_capacity(len)),
             |mut a, b| {
                 a.0.extend(b.0);
                 a.1.extend(b.1);
@@ -71,8 +72,7 @@ pub(crate) fn get_object_multi_key(
         )?;
 
     let keys_set: HashSet<String> = keys.iter().map(ToString::to_string).collect();
-    let mut keys_not_found: Vec<String> = result
-        .1
+    let mut keys_not_found: Vec<String> = found_keys
         .symmetric_difference(&keys_set)
         .map(ToString::to_string)
         .collect();
@@ -85,7 +85,7 @@ pub(crate) fn get_object_multi_key(
         });
     }
 
-    Ok(json!(result.0))
+    Ok(json!(new_map))
 }
 
 /// Takes a mutable reference of a JSON `Value`.
@@ -130,19 +130,69 @@ fn flatten_object(
     }
 }
 
+/// Takes a slice of `Index` and a mutable reference of a JSON `Value`.
+/// Returns a reference of a JSON `Value` or an error.
+pub(crate) fn get_object_indexes(
+    indexes: &[Index],
+    json: &mut Value,
+) -> Result<Value, JqlRunnerError> {
+    let len = indexes.len();
+    let mut_object = as_object_mut(json)?;
+    // We can safely unwrap since indexes can be empty.
+    let max: usize = indexes.iter().max().unwrap().clone().into();
+
+    if max + 1 > mut_object.len() {
+        return Err(JqlRunnerError::IndexOutOfBoundsError {
+            index: max,
+            parent: json.clone(),
+        });
+    }
+
+    let result = mut_object
+        .iter_mut()
+        .enumerate()
+        .par_bridge()
+        .try_fold_with(
+            Map::with_capacity(len),
+            |mut acc: Map<String, Value>, (index, (key, value))| {
+                if indexes.iter().any(|i| {
+                    let num: usize = i.clone().into();
+
+                    num == index
+                }) {
+                    acc.insert(key.to_string(), value.clone());
+                }
+
+                Ok::<Map<String, Value>, JqlRunnerError>(acc)
+            },
+        )
+        .try_reduce(
+            || Map::with_capacity(len),
+            |mut a, b| {
+                a.extend(b);
+
+                Ok(a)
+            },
+        )?;
+
+    Ok(json!(result))
+}
+
 #[cfg(test)]
 mod tests {
+    use jql_parser::tokens::Index;
     use serde_json::json;
 
     use super::{
         get_flattened_object,
+        get_object_indexes,
         get_object_key,
         get_object_multi_key,
     };
     use crate::errors::JqlRunnerError;
 
     #[test]
-    fn check_get_key() {
+    fn check_get_object_key() {
         let value = json!({ "a": 1 });
 
         assert_eq!(get_object_key("a", &value), Ok(json!(1)));
@@ -156,7 +206,7 @@ mod tests {
     }
 
     #[test]
-    fn check_get_multi_key() {
+    fn check_get_object_multi_key() {
         let value = json!({ "a": 1, "b": 2, "c": 3, "d": 4, "e": 5 });
 
         assert_eq!(
@@ -183,7 +233,7 @@ mod tests {
     }
 
     #[test]
-    fn check_flatten_object() {
+    fn check_get_flattened_object() {
         let mut value =
             json!({ "a": { "c": false }, "b": { "d": { "e": { "f": 1, "g": { "h": 2 }} } } });
         assert_eq!(
@@ -193,6 +243,29 @@ mod tests {
               "b.d.e.f": 1,
               "b.d.e.g.h": 2
             }))
+        );
+    }
+
+    #[test]
+    fn check_get_object_indexes() {
+        let value = json!({ "a": 1, "b": 2, "c": 3, "d": 4, "e": 5 });
+
+        assert_eq!(
+            get_object_indexes(
+                &[Index::new(4), Index::new(2), Index::new(0)],
+                &mut value.clone()
+            ),
+            Ok(json!({ "e": 5, "c": 3, "a": 1 }))
+        );
+        assert_eq!(
+            get_object_indexes(
+                &[Index::new(4), Index::new(2), Index::new(10)],
+                &mut value.clone()
+            ),
+            Err(JqlRunnerError::IndexOutOfBoundsError {
+                index: 10,
+                parent: value,
+            })
         );
     }
 }

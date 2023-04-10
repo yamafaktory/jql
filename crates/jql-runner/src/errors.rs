@@ -31,10 +31,10 @@ pub enum JqlRunnerError {
     #[error("Value {0} is neither an array nor an object and can't be flattened")]
     FlattenError(Value),
 
-    /// Index not found error.
-    #[error("Index {index} doesn't exist in parent {parent}")]
-    IndexNotFoundError {
-        /// Index not found.
+    /// Index out of bounds error.
+    #[error("Index {index} in parent {parent} is out of bounds")]
+    IndexOutOfBoundsError {
+        /// Index.
         index: usize,
         /// Parent value.
         parent: Value,

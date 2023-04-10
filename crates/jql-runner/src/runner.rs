@@ -18,6 +18,7 @@ use crate::{
     errors::JqlRunnerError,
     object::{
         get_flattened_object,
+        get_object_indexes,
         get_object_key,
         get_object_multi_key,
     },
@@ -86,7 +87,7 @@ fn group_runner(tokens: &[&Token], json: &Value) -> Result<Value, JqlRunnerError
             Token::KeySelector(key) => get_object_key(key, &acc),
             Token::LensSelector(_) => todo!(),
             Token::MultiKeySelector(keys) => get_object_multi_key(keys, &mut acc),
-            Token::ObjectIndexSelector(indexes) => todo!(),
+            Token::ObjectIndexSelector(indexes) => get_object_indexes(indexes, &mut acc),
             Token::ObjectRangeSelector(_) => todo!(),
             Token::PipeInOperator => todo!(),
             Token::PipeOutOperator => todo!(),
@@ -146,7 +147,7 @@ mod tests {
 
         assert_eq!(
             raw_runner("[1]", &parent),
-            Err(JqlRunnerError::IndexNotFoundError { index: 1, parent })
+            Err(JqlRunnerError::IndexOutOfBoundsError { index: 1, parent })
         );
     }
 

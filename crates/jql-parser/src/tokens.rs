@@ -1,8 +1,12 @@
-use std::{fmt, num::NonZeroUsize, string::ToString};
+use std::{
+    fmt,
+    num::NonZeroUsize,
+    string::ToString,
+};
 
 /// `Index` used for arrays and objects.
 /// Internally mapped to a `usize` with the newtype pattern.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub struct Index(pub(crate) usize);
 
 impl Index {

@@ -31,14 +31,14 @@ fn get_array_index(index: &Index, json: &Value) -> Result<Value, JqlRunnerError>
     if let Some(value) = json.get(num) {
         Ok(value.clone())
     } else {
-        Err(JqlRunnerError::IndexNotFoundError {
+        Err(JqlRunnerError::IndexOutOfBoundsError {
             index: num,
             parent: json.clone(),
         })
     }
 }
 
-/// Takes a slice of `Index` and a JSON `Value`.
+/// Takes a slice of `Index` and a reference of a JSON `Value`.
 /// Returns a reference of a JSON `Value` or an error.
 pub(crate) fn get_array_indexes(indexes: &[Index], json: &Value) -> Result<Value, JqlRunnerError> {
     let values: Vec<Value> = indexes
@@ -139,13 +139,13 @@ mod tests {
     use crate::errors::JqlRunnerError;
 
     #[test]
-    fn check_get_index() {
+    fn check_get_array_index() {
         let value = json!(["a", "b", "c"]);
 
         assert_eq!(get_array_index(&Index::new(0), &value), Ok(json!("a")));
         assert_eq!(
             get_array_index(&Index::new(3), &value),
-            Err(JqlRunnerError::IndexNotFoundError {
+            Err(JqlRunnerError::IndexOutOfBoundsError {
                 index: 3,
                 parent: value
             })
@@ -153,7 +153,7 @@ mod tests {
     }
 
     #[test]
-    fn check_get_indexes() {
+    fn check_get_array_indexes() {
         let value = json!(["a", "b", "c"]);
 
         assert_eq!(
@@ -162,7 +162,7 @@ mod tests {
         );
         assert_eq!(
             get_array_indexes(&[Index::new(0), Index::new(3)], &value),
-            Err(JqlRunnerError::IndexNotFoundError {
+            Err(JqlRunnerError::IndexOutOfBoundsError {
                 index: 3,
                 parent: value
             })
@@ -170,7 +170,7 @@ mod tests {
     }
 
     #[test]
-    fn check_get_range() {
+    fn check_get_array_range() {
         let value = json!(["a", "b", "c", "d", "e"]);
 
         assert_eq!(
@@ -219,7 +219,7 @@ mod tests {
     }
 
     #[test]
-    fn check_get_flattened() {
+    fn check_get_flattened_array() {
         assert_eq!(
             get_flattened_array(&json!([[[[[[[[[[[[[[1]]]]]]]]]]]]], [[[[[2]]]], 3], null])),
             Ok(json!([1, 2, 3, null]))
