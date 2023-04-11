@@ -1,9 +1,13 @@
 use std::{
     collections::HashSet,
+    num::NonZeroUsize,
     string::ToString,
 };
 
-use jql_parser::tokens::Index;
+use jql_parser::tokens::{
+    Index,
+    Range,
+};
 use rayon::prelude::*;
 use serde_json::{
     json,
@@ -136,8 +140,13 @@ pub(crate) fn get_object_indexes(
     indexes: &[Index],
     json: &mut Value,
 ) -> Result<Value, JqlRunnerError> {
-    let len = indexes.len();
     let mut_object = as_object_mut(json)?;
+
+    if mut_object.is_empty() {
+        return Ok(json!({}));
+    }
+
+    let len = indexes.len();
     // We can safely unwrap since indexes can be empty.
     let max: usize = indexes.iter().max().unwrap().clone().into();
 
@@ -178,9 +187,69 @@ pub(crate) fn get_object_indexes(
     Ok(json!(result))
 }
 
+/// Takes a reference of a `Range` and a mutable reference of a JSON `Value`.
+/// Returns a reference of a JSON `Value` or an error.
+pub(crate) fn get_object_range(range: &Range, json: &mut Value) -> Result<Value, JqlRunnerError> {
+    let mut_object = as_object_mut(json)?;
+
+    if mut_object.is_empty() {
+        return Ok(json!({}));
+    }
+
+    let len = mut_object.len();
+    // Object's length can't be zero so we can safely unwrap here.
+    let non_zero_len = NonZeroUsize::new(len).unwrap();
+    let (start, end) = range.to_boundaries(non_zero_len);
+
+    // Out of bounds.
+    if start + 1 > len || end + 1 > len {
+        return Err(JqlRunnerError::RangeOutOfBoundsError {
+            start,
+            end,
+            parent: json.clone(),
+        });
+    }
+
+    let is_natural_order = start < end;
+
+    let result = mut_object
+        .iter_mut()
+        .enumerate()
+        .par_bridge()
+        .try_fold_with(
+            Map::with_capacity(len),
+            |mut acc: Map<String, Value>, (index, (key, value))| {
+                if (is_natural_order && index >= start && index <= end)
+                    || (!is_natural_order && index >= end && index <= start)
+                {
+                    acc.insert(key.to_string(), value.clone());
+                }
+
+                Ok::<Map<String, Value>, JqlRunnerError>(acc)
+            },
+        )
+        .try_reduce(
+            || Map::with_capacity(len),
+            |mut a, mut b| {
+                if is_natural_order {
+                    a.extend(b);
+                } else {
+                    a.append(&mut b);
+                }
+
+                Ok(a)
+            },
+        )?;
+
+    Ok(json!(result))
+}
+
 #[cfg(test)]
 mod tests {
-    use jql_parser::tokens::Index;
+    use jql_parser::tokens::{
+        Index,
+        Range,
+    };
     use serde_json::json;
 
     use super::{
@@ -188,6 +257,7 @@ mod tests {
         get_object_indexes,
         get_object_key,
         get_object_multi_key,
+        get_object_range,
     };
     use crate::errors::JqlRunnerError;
 
@@ -266,6 +336,62 @@ mod tests {
                 index: 10,
                 parent: value,
             })
+        );
+    }
+
+    #[test]
+    fn check_get_object_range() {
+        let value = json!({ "a": 1, "b": 2, "c": 3, "d": 4, "e": 5 });
+
+        assert_eq!(
+            get_object_range(
+                &Range::new(Some(Index::new(0)), Some(Index::new(2))),
+                &mut json!({})
+            ),
+            Ok(json!({}))
+        );
+        assert_eq!(
+            get_object_range(
+                &Range::new(Some(Index::new(0)), Some(Index::new(2))),
+                &mut value.clone()
+            ),
+            Ok(json!({ "a": 1, "b": 2, "c": 3 }))
+        );
+        assert_eq!(
+            get_object_range(
+                &Range::new(Some(Index::new(2)), Some(Index::new(0))),
+                &mut value.clone()
+            ),
+            Ok(json!({ "c": 3, "b": 2, "a": 1 }))
+        );
+        assert_eq!(
+            get_object_range(
+                &Range::new(Some(Index::new(0)), Some(Index::new(0))),
+                &mut value.clone()
+            ),
+            Ok(json!({ "a": 1 }))
+        );
+        assert_eq!(
+            get_object_range(&Range::new(None, Some(Index::new(4))), &mut value.clone()),
+            Ok(json!({ "a": 1, "b": 2, "c": 3, "d": 4, "e": 5 }))
+        );
+        assert_eq!(
+            get_object_range(&Range::new(Some(Index::new(4)), None), &mut value.clone()),
+            Ok(json!({ "e": 5 }))
+        );
+        assert_eq!(
+            get_object_range(&Range::new(None, Some(Index::new(5))), &mut value.clone()),
+            Err(JqlRunnerError::RangeOutOfBoundsError {
+                start: 0,
+                end: 5,
+                parent: value
+            })
+        );
+
+        let value = json!(1);
+        assert_eq!(
+            get_object_range(&Range::new(None, Some(Index::new(5))), &mut value.clone()),
+            Err(JqlRunnerError::InvalidObjectError(value))
         );
     }
 }

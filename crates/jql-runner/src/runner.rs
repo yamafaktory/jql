@@ -12,6 +12,7 @@ use serde_json::{
 use crate::{
     array::{
         get_array_indexes,
+        get_array_lenses,
         get_array_range,
         get_flattened_array,
     },
@@ -21,6 +22,7 @@ use crate::{
         get_object_indexes,
         get_object_key,
         get_object_multi_key,
+        get_object_range,
     },
 };
 
@@ -85,10 +87,10 @@ fn group_runner(tokens: &[&Token], json: &Value) -> Result<Value, JqlRunnerError
             },
             Token::GroupSeparator => unreachable!(),
             Token::KeySelector(key) => get_object_key(key, &acc),
-            Token::LensSelector(_) => todo!(),
+            Token::LensSelector(lenses) => get_array_lenses(lenses, &mut acc),
             Token::MultiKeySelector(keys) => get_object_multi_key(keys, &mut acc),
             Token::ObjectIndexSelector(indexes) => get_object_indexes(indexes, &mut acc),
-            Token::ObjectRangeSelector(_) => todo!(),
+            Token::ObjectRangeSelector(range) => get_object_range(range, &mut acc),
             Token::PipeInOperator => todo!(),
             Token::PipeOutOperator => todo!(),
             Token::TruncateOperator => todo!(),

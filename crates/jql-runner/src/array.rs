@@ -2,6 +2,8 @@ use std::num::NonZeroUsize;
 
 use jql_parser::tokens::{
     Index,
+    Lens,
+    LensValue,
     Range,
 };
 use rayon::prelude::*;
@@ -63,7 +65,7 @@ pub(crate) fn get_array_range(range: &Range, json: &mut Value) -> Result<Value, 
 
     let len = array.len();
     // Array's length can't be zero so we can safely unwrap here.
-    let non_zero_len = NonZeroUsize::new(array.len()).unwrap();
+    let non_zero_len = NonZeroUsize::new(len).unwrap();
     let (start, end) = range.to_boundaries(non_zero_len);
 
     // Out of bounds.
@@ -122,10 +124,68 @@ pub(crate) fn get_flattened_array(json: &Value) -> Result<Value, JqlRunnerError>
     Ok(json!(result))
 }
 
+/// Takes a slice of `Lens` and a mutable reference of a JSON `Value`.
+/// Returns a JSON `Value` or an error.
+pub(crate) fn get_array_lenses(lenses: &[Lens], json: &mut Value) -> Result<Value, JqlRunnerError> {
+    let array = as_array_mut(json)?;
+
+    if array.is_empty() {
+        return Ok(json!([]));
+    }
+
+    let result = array
+        .par_iter()
+        .try_fold_with(vec![], |mut acc: Vec<Value>, inner_value| {
+            if let Some(object) = inner_value.as_object() {
+                if lenses.iter().any(|lens| {
+                    let (key, value) = lens.get();
+
+                    if let Some((current_key, current_value)) = object.get_key_value(key) {
+                        match value {
+                            Some(LensValue::Bool(boolean)) => {
+                                current_key == key
+                                    && current_value.is_boolean()
+                                    && current_value.as_bool().unwrap() == boolean
+                            }
+                            Some(LensValue::Null) => current_key == key && current_value.is_null(),
+                            Some(LensValue::Number(value)) => {
+                                current_key == key
+                                    && current_value.is_u64()
+                                    && current_value.as_u64().unwrap() == value as u64
+                            }
+                            Some(LensValue::String(value)) => {
+                                current_key == key && current_value == value
+                            }
+                            None => current_key == key,
+                        }
+                    } else {
+                        false
+                    }
+                }) {
+                    acc.push(inner_value.clone());
+                }
+            }
+
+            Ok::<Vec<Value>, JqlRunnerError>(acc)
+        })
+        .try_reduce(
+            || vec![],
+            |mut a, b| {
+                a.extend(b);
+
+                Ok(a)
+            },
+        )?;
+
+    Ok(json!(result))
+}
+
 #[cfg(test)]
 mod tests {
     use jql_parser::tokens::{
         Index,
+        Lens,
+        LensValue,
         Range,
     };
     use serde_json::json;
@@ -133,6 +193,7 @@ mod tests {
     use super::{
         get_array_index,
         get_array_indexes,
+        get_array_lenses,
         get_array_range,
         get_flattened_array,
     };
@@ -173,6 +234,13 @@ mod tests {
     fn check_get_array_range() {
         let value = json!(["a", "b", "c", "d", "e"]);
 
+        assert_eq!(
+            get_array_range(
+                &Range::new(Some(Index::new(0)), Some(Index::new(2))),
+                &mut json!([])
+            ),
+            Ok(json!([]))
+        );
         assert_eq!(
             get_array_range(
                 &Range::new(Some(Index::new(0)), Some(Index::new(2))),
@@ -229,6 +297,38 @@ mod tests {
                 &json!([[[[[[[[[[[[[[{ "a": 1 }]]]]]]]]]]]]], [[[[[{ "b": 2 }]]]], { "c": 3 }], null])
             ),
             Ok(json!([{ "a": 1 }, { "b": 2 }, { "c" : 3 }, null]))
+        );
+    }
+
+    #[test]
+    fn check_get_array_lenses() {
+        let value = json!([{ "a": 1, "d": 4 }, { "b": 2, "e": 5 }, { "c": 3, "f": 6 }]);
+
+        assert_eq!(
+            get_array_lenses(&[Lens::new("a", None)], &mut json!([])),
+            Ok(json!([]))
+        );
+        assert_eq!(
+            get_array_lenses(&[Lens::new("a", None)], &mut value.clone()),
+            Ok(json!([{ "a": 1, "d": 4}]))
+        );
+        assert_eq!(
+            get_array_lenses(
+                &[Lens::new("a", Some(LensValue::Number(1)))],
+                &mut value.clone()
+            ),
+            Ok(json!([{ "a": 1, "d": 4 }]))
+        );
+        assert_eq!(
+            get_array_lenses(
+                &[
+                    Lens::new("a", Some(LensValue::Number(1))),
+                    Lens::new("c", None),
+                    Lens::new("c", Some(LensValue::Number(3)))
+                ],
+                &mut value.clone()
+            ),
+            Ok(json!([{ "a": 1, "d": 4 }, { "c": 3, "f": 6 }]))
         );
     }
 }

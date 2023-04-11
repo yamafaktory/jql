@@ -71,6 +71,18 @@ impl fmt::Display for Range {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Lens<'a>(pub(crate) &'a str, pub(crate) Option<LensValue<'a>>);
 
+impl<'a> Lens<'a> {
+    /// Creates a new `Lens`.
+    pub fn new(key: &'a str, value: Option<LensValue<'a>>) -> Lens<'a> {
+        Lens(key, value)
+    }
+
+    /// Gets the content of a `Lens`.
+    pub fn get(&self) -> (&'a str, Option<LensValue<'a>>) {
+        (self.0, self.1.clone())
+    }
+}
+
 impl<'a> fmt::Display for Lens<'a> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(
@@ -90,10 +102,12 @@ impl<'a> fmt::Display for Lens<'a> {
 /// Lens value type.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum LensValue<'a> {
-    /// Variant for a JSON number.
-    Number(usize),
+    /// Variant for a JSON boolean.
+    Bool(bool),
     /// Variant for JSON null.
     Null,
+    /// Variant for a JSON number.
+    Number(usize),
     /// Variant for a JSON string.
     String(&'a str),
 }
@@ -101,13 +115,16 @@ pub enum LensValue<'a> {
 impl<'a> fmt::Display for LensValue<'a> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
+            LensValue::Bool(boolean) => {
+                write!(f, "{boolean}")
+            }
             LensValue::Null => {
                 write!(f, "null")
             }
-            LensValue::String(string) => write!(f, "{string}"),
             LensValue::Number(number) => {
                 write!(f, "{number}")
             }
+            LensValue::String(string) => write!(f, "{string}"),
         }
     }
 }
