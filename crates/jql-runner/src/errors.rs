@@ -70,6 +70,14 @@ pub enum JqlRunnerError {
     #[error(transparent)]
     ParsingError(#[from] JqlParserError),
 
+    /// Pipe in error.
+    #[error("Pipe in operator used on {0} which is not an array")]
+    PipeInError(Value),
+
+    /// Pipe in error.
+    #[error("Pipe out operator used without a preceding pipe in operator")]
+    PipeOutError,
+
     /// Range out of bounds error.
     #[error("Range [{start}:{end}] in parent {parent} is out of bounds")]
     RangeOutOfBoundsError {
