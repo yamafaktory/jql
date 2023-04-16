@@ -31,7 +31,7 @@ use crate::{
 /// Returns a JSON `Value` or an error.
 pub fn raw_runner(input: &str, json: &Value) -> Result<Value, JqlRunnerError> {
     if input.is_empty() {
-        return Err(JqlRunnerError::EmptyInputError);
+        return Err(JqlRunnerError::EmptyQueryError);
     }
 
     let tokens = parse(input)?;
@@ -155,7 +155,11 @@ fn matcher(
 
             Ok(acc)
         }
-        Token::TruncateOperator => todo!(),
+        Token::TruncateOperator => match acc {
+            Value::Array(_) => Ok(json!([])),
+            Value::Object(_) => Ok(json!({})),
+            Value::Bool(_) | Value::Number(_) | Value::String(_) | Value::Null => Ok(acc),
+        },
     };
 
     result.map(|value| (value, piped))
@@ -179,7 +183,7 @@ mod tests {
     fn check_runner_empty_input_error() {
         assert_eq!(
             raw_runner("", &json!("")),
-            Err(JqlRunnerError::EmptyInputError)
+            Err(JqlRunnerError::EmptyQueryError)
         );
     }
 
@@ -238,5 +242,39 @@ mod tests {
         let value = json!({ "a": [{ "b": { "c": 1 } }, { "b": { "c": 2 }}]});
 
         assert_eq!(raw_runner(r#""a"|>"b""c"<|[1]"#, &value), Ok(json!([2])));
+    }
+
+    #[test]
+    fn check_truncate() {
+        assert_eq!(
+            raw_runner(r#""a"!"#, &json!({ "a": [1, 2, 3] })),
+            Ok(json!([]))
+        );
+        assert_eq!(
+            raw_runner(r#""a"!"#, &json!({ "a": { "b": 1 } })),
+            Ok(json!({}))
+        );
+        assert_eq!(
+            raw_runner(r#""a"!"#, &json!({ "a": true })),
+            Ok(json!(true))
+        );
+        assert_eq!(raw_runner(r#""a"!"#, &json!({ "a": 1 })), Ok(json!(1)));
+        assert_eq!(raw_runner(r#""a"!"#, &json!({ "a": "b" })), Ok(json!("b")));
+        assert_eq!(
+            raw_runner(r#""a"!"#, &json!({ "a": null })),
+            Ok(json!(null))
+        );
+        assert_eq!(raw_runner("!", &json!({ "a": null })), Ok(json!({})));
+        assert_eq!(
+            raw_runner(r#""a"!"b""#, &json!({ "a": [1, 2, 3] })),
+            Err(JqlRunnerError::ParsingError(JqlParserError::TruncateError(
+                [
+                    Token::KeySelector("a"),
+                    Token::TruncateOperator,
+                    Token::KeySelector("b")
+                ]
+                .stringify(),
+            )))
+        );
     }
 }

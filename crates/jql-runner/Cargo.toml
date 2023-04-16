@@ -1,25 +1,20 @@
 [package]
-authors = ["Davy Duperron <yamafaktory@gmail.com>"]
-categories = ["command-line-utilities", "filesystem"]
-description = "A JSON query language CLI tool"
-edition = "2021"
-keywords = ["cli", "json", "terminal", "tool", "query"]
-license = "MIT"
+authors = { workspace = true }
+categories = { workspace = true }
+description = "Runner for jql - the JSON Query Language tool."
+edition = { workspace = true }
+keywords = { workspace = true }
+license = { workspace = true }
 name = "jql-runner"
-readme = "README.md"
-repository = "https://github.com/yamafaktory/jql"
-version = "5.2.0"
+readme = { workspace = true }
+repository = { workspace = true }
+version = { workspace = true }
 
 [dependencies]
-itertools = "0.10.5"
 jql-parser = { path = "../jql-parser", version = "5.2.0" }
 rayon = "1.7.0"
+serde_json = { workspace = true }
 thiserror = { workspace = true }
-
-[dependencies.serde_json]
-default-features = false
-features = ["preserve_order", "unbounded_depth"]
-version = "1.0.95"
 
 [lib]
 path = "src/lib.rs"

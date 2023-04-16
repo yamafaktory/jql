@@ -14,18 +14,35 @@ fn join(values: &Vec<String>) -> String {
 /// Shortens a JSON `Value` for error injection.
 fn shorten(json: &Value) -> String {
     let full_json_string = json.to_string();
+
+    if full_json_string.len() < SLICE_LEN * 2 + SLICE_SEP.len() {
+        return full_json_string;
+    }
+
     let start_slice = &full_json_string[..SLICE_LEN];
     let end_slice = &full_json_string[full_json_string.len() - SLICE_LEN..];
 
     [start_slice, end_slice].join(SLICE_SEP)
 }
 
+/// Returns the type of a JSON `Value`.
+fn get_json_type(json: &Value) -> &str {
+    match json {
+        Value::Array(_) => "array",
+        Value::Bool(_) => "boolean",
+        Value::Null => "null",
+        Value::Number(_) => "number",
+        Value::Object(_) => "object",
+        Value::String(_) => "string",
+    }
+}
+
 /// Error type returned by the runner.
 #[derive(Debug, Error, PartialEq)]
 pub enum JqlRunnerError {
-    /// Empty input error.
-    #[error("Input is empty")]
-    EmptyInputError,
+    /// Empty query error.
+    #[error("Query is empty")]
+    EmptyQueryError,
 
     /// Flatten error.
     #[error("Value {0} is neither an array nor an object and can't be flattened")]
@@ -41,15 +58,15 @@ pub enum JqlRunnerError {
     },
 
     /// Invalid array error.
-    #[error("Value {0} is not a JSON array")]
+    #[error("Value {0} is not a JSON array ({})", get_json_type(.0))]
     InvalidArrayError(Value),
 
     /// Invalid object error.
-    #[error("Value {0} is not a JSON object")]
+    #[error("Value {0} is not a JSON object ({})", get_json_type(.0))]
     InvalidObjectError(Value),
 
     /// Key not found error.
-    #[error("Key {key} doesn't exist in parent {}", shorten(parent))]
+    #[error(r#"Key "{key}" doesn't exist in parent {}"#, shorten(parent))]
     KeyNotFoundError {
         /// Key not found.
         key: String,
@@ -99,12 +116,36 @@ mod tests {
 
     use serde_json::json;
 
-    use super::shorten;
+    use super::{
+        get_json_type,
+        join,
+        shorten,
+    };
+
+    #[test]
+    fn check_get_json_type() {
+        assert_eq!(get_json_type(&json!([])), "array");
+        assert_eq!(get_json_type(&json!(true)), "boolean");
+        assert_eq!(get_json_type(&json!(null)), "null");
+        assert_eq!(get_json_type(&json!(1)), "number");
+        assert_eq!(get_json_type(&json!({})), "object");
+        assert_eq!(get_json_type(&json!("a")), "string");
+    }
+
+    #[test]
+    fn check_join() {
+        assert_eq!(
+            join(&vec!["a".to_string(), "b".to_string(), "c".to_string()]),
+            "a, b, c".to_string()
+        );
+    }
 
     #[test]
     fn check_shorten() {
-        let value = json!({ "a": { "b": { "c": [1, 2 ,3, 4, 5, 6, 7, 8, 9] } } });
-
-        assert_eq!(shorten(&value), r#"{"a":{" ... 8,9]}}}"#.to_string());
+        assert_eq!(shorten(&json!("thismakesnosense")), r#""thismakesnosense""#);
+        assert_eq!(
+            shorten(&json!({ "a": { "b": { "c": [1, 2 ,3, 4, 5, 6, 7, 8, 9] } } })),
+            r#"{"a":{" ... 8,9]}}}"#.to_string()
+        );
     }
 }

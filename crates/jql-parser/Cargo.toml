@@ -1,14 +1,14 @@
 [package]
-authors = ["Davy Duperron <yamafaktory@gmail.com>"]
-categories = ["command-line-utilities", "filesystem"]
-description = "A JSON query language CLI tool"
-edition = "2021"
-keywords = ["cli", "json", "terminal", "tool", "query"]
-license = "MIT"
+authors = { workspace = true }
+categories = { workspace = true }
+description = "Parser for jql - the JSON Query Language tool."
+edition = { workspace = true }
+keywords = { workspace = true }
+license = { workspace = true }
 name = "jql-parser"
-readme = "README.md"
-repository = "https://github.com/yamafaktory/jql"
-version = "5.2.0"
+readme = { workspace = true }
+repository = { workspace = true }
+version = { workspace = true }
 
 [dependencies]
 nom = "7.1.3"
