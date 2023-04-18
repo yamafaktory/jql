@@ -17,3 +17,10 @@ license = "MIT OR Apache-2.0"
 readme = "README.md"
 repository = "https://github.com/yamafaktory/jql"
 version = "5.2.0"
+
+# https://github.com/rust-lang/cargo/issues/8264
+[profile.release]
+codegen-units = 1
+lto = true
+opt-level = 'z'
+panic = 'abort'

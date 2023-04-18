@@ -9,7 +9,6 @@ mod args;
 mod panic;
 
 use std::{
-    clone::Clone,
     path::Path,
     process::exit,
 };
@@ -78,20 +77,19 @@ async fn process_json(json: &str, args: &Args) -> Result<String> {
         );
     }
 
-    let query = match args.from_file.as_deref() {
+    let query = match args.query_from_file.as_deref() {
         Some(path) => read_file(path).await?,
-        None => args.query.clone(),
+        // We can safely unwrap since clap is taking care of the validation.
+        None => args.query.as_deref().unwrap().to_string(),
     };
 
     let mut deserializer = serde_json::Deserializer::from_str(&json);
 
-    // Disable recursion limit.
     deserializer.disable_recursion_limit();
 
     let deserializer = Deserializer::new(&mut deserializer);
     let value: Value = Value::deserialize(deserializer)
         .with_context(|| format!("Failed to deserialize the JSON data"))?;
-
     let result: Value = raw_runner(&query, &value)?;
 
     if args.inline {
@@ -100,7 +98,7 @@ async fn process_json(json: &str, args: &Args) -> Result<String> {
             .with_context(|| format!("Failed to inline the JSON data"))?);
     }
 
-    if args.raw_string_output && result.is_string() {
+    if args.raw_string && result.is_string() {
         // We can safely unwrap since the result is a string.
         return Ok(String::from(result.as_str().unwrap()));
     }
@@ -146,10 +144,10 @@ async fn main() -> Result<()> {
         }
     }
 
-    // By default, read the whole piped content from stdin.
     let mut buffer = Vec::new();
     let mut stdin = stdin();
 
+    // By default, read the whole piped content from stdin.
     stdin
         .read_to_end(&mut buffer)
         .await

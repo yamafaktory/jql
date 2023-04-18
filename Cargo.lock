@@ -446,6 +446,7 @@ dependencies = [
 name = "jql-runner"
 version = "5.2.0"
 dependencies = [
+ "criterion",
  "jql-parser",
  "rayon",
  "serde_json",

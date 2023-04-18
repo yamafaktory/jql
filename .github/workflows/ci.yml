@@ -11,33 +11,33 @@ jobs:
     name: 🔍 clippy
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - uses: actions-rs/toolchain@v1
         with:
+          components: clippy
+          override: true
           profile: minimal
           toolchain: stable
-          override: true
-          components: clippy
       - uses: actions-rs/clippy-check@v1
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
           args: --all-features
+          token: ${{ secrets.GITHUB_TOKEN }}
 
   fmt:
     name: 🛠️ format
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - uses: actions-rs/toolchain@v1
         with:
+          components: rustfmt
+          override: true
           profile: minimal
           toolchain: nightly
-          override: true
-          components: rustfmt
       - uses: actions-rs/cargo@v1
         with:
-          command: fmt
           args: --all -- --check
+          command: fmt
 
   test:
     name: ⚗️ test
@@ -48,16 +48,16 @@ jobs:
         os: [ubuntu-latest, windows-latest, macOS-latest]
         rust: [stable, beta, nightly]
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - uses: actions-rs/toolchain@v1
         with:
+          override: true
           profile: minimal
           toolchain: ${{ matrix.rust }}
-          override: true
       - uses: actions-rs/cargo@v1
         with:
-          command: test
           args: --all-features
+          command: test
 
   shell-tests:
     name: 💻 shell tests
@@ -67,19 +67,19 @@ jobs:
         os: [ubuntu-latest, macOS-latest]
         rust: [stable, beta, nightly]
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - uses: actions-rs/toolchain@v1
         with:
+          override: true
           profile: minimal
           toolchain: ${{ matrix.rust }}
-          override: true
       - name: Test pipe
         run: if ! echo "{\"a\":4}" | cargo run '"a"' | grep -q "4"; then exit 1; fi
-      - name: Test raw-ouput flag
+      - name: Test raw-string flag
         run: if echo "{\"foo\":\"bar\"}" | cargo run '"foo"' -r | grep -q \"bar\"; then exit 1; fi
       - name: Test heredoc
         run: |
-          cargo run -q -- '"one".[2:0],"two","three"' <<EOF
+          cargo run -q -- '"one"[2:0],"two","three"' <<EOF
           {
             "one": [1, 2, 3],
             "two": 2,
@@ -93,17 +93,17 @@ jobs:
           EOF
       - name: Test streaming flag
         run: |
-          for i in {1..10}; do echo '{"foo": 2}'; sleep 1; done | cargo run '.!' -s
-      - name: Test check flag
+          for i in {1..10}; do echo '{"foo": 2}'; sleep 1; done | cargo run '!' -s
+      - name: Test validate flag
         run: |
-          if ! echo "{\"foo\":\"bar\"}" | cargo run -- -c | grep -q "Valid JSON file or content"; then exit 1; fi
-          if echo "{\"foo:\"bar\"}" | cargo run -- -c | grep -q "Invalid JSON file or content"; then exit 1; fi
+          if ! echo "{\"foo\":\"bar\"}" | cargo run -- -v | grep -q "Valid JSON file or content"; then exit 1; fi
+          if echo "{\"foo:\"bar\"}" | cargo run -- -v | grep -q "Invalid JSON file or content"; then exit 1; fi
       - name: Test broken pipe
-        run: echo "{\"foo\":\"bar\"}" | cargo run "." | less -sex
-      - name: Test from-file
+        run: echo "{\"foo\":\"bar\"}" | cargo run '"foo"' | less -sex
+      - name: Test query
         run: |
           echo \"foo\" > selectors.txt
-          if !echo "{\"foo\":\"bar\"}" | cargo run -- -f selectors.txt | grep -q \"bar\"; then exit 1; fi
+          if !echo "{\"foo\":\"bar\"}" | cargo run -- -q selectors.txt | grep -q \"bar\"; then exit 1; fi
 
   bench:
     if: "!contains(github.ref, 'refs/heads/main')"
@@ -114,12 +114,12 @@ jobs:
         os: [ubuntu-latest]
         rust: [stable, beta, nightly]
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - uses: actions-rs/toolchain@v1
         with:
+          override: true
           profile: minimal
           toolchain: ${{ matrix.rust }}
-          override: true
       - name: Run the benchmarks against the current branch, main and compare
         run: |
           git fetch origin main

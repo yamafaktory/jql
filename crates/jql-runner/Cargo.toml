@@ -16,5 +16,14 @@ rayon = "1.7.0"
 serde_json = { workspace = true }
 thiserror = { workspace = true }
 
+[dev-dependencies]
+criterion = "0.4.0"
+
 [lib]
 path = "src/lib.rs"
+
+[[bench]]
+harness = false
+name = "benchmark"
+path = "benches/benchmark.rs"
+
