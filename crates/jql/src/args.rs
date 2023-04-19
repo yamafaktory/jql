@@ -3,13 +3,15 @@ use std::path::PathBuf;
 use clap::{Parser, ValueHint};
 
 static QUERY_HELP: &str = r#"
-The following tokens are available to build a query:
+A query is sequence of tokens used to make a selection on a JSON input.
+
+The following tokens are available to build up a query:
 
 == Separators ==
 
 Group separator ,
     ┬
-    ╰---> query '"a","b","c"' will build up an array from sub-queries
+    ╰-> query '"a","b","c"' will build up an array from sub-queries
 
 == Selectors ==
 
@@ -17,51 +19,55 @@ Group separator ,
 
 Array index selector [0,2,1]
     ┬
-    ╰---> indexes can be used in arbitrary order
+    ╰-> indexes can be used in arbitrary order
 
 Array range selector [2:0]
     ┬
-    ╰---> range can be in natural order [0:2], reversed [2:0], without lower [:2] or upper bound [0:]
+    ╰-> range can be in natural order [0:2], reversed [2:0],
+        without lower [:2] or upper bound [0:]
 
 Lens selector |={"a","b"=true,"c"=null,"d"=1,"e"="string"}
     ┬
-    ╰---> lens can be a key only or a combination of key/value, value being any of boolean | null | number | string
+    ╰-> lens can be a key only or a combination of key/value,
+        a value being any of boolean | null | number | string
 
 -- Objects --
 
 Key selector "a"
     ┬
-    ╰---> any valid JSON key
+    ╰-> any valid JSON key
 
 Multi key selector {"a","c","b"}
     ┬
-    ╰---> keys can be used in arbitrary order
+    ╰-> keys can be used in arbitrary order
 
 Object index selector {0,2,1}
     ┬
-    ╰---> indexes can be used in arbitrary order
+    ╰-> indexes can be used in arbitrary order
 
 Object range selector {2:0}
     ┬
-    ╰---> range can be in natural order {0:2}, reversed {2:0}, without lower {:2} or upper bound {0:}
+    ╰-> range can be in natural order {0:2}, reversed {2:0},
+        without lower {:2} or upper bound {0:}
 
 == Operators ==
 
 Flatten operator ..
     ┬
-    ╰---> flattens arrays and objects
+    ╰-> flattens arrays and objects
 
 Pipe in operator |> 
     ┬
-    ╰---> applies the next tokens in parallel on each elements of an array
+    ╰-> applies the next tokens in parallel on each elements of an array
 
 Pipe out operator <|
     ┬
-    ╰---> stops the parallelization initiated by the pipe in operator
+    ╰-> stops the parallelization initiated by the pipe in operator
 
 Truncate operator !
     ┬
-    ╰---> maps the output into simple JSON primitives - boolean | null | number | string | [] | {}
+    ╰-> maps the output into simple JSON primitives
+        boolean | null | number | string | [] | {}
 "#;
 
 #[derive(Debug, Parser)]
@@ -105,6 +111,7 @@ pub(crate) struct Args {
         group = "no-query",
         help = "Read the query from file",
         long = "query",
+        long_help = QUERY_HELP,
         short = 'q',
         value_hint = ValueHint::FilePath,
         value_name = "FILE",

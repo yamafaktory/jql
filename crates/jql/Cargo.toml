@@ -11,9 +11,6 @@ readme = { workspace = true }
 repository = { workspace = true }
 version = { workspace = true }
 
-[dev-dependencies]
-criterion = "0.4.0"
-
 [dependencies]
 anyhow = "1.0.70"
 clap = { version = "4.2.2", features = ["derive"] }

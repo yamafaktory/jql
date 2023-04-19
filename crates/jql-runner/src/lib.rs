@@ -2,8 +2,7 @@
 #![deny(unsafe_code, nonstandard_style)]
 #![forbid(rust_2021_compatibility)]
 #![warn(missing_debug_implementations, missing_docs, unreachable_pub)]
-
-//! TODO
+#![doc = include_str!("../README.md")]
 
 /// Array utilities.
 mod array;

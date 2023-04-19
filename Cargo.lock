@@ -426,7 +426,6 @@ dependencies = [
  "anyhow",
  "clap 4.2.2",
  "colored_json",
- "criterion",
  "jql-runner",
  "serde",
  "serde_json",
