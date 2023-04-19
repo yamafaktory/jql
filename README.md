@@ -1,5 +1,7 @@
 ![jql](jql.svg)
 
+---
+
 [![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/yamafaktory/jql/ci.yml?branch=main&logo=github&style=flat-square)](https://github.com/yamafaktory/jql/actions/workflows/ci.yml) [![Crates.io](https://img.shields.io/crates/v/jql?style=flat-square)](https://crates.io/crates/jql)
 
 `jql` is a JSON Query Language tool built with Rust 🦀.
