@@ -1,5 +1,6 @@
 edition = "2021"
 group_imports = "StdExternalCrate"
 imports_granularity = "Crate"
+imports_layout="Vertical"
 use_field_init_shorthand = true
 version = "Two"

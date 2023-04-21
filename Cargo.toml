@@ -1,64 +1,24 @@
-[package]
+[workspace]
+resolver = "2"
+members = [
+    "crates/*"
+]
+
+[workspace.dependencies]
+thiserror = "1.0.40"
+serde_json = { features = ["preserve_order", "unbounded_depth"], version = "1.0.96" }
+
+[workspace.package]
 authors = ["Davy Duperron <yamafaktory@gmail.com>"]
 categories = ["command-line-utilities", "filesystem"]
-description = "A JSON query language CLI tool"
 edition = "2021"
-exclude = [
-    ".design",
-    ".github",
-    "assets/**/*",
-    "benches/**/*",
-    "performance.sh",
-    "rustfmt.toml",
-]
 keywords = ["cli", "json", "terminal", "tool", "query"]
-license = "MIT"
-name = "jql"
+license = "MIT OR Apache-2.0"
 readme = "README.md"
 repository = "https://github.com/yamafaktory/jql"
 version = "5.2.0"
 
-[dev-dependencies]
-criterion = "0.4.0"
-
-[dependencies]
-anyhow = "1.0.69"
-# Mark clap and colored_json as optional.
-# See: https://github.com/rust-lang/cargo/issues/1982
-clap = { version = "4.1.8", features = ["cargo"], optional = true }
-colored_json = { version = "3.0.1", optional = true }
-pest = "2.5.6"
-pest_derive = "2.5.6"
-rayon = "1.7.0"
-
-[dependencies.async-std]
-version = "1.12.0"
-features = ["attributes", "unstable"]
-optional = true
-
-[dependencies.serde_json]
-default-features = false
-features = ["preserve_order", "unbounded_depth"]
-version = "1.0.94"
-
-# See comment above.
-[features]
-default = ["async-std", "clap", "colored_json"]
-
-[[bench]]
-harness = false
-name = "benchmark"
-path = "benches/benchmark.rs"
-
-[lib]
-name = "jql"
-path = "src/lib.rs"
-
-[[bin]]
-name = "jql"
-path = "src/bin.rs"
-required-features = ["clap", "colored_json"]
-
+# https://github.com/rust-lang/cargo/issues/8264
 [profile.release]
 codegen-units = 1
 lto = true
