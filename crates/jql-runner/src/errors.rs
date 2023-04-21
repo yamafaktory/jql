@@ -135,7 +135,7 @@ mod tests {
     #[test]
     fn check_join() {
         assert_eq!(
-            join(&vec!["a".to_string(), "b".to_string(), "c".to_string()]),
+            join(&["a".to_string(), "b".to_string(), "c".to_string()]),
             "a, b, c".to_string()
         );
     }

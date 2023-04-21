@@ -1,6 +1,9 @@
 use std::path::PathBuf;
 
-use clap::{Parser, ValueHint};
+use clap::{
+    Parser,
+    ValueHint,
+};
 
 static QUERY_HELP: &str = r#"
 A query is sequence of tokens used to make a selection on a JSON input.
@@ -72,9 +75,10 @@ Truncate operator !
        boolean | null | number | string | [] | {}
 "#;
 
+#[allow(clippy::struct_excessive_bools)]
 #[derive(Debug, Parser)]
 #[command(
-    about, 
+    about,
     author,
     long_about = None,
     version
@@ -93,7 +97,7 @@ pub(crate) struct Args {
     /// JSON file argument.
     #[arg(
         help = "JSON file to use", 
-        index = 2, 
+        index = 2,
         value_hint = ValueHint::FilePath,
         value_name = "OPTIONAL_FILE"
     )]
@@ -127,7 +131,7 @@ pub(crate) struct Args {
         short = 'r'
     )]
     pub(crate) raw_string: bool,
-   
+
     /// Stream flag.
     #[arg(
         help = "Read a stream of JSON data line by line",
@@ -139,7 +143,7 @@ pub(crate) struct Args {
     /// Validate JSON data flag.
     #[arg(
         group = "no-query",
-        help = "Validate the JSON data", 
+        help = "Validate the JSON data",
         long = "validate",
         short = 'v'
     )]
@@ -150,5 +154,5 @@ pub(crate) struct Args {
 fn check_args() {
     use clap::CommandFactory;
 
-    Args::command().debug_assert()
+    Args::command().debug_assert();
 }

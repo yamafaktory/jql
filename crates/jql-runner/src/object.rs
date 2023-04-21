@@ -148,7 +148,7 @@ pub(crate) fn get_object_indexes(
 
     let len = indexes.len();
     // We can safely unwrap since indexes can be empty.
-    let max: usize = indexes.iter().max().unwrap().clone().into();
+    let max: usize = (*indexes.iter().max().unwrap()).into();
 
     if max + 1 > mut_object.len() {
         return Err(JqlRunnerError::IndexOutOfBoundsError {
@@ -165,7 +165,7 @@ pub(crate) fn get_object_indexes(
             Map::with_capacity(len),
             |mut acc: Map<String, Value>, (index, (key, value))| {
                 if indexes.iter().any(|i| {
-                    let num: usize = i.clone().into();
+                    let num: usize = (*i).into();
 
                     num == index
                 }) {
@@ -304,10 +304,10 @@ mod tests {
 
     #[test]
     fn check_get_flattened_object() {
-        let mut value =
-            json!({ "a": { "c": false }, "b": { "d": { "e": { "f": 1, "g": { "h": 2 }} } } });
         assert_eq!(
-            get_flattened_object(&mut value),
+            get_flattened_object(
+                &json!({ "a": { "c": false }, "b": { "d": { "e": { "f": 1, "g": { "h": 2 }} } } })
+            ),
             json!({
               "a.c": false,
               "b.d.e.f": 1,

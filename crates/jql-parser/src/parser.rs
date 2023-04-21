@@ -306,6 +306,6 @@ mod tests {
                 ]
                 .stringify()
             ))
-        )
+        );
     }
 }

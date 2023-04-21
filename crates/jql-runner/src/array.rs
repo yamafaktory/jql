@@ -296,7 +296,7 @@ mod tests {
 
     #[test]
     fn check_get_array_lenses() {
-        let value = json!([
+        let mut value = json!([
             { "a": 1, "b": 2 },
             { "a": 2, "b": "some" },
             { "a": 2, "b": null },
@@ -382,7 +382,7 @@ mod tests {
                     Lens::new("a", Some(LensValue::Number(1))),
                     Lens::new("b", Some(LensValue::Null)),
                 ],
-                &mut value.clone()
+                &mut value
             ),
             Ok(json!([
                 { "a": 1, "b": 2 },

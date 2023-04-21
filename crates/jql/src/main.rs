@@ -24,7 +24,7 @@ use colored_json::{
     CompactFormatter,
     PrettyFormatter,
 };
-use jql_runner::runner::raw_runner;
+use jql_runner::runner;
 use panic::use_custom_panic_hook;
 use serde::Deserialize;
 use serde_json::Value;
@@ -82,19 +82,19 @@ async fn process_json(json: &str, args: &Args) -> Result<String> {
         None => args.query.as_deref().unwrap().to_string(),
     };
 
-    let mut deserializer = serde_json::Deserializer::from_str(&json);
+    let mut deserializer = serde_json::Deserializer::from_str(json);
 
     deserializer.disable_recursion_limit();
 
     let deserializer = Deserializer::new(&mut deserializer);
     let value: Value = Value::deserialize(deserializer)
         .with_context(|| format!("Failed to deserialize the JSON data"))?;
-    let result: Value = raw_runner(&query, &value)?;
+    let result: Value = runner::raw(&query, &value)?;
 
     if args.inline {
-        return Ok(ColoredFormatter::new(CompactFormatter {})
+        return ColoredFormatter::new(CompactFormatter {})
             .to_colored_json_auto(&result)
-            .with_context(|| format!("Failed to inline the JSON data"))?);
+            .with_context(|| format!("Failed to inline the JSON data"));
     }
 
     if args.raw_string && result.is_string() {
@@ -102,9 +102,9 @@ async fn process_json(json: &str, args: &Args) -> Result<String> {
         return Ok(String::from(result.as_str().unwrap()));
     }
 
-    Ok(ColoredFormatter::new(PrettyFormatter::new())
+    ColoredFormatter::new(PrettyFormatter::new())
         .to_colored_json_auto(&result)
-        .with_context(|| format!("Failed to format the JSON data"))?)
+        .with_context(|| format!("Failed to format the JSON data"))
 }
 
 #[tokio::main]
