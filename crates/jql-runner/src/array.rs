@@ -296,13 +296,18 @@ mod tests {
             get_flattened_array(
                 &json!([[[[[[[[[[[[[[{ "a": 1 }]]]]]]]]]]]]], [[[[[{ "b": 2 }]]]], { "c": 3 }], null])
             ),
-            Ok(json!([{ "a": 1 }, { "b": 2 }, { "c" : 3 }, null]))
+            Ok(json!([{ "a": 1 }, { "b": 2 }, { "c": 3 }, null]))
         );
     }
 
     #[test]
     fn check_get_array_lenses() {
-        let value = json!([{ "a": 1, "d": 4 }, { "b": 2, "e": 5 }, { "c": 3, "f": 6 }]);
+        let value = json!([
+            { "a": 1, "b": 2 },
+            { "a": 2, "b": "some" },
+            { "a": 2, "b": null },
+            { "a": 2, "b": true },
+        ]);
 
         assert_eq!(
             get_array_lenses(&[Lens::new("a", None)], &mut json!([])),
@@ -310,25 +315,85 @@ mod tests {
         );
         assert_eq!(
             get_array_lenses(&[Lens::new("a", None)], &mut value.clone()),
-            Ok(json!([{ "a": 1, "d": 4}]))
+            Ok(json!([
+                { "a": 1, "b": 2 },
+                { "a": 2, "b": "some" },
+                { "a": 2, "b": null },
+                { "a": 2, "b": true },
+            ]))
         );
         assert_eq!(
             get_array_lenses(
                 &[Lens::new("a", Some(LensValue::Number(1)))],
                 &mut value.clone()
             ),
-            Ok(json!([{ "a": 1, "d": 4 }]))
+            Ok(json!([{ "a": 1, "b": 2 }]))
         );
         assert_eq!(
             get_array_lenses(
                 &[
                     Lens::new("a", Some(LensValue::Number(1))),
-                    Lens::new("c", None),
-                    Lens::new("c", Some(LensValue::Number(3)))
+                    Lens::new("a", Some(LensValue::Number(2))),
                 ],
                 &mut value.clone()
             ),
-            Ok(json!([{ "a": 1, "d": 4 }, { "c": 3, "f": 6 }]))
+            Ok(json!([
+                { "a": 1, "b": 2 },
+                { "a": 2, "b": "some" },
+                { "a": 2, "b": null },
+                { "a": 2, "b": true },
+            ]))
+        );
+        assert_eq!(
+            get_array_lenses(
+                &[
+                    Lens::new("a", Some(LensValue::Number(1))),
+                    Lens::new("b", Some(LensValue::Number(2))),
+                ],
+                &mut value.clone()
+            ),
+            Ok(json!([
+                { "a": 1, "b": 2 },
+            ]))
+        );
+        assert_eq!(
+            get_array_lenses(
+                &[
+                    Lens::new("a", Some(LensValue::Number(1))),
+                    Lens::new("b", Some(LensValue::String("some"))),
+                ],
+                &mut value.clone()
+            ),
+            Ok(json!([
+                { "a": 1, "b": 2 },
+                { "a": 2, "b": "some" },
+            ]))
+        );
+        assert_eq!(
+            get_array_lenses(
+                &[
+                    Lens::new("a", Some(LensValue::Number(1))),
+                    Lens::new("b", Some(LensValue::Bool(true))),
+                ],
+                &mut value.clone()
+            ),
+            Ok(json!([
+                { "a": 1, "b": 2 },
+                { "a": 2, "b": true },
+            ]))
+        );
+        assert_eq!(
+            get_array_lenses(
+                &[
+                    Lens::new("a", Some(LensValue::Number(1))),
+                    Lens::new("b", Some(LensValue::Null)),
+                ],
+                &mut value.clone()
+            ),
+            Ok(json!([
+                { "a": 1, "b": 2 },
+                { "a": 2, "b": null },
+            ]))
         );
     }
 }

@@ -1,5 +1,13 @@
 use thiserror::Error;
 
+fn display_content(content: &str) -> String {
+    if content.is_empty() {
+        String::new()
+    } else {
+        format!(" after {}", content)
+    }
+}
+
 /// Error type returned by the parser.
 #[derive(Debug, Error, PartialEq)]
 pub enum JqlParserError {
@@ -8,7 +16,7 @@ pub enum JqlParserError {
     EmptyInputError,
 
     /// Parsing error.
-    #[error("Unable to parse input {unparsed} after {tokens}")]
+    #[error("Unable to parse input {unparsed}{}", display_content(tokens))]
     ParsingError {
         /// Tokens found while parsing.
         tokens: String,
@@ -23,4 +31,16 @@ pub enum JqlParserError {
     /// Unknown error.
     #[error("Unknown error")]
     UnknownError,
+}
+
+#[cfg(test)]
+mod tests {
+
+    use super::display_content;
+
+    #[test]
+    fn check_display_content() {
+        assert_eq!(display_content("some"), " after some");
+        assert_eq!(display_content(""), "");
+    }
 }
