@@ -141,6 +141,8 @@ async fn main() -> Result<()> {
 
             line.clear();
         }
+
+        return Ok(());
     }
 
     let mut buffer = Vec::new();
