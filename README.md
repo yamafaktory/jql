@@ -464,9 +464,13 @@ jql -h
 jql --help
 ```
 
-## 🍿 Workspace
+## 🦀 Workspace
 
-This crate is both a binary (the CLI tool) and a library that can be directly used https://docs.rs/crate/jql/.
+This project is composed of following crates:
+
+- jql (_binary_)
+- jql-parser (_library_)
+- jql-runner (_library_)
 
 ## ⚠️ Non-goal
 
