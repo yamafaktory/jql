@@ -10,6 +10,7 @@ use std::{
 pub struct Index(pub(crate) usize);
 
 impl Index {
+    #[must_use]
     /// Creates a new `Index`.
     pub fn new(index: usize) -> Index {
         Index(index)
@@ -34,17 +35,19 @@ impl fmt::Display for Index {
 pub struct Range(pub(crate) Option<Index>, pub(crate) Option<Index>);
 
 impl Range {
+    #[must_use]
     /// Creates a new `Range`.
     pub fn new(start: Option<Index>, end: Option<Index>) -> Range {
         Range(start, end)
     }
 
+    #[must_use]
     /// Maps a `Range` to a tuple of boundaries as `usize`.
     /// `start` defaults to 0 if `None`.
     /// `end` is injected based on `len` if `None`.
     pub fn to_boundaries(&self, len: NonZeroUsize) -> (usize, usize) {
-        let start = self.0.or(Some(Index(0))).unwrap();
-        let end = self.1.or(Some(Index(len.get() - 1))).unwrap();
+        let start = self.0.unwrap_or(Index(0));
+        let end = self.1.unwrap_or(Index(len.get() - 1));
 
         (start.0, end.0)
     }
@@ -72,11 +75,13 @@ impl fmt::Display for Range {
 pub struct Lens<'a>(pub(crate) &'a str, pub(crate) Option<LensValue<'a>>);
 
 impl<'a> Lens<'a> {
+    #[must_use]
     /// Creates a new `Lens`.
     pub fn new(key: &'a str, value: Option<LensValue<'a>>) -> Lens<'a> {
         Lens(key, value)
     }
 
+    #[must_use]
     /// Gets the content of a `Lens`.
     pub fn get(&self) -> (&'a str, Option<LensValue<'a>>) {
         (self.0, self.1.clone())

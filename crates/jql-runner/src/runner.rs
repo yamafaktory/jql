@@ -36,14 +36,14 @@ pub fn raw_runner(input: &str, json: &Value) -> Result<Value, JqlRunnerError> {
 
     let tokens = parse(input)?;
 
-    token_runner(tokens, json)
+    token_runner(&tokens, json)
 }
 
-/// Takes a vector of `Tokens` to parse and a reference of a JSON
+/// Takes a slice of `Tokens` to parse and a reference of a JSON
 /// `Value`.
 /// Returns a JSON `Value` or an error.
-pub fn token_runner(tokens: Vec<Token>, json: &Value) -> Result<Value, JqlRunnerError> {
-    let groups = split(&tokens);
+pub fn token_runner(tokens: &[Token], json: &Value) -> Result<Value, JqlRunnerError> {
+    let groups = split(tokens);
 
     let result = groups
         .par_iter()
@@ -52,14 +52,11 @@ pub fn token_runner(tokens: Vec<Token>, json: &Value) -> Result<Value, JqlRunner
 
             Ok::<Vec<Value>, JqlRunnerError>(acc)
         })
-        .try_reduce(
-            || vec![],
-            |mut a, b| {
-                a.extend(b);
+        .try_reduce(Vec::new, |mut a, b| {
+            a.extend(b);
 
-                Ok(a)
-            },
-        );
+            Ok(a)
+        });
 
     result.map(|group| {
         if groups.len() == 1 {
@@ -128,7 +125,7 @@ fn matcher(
         Token::ArrayRangeSelector(range) => get_array_range(range, &mut acc),
         Token::FlattenOperator => match acc {
             Value::Array(_) => get_flattened_array(&acc),
-            Value::Object(_) => get_flattened_object(&acc),
+            Value::Object(_) => Ok(get_flattened_object(&acc)),
             _ => Err(JqlRunnerError::FlattenError(acc)),
         },
         Token::GroupSeparator => unreachable!(),
@@ -147,7 +144,7 @@ fn matcher(
             Ok(acc)
         }
         Token::PipeOutOperator => {
-            if piped == false {
+            if !piped {
                 return Err(JqlRunnerError::PipeOutError);
             }
 

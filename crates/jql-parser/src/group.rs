@@ -1,5 +1,6 @@
 use crate::tokens::Token;
 
+#[must_use]
 /// Splits a list of `Tokens` by `GroupSeparator`.
 /// Returns groups of `Tokens`.
 pub fn split<'a>(tokens: &'a [Token<'a>]) -> Vec<Vec<&'a Token<'a>>> {

@@ -4,7 +4,7 @@ fn display_content(content: &str) -> String {
     if content.is_empty() {
         String::new()
     } else {
-        format!(" after {}", content)
+        format!(" after {content}")
     }
 }
 

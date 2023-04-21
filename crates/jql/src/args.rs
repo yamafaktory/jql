@@ -77,7 +77,7 @@ Truncate operator !
     about, 
     author,
     long_about = None,
-    version, 
+    version
 )]
 pub(crate) struct Args {
     /// Query argument.
@@ -95,7 +95,7 @@ pub(crate) struct Args {
         help = "JSON file to use", 
         index = 2, 
         value_hint = ValueHint::FilePath,
-        value_name = "OPTIONAL_FILE",
+        value_name = "OPTIONAL_FILE"
     )]
     pub(crate) json_file: Option<PathBuf>,
 
@@ -104,7 +104,7 @@ pub(crate) struct Args {
         conflicts_with = "validate",
         help = "Inline the JSON output",
         long = "inline",
-        short = 'i',
+        short = 'i'
     )]
     pub(crate) inline: bool,
 
@@ -116,7 +116,7 @@ pub(crate) struct Args {
         long_help = QUERY_HELP,
         short = 'q',
         value_hint = ValueHint::FilePath,
-        value_name = "FILE",
+        value_name = "FILE"
     )]
     pub(crate) query_from_file: Option<PathBuf>,
 
@@ -124,7 +124,7 @@ pub(crate) struct Args {
     #[arg(
         help = "Write to stdout without JSON double-quotes (string only)",
         long = "raw-string",
-        short = 'r',
+        short = 'r'
     )]
     pub(crate) raw_string: bool,
    
@@ -132,7 +132,7 @@ pub(crate) struct Args {
     #[arg(
         help = "Read a stream of JSON data line by line",
         long = "stream",
-        short = 's',
+        short = 's'
     )]
     pub(crate) stream: bool,
 

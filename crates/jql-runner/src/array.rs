@@ -25,10 +25,10 @@ fn as_array_mut(json: &mut Value) -> Result<&mut Vec<Value>, JqlRunnerError> {
     }
 }
 
-/// Takes a reference of an `Index` and a JSON `Value`.
+/// Takes an `Index` and a JSON `Value`.
 /// Returns a reference of a JSON `Value` or an error.
-fn get_array_index(index: &Index, json: &Value) -> Result<Value, JqlRunnerError> {
-    let num: usize = index.clone().into();
+fn get_array_index(index: Index, json: &Value) -> Result<Value, JqlRunnerError> {
+    let num: usize = index.into();
 
     if let Some(value) = json.get(num) {
         Ok(value.clone())
@@ -46,7 +46,7 @@ pub(crate) fn get_array_indexes(indexes: &[Index], json: &Value) -> Result<Value
     let values: Vec<Value> = indexes
         .iter()
         .try_fold(vec![], |mut acc: Vec<Value>, index| {
-            acc.push(get_array_index(index, json)?);
+            acc.push(get_array_index(*index, json)?);
 
             Ok::<Vec<Value>, JqlRunnerError>(acc)
         })?;
@@ -100,7 +100,7 @@ pub(crate) fn get_flattened_array(json: &Value) -> Result<Value, JqlRunnerError>
         .as_array()
         .unwrap()
         .par_iter()
-        .try_fold_with(vec![], |mut acc: Vec<Value>, inner_value| {
+        .try_fold_with(Vec::new(), |mut acc: Vec<Value>, inner_value| {
             if inner_value.is_array() {
                 let mut flattened = get_flattened_array(inner_value)?;
                 let result = as_array_mut(&mut flattened)?;
@@ -112,14 +112,11 @@ pub(crate) fn get_flattened_array(json: &Value) -> Result<Value, JqlRunnerError>
 
             Ok::<Vec<Value>, JqlRunnerError>(acc)
         })
-        .try_reduce(
-            || vec![],
-            |mut a, b| {
-                a.extend(b);
+        .try_reduce(Vec::new, |mut a, b| {
+            a.extend(b);
 
-                Ok(a)
-            },
-        )?;
+            Ok(a)
+        })?;
 
     Ok(json!(result))
 }
@@ -135,7 +132,7 @@ pub(crate) fn get_array_lenses(lenses: &[Lens], json: &mut Value) -> Result<Valu
 
     let result = array
         .par_iter()
-        .try_fold_with(vec![], |mut acc: Vec<Value>, inner_value| {
+        .try_fold_with(Vec::new(), |mut acc: Vec<Value>, inner_value| {
             if let Some(object) = inner_value.as_object() {
                 if lenses.iter().any(|lens| {
                     let (key, value) = lens.get();
@@ -168,14 +165,11 @@ pub(crate) fn get_array_lenses(lenses: &[Lens], json: &mut Value) -> Result<Valu
 
             Ok::<Vec<Value>, JqlRunnerError>(acc)
         })
-        .try_reduce(
-            || vec![],
-            |mut a, b| {
-                a.extend(b);
+        .try_reduce(Vec::new, |mut a, b| {
+            a.extend(b);
 
-                Ok(a)
-            },
-        )?;
+            Ok(a)
+        })?;
 
     Ok(json!(result))
 }
@@ -203,9 +197,9 @@ mod tests {
     fn check_get_array_index() {
         let value = json!(["a", "b", "c"]);
 
-        assert_eq!(get_array_index(&Index::new(0), &value), Ok(json!("a")));
+        assert_eq!(get_array_index(Index::new(0), &value), Ok(json!("a")));
         assert_eq!(
-            get_array_index(&Index::new(3), &value),
+            get_array_index(Index::new(3), &value),
             Err(JqlRunnerError::IndexOutOfBoundsError {
                 index: 3,
                 parent: value

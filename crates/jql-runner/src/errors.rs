@@ -7,7 +7,7 @@ static SLICE_LEN: usize = 7;
 static SEP: &str = ", ";
 
 /// Joins multiple `String`.
-fn join(values: &Vec<String>) -> String {
+fn join(values: &[String]) -> String {
     values.join(SEP)
 }
 

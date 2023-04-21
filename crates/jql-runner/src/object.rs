@@ -93,13 +93,13 @@ pub(crate) fn get_object_multi_key(
 }
 
 /// Takes a mutable reference of a JSON `Value`.
-/// Returns a flattened object as a JSON `Value` or an error.
-pub(crate) fn get_flattened_object(json: &Value) -> Result<Value, JqlRunnerError> {
+/// Returns a flattened object as a JSON `Value`.
+pub(crate) fn get_flattened_object(json: &Value) -> Value {
     let mut flattened = Map::<String, Value>::new();
 
     flatten_value(json, String::new(), 0, &mut flattened);
 
-    Ok(json!(flattened))
+    json!(flattened)
 }
 
 /// Internal utility for `flatten_json_object`.
@@ -308,11 +308,11 @@ mod tests {
             json!({ "a": { "c": false }, "b": { "d": { "e": { "f": 1, "g": { "h": 2 }} } } });
         assert_eq!(
             get_flattened_object(&mut value),
-            Ok(json!({
+            json!({
               "a.c": false,
               "b.d.e.f": 1,
               "b.d.e.g.h": 2
-            }))
+            })
         );
     }
 
