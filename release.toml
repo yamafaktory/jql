@@ -2,4 +2,4 @@ consolidate-commits = true
 shared-version = true
 sign-commit = true
 sign-tag = true
-tag = false
+tag = true
