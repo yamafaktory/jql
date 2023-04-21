@@ -421,7 +421,7 @@ checksum = "fad582f4b9e86b6caa621cabeb0963332d92eea04729ab12892c2533951e6440"
 
 [[package]]
 name = "jql"
-version = "5.2.0"
+version = "6.0.0"
 dependencies = [
  "anyhow",
  "clap 4.2.4",

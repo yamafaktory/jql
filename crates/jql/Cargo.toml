@@ -10,7 +10,7 @@ name = "jql"
 readme = { workspace = true }
 repository = { workspace = true }
 # version = { workspace = true }
-version = "5.2.0"
+version = "6.0.0"
 
 [dependencies]
 anyhow = "1.0.70"
