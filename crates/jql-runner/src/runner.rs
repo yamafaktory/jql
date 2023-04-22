@@ -240,7 +240,7 @@ mod tests {
     fn check_pipes() {
         let value = json!({ "a": [{ "b": { "c": 1 } }, { "b": { "c": 2 }}]});
 
-        assert_eq!(raw(r#""a"|>"b""c"<|[1]"#, &value), Ok(json!([2])));
+        assert_eq!(raw(r#""a"|>"b""c"<|[1]"#, &value), Ok(json!(2)));
     }
 
     #[test]

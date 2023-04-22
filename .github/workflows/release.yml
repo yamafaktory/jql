@@ -100,7 +100,7 @@ jobs:
           src=$(pwd)
           stage=$(mktemp -d)
           ver=${GITHUB_REF#refs/tags/}
-          asset_name="jql-$ver-${{ matrix.target }}.${{ matrix.archive }}"
+          asset_name="$ver-${{ matrix.target }}.${{ matrix.archive }}"
           ASSET_PATH="$src/$asset_name"
           CHECKSUM_PATH="$ASSET_PATH.sha256"
           cp target/${{ matrix.target }}/release/jql $stage/

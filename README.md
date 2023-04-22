@@ -364,7 +364,7 @@ Stops the parallelization initiated by the pipe in operator.
 **JSON output**
 
 ```json
-[2]
+2
 ```
 
 ##### Truncate operator
