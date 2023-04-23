@@ -2,7 +2,10 @@
 
 ---
 
-[![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/yamafaktory/jql/ci.yml?branch=main&logo=github&style=flat-square)](https://github.com/yamafaktory/jql/actions/workflows/ci.yml) [![Crates.io](https://img.shields.io/crates/v/jql?style=flat-square)](https://crates.io/crates/jql)
+[![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/yamafaktory/jql/ci.yml?branch=main&logo=github&style=flat-square)](https://github.com/yamafaktory/jql/actions/workflows/ci.yml)
+[![Crates.io](https://img.shields.io/crates/v/jql?style=flat-square)](https://crates.io/crates/jql)
+[![Docs.rs](https://img.shields.io/docsrs/jql-parser?label=jql-parser%20docs&style=flat-square)](https://docs.rs/jql-parser/latest/jql_parser/)
+[![Docs.rs](https://img.shields.io/docsrs/jql-runner?label=jql-runner%20docs&style=flat-square)](https://docs.rs/jql-runner/latest/jql_runner/)
 
 `jql` is a JSON Query Language tool built with Rust 🦀.
 
@@ -10,6 +13,7 @@ Pronounce it as **jackal** 🐺.
 
 ## 📜 Philosophy
 
+- ⚡Be fast
 - 🪶 Stay lightweight
 - 🎮 Keep its features as simple as possible
 - 🧠 Avoid redundancy
@@ -44,6 +48,12 @@ cargo install jql
 
 ```sh
 dnf install jql
+```
+
+### FreeBSD
+
+```sh
+pkg install jql
 ```
 
 ### Homebrew
@@ -469,8 +479,8 @@ jql --help
 This project is composed of following crates:
 
 - jql (_binary_)
-- jql-parser (_library_)
-- jql-runner (_library_)
+- [jql-parser](https://docs.rs/jql-parser/latest/jql_parser/) (_library_)
+- [jql-runner](https://docs.rs/jql-runner/latest/jql_runner/) (_library_)
 
 ## ⚠️ Non-goal
 
@@ -479,3 +489,8 @@ There's no plan to align `jql` with `jq` or any other similar tool.
 ## ⚡ Performance
 
 Some benchmarks comparing a set of similar functionalities provided by this tool and [jq](https://stedolan.github.io/jq/) are available [here](PERFORMANCE.md).
+
+## Licenses
+
+- [Apache License, Version 2.0](https://github.com/yamafaktory/jql/blob/main/LICENSE-APACHE)
+- [MIT license](https://github.com/yamafaktory/jql/blob/main/LICENSE-MIT)
