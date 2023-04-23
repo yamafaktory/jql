@@ -490,7 +490,7 @@ There's no plan to align `jql` with `jq` or any other similar tool.
 
 Some benchmarks comparing a set of similar functionalities provided by this tool and [jq](https://stedolan.github.io/jq/) are available [here](PERFORMANCE.md).
 
-## Licenses
+## 📔 Licenses
 
 - [Apache License, Version 2.0](https://github.com/yamafaktory/jql/blob/main/LICENSE-APACHE)
 - [MIT license](https://github.com/yamafaktory/jql/blob/main/LICENSE-MIT)
