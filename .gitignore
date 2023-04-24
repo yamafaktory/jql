@@ -1,2 +1,6 @@
 **/*.rs.bk
+/fuzz/artifacts
+/fuzz/corpus
+/fuzz/coverage
+/fuzz/target
 /target
