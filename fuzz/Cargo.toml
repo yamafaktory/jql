@@ -1,0 +1,26 @@
+[package]
+name = "jql-parser-fuzz"
+publish = false
+version = "0.0.0"
+
+[package.metadata]
+cargo-fuzz = true
+
+[dependencies]
+libfuzzer-sys = "0.4.6"
+
+[dependencies.jql-parser]
+path = "../crates/jql-parser"
+
+# Prevent this from interfering with workspaces.
+[workspace]
+members = ["."]
+
+[profile.release]
+debug = 1
+
+[[bin]]
+doc = false
+name = "fuzz_parser"
+path = "fuzz_targets/fuzz_parser.rs"
+test = false

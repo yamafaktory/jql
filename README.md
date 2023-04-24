@@ -482,6 +482,21 @@ This project is composed of following crates:
 - [jql-parser](https://docs.rs/jql-parser/latest/jql_parser/) (_library_)
 - [jql-runner](https://docs.rs/jql-runner/latest/jql_runner/) (_library_)
 
+## Development
+
+Some commands are available as a `justfile` at the root of the workspace.
+
+### Prerequisites
+
+- [cargo-nextest](https://nexte.st/)
+- [just](https://just.systems/man/en/)
+
+### Commands
+
+```sh
+just --list
+```
+
 ## ⚠️ Non-goal
 
 There's no plan to align `jql` with `jq` or any other similar tool.
