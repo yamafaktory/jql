@@ -484,7 +484,7 @@ This project is composed of following crates:
 
 ## Development
 
-Some commands are available as a `justfile` at the root of the workspace.
+Some commands are available as a `justfile` at the root of the workspace (testing / fuzzing).
 
 ### Prerequisites
 
