@@ -16,8 +16,8 @@ anyhow = "1.0.70"
 clap = { version = "4.2.4", features = ["derive"] }
 colored_json = { version = "3.1.0" }
 jql-runner = { path = "../jql-runner", version = "6.0.6" }
-serde = "1.0.160"
-serde_stacker = "0.1.8"
+mimalloc = "0.1.36"
 serde_json = { workspace = true }
+simd-json = "0.9.0"
 tokio = { version = "1.27.0", features = ["fs", "io-std", "io-util", "macros", "rt-multi-thread"] }
 
