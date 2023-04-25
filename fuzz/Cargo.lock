@@ -28,7 +28,7 @@ dependencies = [
 
 [[package]]
 name = "jql-parser"
-version = "6.0.5"
+version = "6.0.6"
 dependencies = [
  "nom",
  "thiserror",

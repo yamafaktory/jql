@@ -85,11 +85,6 @@ jobs:
             "two": 2,
             "three": 3
           }
-          {
-            "one": [4, 5, 6],
-            "two": 2,
-            "three": 3
-          }
           EOF
       - name: Test streaming flag
         run: |
