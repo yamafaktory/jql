@@ -120,6 +120,7 @@ jobs:
         uses: softprops/action-gh-release@v1
         if: startsWith(github.ref, 'refs/tags/')
         with:
+          fail_on_unmatched_files: true
           files: |
             ${{ env.ASSET_PATH }}
             ${{ env.CHECKSUM_PATH }}
