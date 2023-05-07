@@ -109,8 +109,8 @@ jobs:
           cd $src
           ${{ matrix.sha-cmd }} $asset_name > $CHECKSUM_PATH
           if [ "$RUNNER_OS" == "Windows" ]; then
-            echo "ASSET_PATH=$(cygpath -w $ASSET_PATH)" >> $GITHUB_ENV
-            echo "CHECKSUM_PATH=$(cygpath -w $CHECKSUM_PATH)" >> $GITHUB_ENV
+            echo "ASSET_PATH=$(cygpath -m $ASSET_PATH)" >> $GITHUB_ENV
+            echo "CHECKSUM_PATH=$(cygpath -m $CHECKSUM_PATH)" >> $GITHUB_ENV
           else
             echo "ASSET_PATH=$ASSET_PATH" >> $GITHUB_ENV
             echo "CHECKSUM_PATH=$CHECKSUM_PATH" >> $GITHUB_ENV
@@ -120,6 +120,7 @@ jobs:
         uses: softprops/action-gh-release@v1
         if: startsWith(github.ref, 'refs/tags/')
         with:
+          fail_on_unmatched_files: true
           files: |
             ${{ env.ASSET_PATH }}
             ${{ env.CHECKSUM_PATH }}
