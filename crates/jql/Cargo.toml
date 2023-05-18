@@ -15,7 +15,7 @@ version = { workspace = true }
 anyhow = "1.0.71"
 clap = { version = "4.2.7", features = ["derive"] }
 colored_json = { version = "3.1.0" }
-jql-runner = { path = "../jql-runner", version = "6.0.7" }
+jql-runner = { path = "../jql-runner", version = "6.0.8" }
 serde = "1.0.163"
 serde_stacker = "0.1.8"
 serde_json = { workspace = true }
