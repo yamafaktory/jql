@@ -79,7 +79,7 @@ pub fn token(tokens: &[Token], json: &Value) -> Result<Value, JqlRunnerError> {
 /// Returns a JSON `Value` or an error.
 /// Note: the `GroupSeparator` enum variant is unreachable at this point since
 /// it has been filtered out by any of the public `runner` functions.
-fn group_runner(tokens: &[&Token], json: &Value) -> Result<Value, JqlRunnerError> {
+pub(crate) fn group_runner(tokens: &[&Token], json: &Value) -> Result<Value, JqlRunnerError> {
     tokens
         .iter()
         // At this level we can use rayon since every token is applied

@@ -49,7 +49,7 @@ fn parse_fragment(input: &str) -> IResult<&str, Token> {
             Token::LensSelector(
                 lenses
                     .into_iter()
-                    .map(|(key, value)| Lens(key, value))
+                    .map(|(tokens, value)| Lens(tokens, value))
                     .collect(),
             )
         }),
@@ -224,14 +224,23 @@ mod tests {
     #[test]
     fn check_lens_selector() {
         assert_eq!(
-            parse_fragment(r#"|={"abc","bcd"=123,"efg"=null,"hij"="test"}"#),
+            parse_fragment(r#"|={"abc""c","bcd""d"=123,"efg"=null,"hij"="test"}"#),
             Ok((
                 "",
                 Token::LensSelector(vec![
-                    Lens("abc", None),
-                    Lens("bcd", Some(LensValue::Number(123))),
-                    Lens("efg", Some(LensValue::Null)),
-                    Lens("hij", Some(LensValue::String("test"))),
+                    Lens(
+                        vec![Token::KeySelector("abc"), Token::KeySelector("c")],
+                        None
+                    ),
+                    Lens(
+                        vec![Token::KeySelector("bcd"), Token::KeySelector("d")],
+                        Some(LensValue::Number(123))
+                    ),
+                    Lens(vec![Token::KeySelector("efg")], Some(LensValue::Null)),
+                    Lens(
+                        vec![Token::KeySelector("hij")],
+                        Some(LensValue::String("test"))
+                    ),
                 ])
             ))
         );
