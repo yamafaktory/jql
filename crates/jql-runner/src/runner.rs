@@ -237,14 +237,14 @@ mod tests {
     }
 
     #[test]
-    fn check_pipes() {
+    fn check_runner_pipes() {
         let value = json!({ "a": [{ "b": { "c": 1 } }, { "b": { "c": 2 }}]});
 
         assert_eq!(raw(r#""a"|>"b""c"<|[1]"#, &value), Ok(json!(2)));
     }
 
     #[test]
-    fn check_truncate() {
+    fn check_runner_truncate() {
         assert_eq!(raw(r#""a"!"#, &json!({ "a": [1, 2, 3] })), Ok(json!([])));
         assert_eq!(raw(r#""a"!"#, &json!({ "a": { "b": 1 } })), Ok(json!({})));
         assert_eq!(raw(r#""a"!"#, &json!({ "a": true })), Ok(json!(true)));
@@ -262,6 +262,21 @@ mod tests {
                 ]
                 .stringify(),
             )))
+        );
+    }
+
+    #[test]
+    fn check_runner_lens() {
+        let value = json!([
+            { "a": { "b": { "c": 1 }}},
+            { "a": { "b": { "c": 2 }}},
+        ]);
+
+        assert_eq!(
+            raw(r#"|={"a""b""c"=2}"#, &value),
+            Ok(json!([
+                { "a": { "b": { "c": 2 }}}
+            ]))
         );
     }
 }

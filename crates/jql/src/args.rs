@@ -33,7 +33,7 @@ Array range selector [2:0]
 
 Lens selector |={"a","b"=true,"c"=null,"d"=1,"e"="string"}
     ┬
-    ╰→ lens can be a key only or a combination of key/value,
+    ╰→ lens can be a combination of one or more selectors with an optional value,
        a value being any of boolean | null | number | string
 
 -- Objects --

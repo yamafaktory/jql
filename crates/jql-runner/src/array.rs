@@ -144,7 +144,6 @@ pub(crate) fn get_array_lenses(lenses: &[Lens], json: &mut Value) -> Result<Valu
             if lenses.iter().any(|lens| {
                 let (tokens, value) = lens.get();
                 let tokens: Vec<&Token> = tokens.iter().collect();
-                // TODO: result?
                 let result = group_runner(&tokens, inner_value);
 
                 if let Ok(current_value) = result {

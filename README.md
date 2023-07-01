@@ -168,15 +168,15 @@ Range can be in natural order `[0:2]`, reversed `[2:0]`, without lower `[:2]` or
 
 ##### Lens selector
 
-Lens can be a key only or a combination of key/value, a value being any of **boolean** | **null** | **number** | **string**.
+Lens can be a combination of one or more selectors with or an optional value, a value being any of **boolean** | **null** | **number** | **string**.
 
 **JSON input**
 
 ```json
 [
-  { "a": 1, "b": 2 },
+  { "a": 1, "b": { "d": 2 } },
   { "a": 2, "b": "some" },
-  { "a": 2, "b": null },
+  { "a": 2, "b": { "d": null } },
   { "a": 2, "b": true },
   { "c": 3, "b": 4 }
 ]
@@ -185,14 +185,14 @@ Lens can be a key only or a combination of key/value, a value being any of **boo
 **Query**
 
 ```sh
-'|={"b"=true, "c"}'
+'|={"b""d"=2, "c"}'
 ```
 
 **JSON output**
 
 ```json
 [
-  { "a": 2, "b": true },
+  { "a": 1, "b": { "d": 2 } },
   { "c": 3, "b": 4 }
 ]
 ```
