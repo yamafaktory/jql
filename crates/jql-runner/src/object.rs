@@ -123,7 +123,7 @@ fn flatten_object(
     depth: usize,
     flattened: &mut Map<String, Value>,
 ) {
-    for (k, v) in map.iter() {
+    for (k, v) in map {
         let parent_key = if depth > 0 {
             format!("{}{}{}", parent_key, ".", k)
         } else {
