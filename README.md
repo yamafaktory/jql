@@ -1,6 +1,4 @@
-<div align="center">
-  
-  ![jql](jql.svg)
+![jql](jql.svg)
 
 ---
 
@@ -8,7 +6,6 @@
 [![Crates.io](https://img.shields.io/crates/v/jql?style=flat-square)](https://crates.io/crates/jql)
 [![Docs.rs](https://img.shields.io/docsrs/jql-parser?label=jql-parser%20docs&style=flat-square)](https://docs.rs/jql-parser/latest/jql_parser/)
 [![Docs.rs](https://img.shields.io/docsrs/jql-runner?label=jql-runner%20docs&style=flat-square)](https://docs.rs/jql-runner/latest/jql_runner/)
-</div>
 
 `jql` is a JSON Query Language tool built with Rust 🦀.
 
