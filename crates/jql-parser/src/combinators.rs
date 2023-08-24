@@ -183,7 +183,7 @@ fn parse_lens_keys(key: &str) -> IResult<&str, Vec<Token>> {
     let mut parser_iterator = iterator(key, parse_lens_key);
     let tokens = parser_iterator.collect::<Vec<Token>>();
 
-    let (rest, _) = parser_iterator.finish()?;
+    let (rest, ()) = parser_iterator.finish()?;
 
     Ok((rest, tokens))
 }
