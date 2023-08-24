@@ -401,7 +401,7 @@ checksum = "453ad9f582a441959e5f0d088b02ce04cfe8d51a8eaf077f12ac6d3e94164ca6"
 
 [[package]]
 name = "jql"
-version = "7.0.2"
+version = "7.0.3"
 dependencies = [
  "anyhow",
  "clap",
@@ -415,7 +415,7 @@ dependencies = [
 
 [[package]]
 name = "jql-parser"
-version = "7.0.2"
+version = "7.0.3"
 dependencies = [
  "nom",
  "thiserror",
@@ -423,7 +423,7 @@ dependencies = [
 
 [[package]]
 name = "jql-runner"
-version = "7.0.2"
+version = "7.0.3"
 dependencies = [
  "criterion",
  "jql-parser",
