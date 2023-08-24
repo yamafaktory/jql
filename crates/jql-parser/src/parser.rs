@@ -72,7 +72,7 @@ pub fn parse(input: &str) -> Result<Vec<Token>, JqlParserError> {
     let result: IResult<_, _> = parser_iterator.finish();
 
     match result {
-        Ok((unparsed, _)) => {
+        Ok((unparsed, ())) => {
             if !unparsed.is_empty() {
                 return Err(JqlParserError::ParsingError {
                     tokens: tokens.stringify(),
