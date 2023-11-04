@@ -8,30 +8,33 @@ jobs:
   performance:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           ref: "main"
-      - uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: stable
-          override: true
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+      
       - name: Install hyperfine and jql - jq is already available!
         run: cargo install hyperfine && cargo install jql
+
       - name: Run performance benchmarks
         run: ./performance.sh
+
       - name: Create pull-request
-        uses: peter-evans/create-pull-request@v3
+        uses: peter-evans/create-pull-request@v5
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          author: ${{ github.actor }} <${{ github.actor }}@users.noreply.github.com>
+          body: Update PERFORMANCE.md file
+          branch: performance
           commit-message: "chore(performance): update benchmarks"
           committer: GitHub <noreply@github.com>
-          author: ${{ github.actor }} <${{ github.actor }}@users.noreply.github.com>
-          title: "[Performance] Update benchmarks"
-          body: Update PERFORMANCE.md file
+          delete-branch: true
           labels: enhancement
           reviewers: yamafaktory
-          branch: performance
+          title: "[Performance] Update benchmarks"
+          token: ${{ secrets.GITHUB_TOKEN }}
 
   build-release:
     runs-on: ${{ matrix.os }}
@@ -77,22 +80,20 @@ jobs:
 
     steps:
       - name: Checkout repo
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Setup Rust toolchain
-        uses: actions-rs/toolchain@v1
+        uses: dtolnay/rust-toolchain@master
         with:
-          profile: minimal
-          override: true
           target: ${{ matrix.target }}
           toolchain: stable
 
+      - uses: Swatinem/rust-cache@v2
+
       - name: Build
-        uses: actions-rs/cargo@v1
-        with:
-          use-cross: true
-          command: build
-          args: --release --target ${{ matrix.target }}
+        run: |
+          cargo install cross --git https://github.com/cross-rs/cross
+          cross build --release --target ${{ matrix.target }}
 
       - name: Package Artifacts
         shell: bash
