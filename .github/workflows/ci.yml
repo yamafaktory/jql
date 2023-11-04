@@ -8,7 +8,7 @@ on:
 
 jobs:
   audit:
-    name: 🛡️ audit
+    name: 🛡️audit
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -17,7 +17,7 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
 
   clippy:
-    name: 🔍 clippy
+    name: 🔍clippy
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -28,7 +28,7 @@ jobs:
       - run: cargo clippy --all-targets --all-features -- -D warnings
 
   fmt:
-    name: 🛠️ format
+    name: 🛠️format
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -48,14 +48,14 @@ jobs:
         rust: [stable, beta, nightly]
     steps:
       - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain
+      - uses: dtolnay/rust-toolchain@master
         with:
           toolchain: ${{ matrix.rust }}
       - uses: Swatinem/rust-cache@v2
       - run: cargo test --all-features
 
   shell-tests:
-    name: 💻 shell tests
+    name: 💻shell tests
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -63,7 +63,7 @@ jobs:
         rust: [stable, beta, nightly]
     steps:
       - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain
+      - uses: dtolnay/rust-toolchain@master
         with:
           toolchain: ${{ matrix.rust }}
       - uses: Swatinem/rust-cache@v2
@@ -109,7 +109,7 @@ jobs:
         rust: [stable, beta, nightly]
     steps:
       - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain
+      - uses: dtolnay/rust-toolchain@master
         with:
           toolchain: ${{ matrix.rust }}
       - uses: Swatinem/rust-cache@v2
