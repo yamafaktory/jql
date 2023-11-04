@@ -8,7 +8,7 @@ on:
 
 jobs:
   audit:
-    name: 🛡️audit
+    name: audit
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -17,7 +17,7 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
 
   clippy:
-    name: 🔍clippy
+    name: clippy
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -28,7 +28,7 @@ jobs:
       - run: cargo clippy --all-targets --all-features -- -D warnings
 
   fmt:
-    name: 🛠️format
+    name: format
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -39,7 +39,7 @@ jobs:
       - run: cargo fmt --all -- --check
 
   test:
-    name: ⚗️ test
+    name: test
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -55,7 +55,7 @@ jobs:
       - run: cargo test --all-features
 
   shell-tests:
-    name: 💻shell tests
+    name: shell tests
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -101,7 +101,7 @@ jobs:
 
   bench:
     if: "!contains(github.ref, 'refs/heads/main')"
-    name: ⚡bench
+    name: bench
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
