@@ -12,11 +12,11 @@ version = { workspace = true }
 
 [dependencies]
 anyhow = "1.0.75"
-clap = { version = "4.4.7", features = ["derive"] }
-colored_json = { version = "4.0.0" }
+clap = { version = "4.4.8", features = ["derive"] }
+colored_json = { version = "4.1.0" }
 jql-runner = { path = "../jql-runner", version = "7.0.6" }
-serde = "1.0.190"
+serde = "1.0.193"
 serde_stacker = "0.1.10"
 serde_json = { workspace = true }
-tokio = { version = "1.33.0", features = ["fs", "io-std", "io-util", "macros", "rt-multi-thread"] }
+tokio = { version = "1.34.0", features = ["fs", "io-std", "io-util", "macros", "rt-multi-thread"] }
 
