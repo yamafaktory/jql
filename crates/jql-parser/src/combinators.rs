@@ -1,31 +1,21 @@
-use nom::{
-    branch::alt,
-    bytes::complete::{
-        tag,
-        take_until,
-    },
-    character::complete::{
-        char,
+use winnow::{
+    ascii::{
         digit1,
         multispace0,
     },
     combinator::{
-        iterator,
-        map,
-        map_res,
-        opt,
-        recognize,
-        value,
-    },
-    error::ParseError,
-    multi::separated_list1,
-    sequence::{
+        alt,
         delimited,
-        pair,
+        opt,
         preceded,
+        repeat,
+        separated,
         separated_pair,
     },
-    IResult,
+    error::ParserError,
+    token::take_until0,
+    PResult,
+    Parser,
 };
 
 use crate::tokens::{
@@ -34,6 +24,31 @@ use crate::tokens::{
     Range,
     Token,
 };
+
+/// Colon.
+static COLON: char = ':';
+/// Comma.
+static COMMA: char = ',';
+/// Curly brace open.
+static CURLY_BRACE_OPEN: char = '{';
+/// Curly brace close.
+static CURLY_BRACE_CLOSE: char = '}';
+/// Double-quote.
+static DOUBLE_QUOTE: char = '"';
+/// Equal.
+static EQUAL: char = '=';
+/// Square brace open.
+static SQUARE_BRACE_OPEN: char = '[';
+/// Square brace close.
+static SQUARE_BRACE_CLOSE: char = ']';
+
+/// False.
+static FALSE: &str = "false";
+/// True.
+static TRUE: &str = "true";
+
+/// Lenses start.
+static LENSES_START: &str = "|={";
 
 /// Flatten operator.
 static FLATTEN: &str = "..";
@@ -49,215 +64,169 @@ static TRUNCATE: &str = "!";
 /// A combinator which takes an `inner` parser and produces a parser which also
 /// consumes both leading and trailing whitespaces, returning the output of
 /// `inner`.
-pub(crate) fn trim<'a, F, O, E>(inner: F) -> impl FnMut(&'a str) -> IResult<&'a str, O, E>
+pub(crate) fn trim<'a, F, O, E>(inner: F) -> impl Parser<&'a str, O, E>
 where
-    E: ParseError<&'a str>,
-    F: FnMut(&'a str) -> IResult<&'a str, O, E>,
+    E: ParserError<&'a str>,
+    F: Parser<&'a str, O, E>,
 {
     delimited(multispace0, inner, multispace0)
 }
 
 /// A combinator which parses a stringified number as an `Index`.
-pub(crate) fn parse_number(input: &str) -> IResult<&str, Index> {
-    map_res(recognize(digit1), |index: &str| {
-        index.parse::<usize>().map(Index)
-    })(input)
+pub(crate) fn parse_number(input: &mut &str) -> PResult<Index> {
+    digit1
+        .try_map(|index: &str| index.parse::<usize>().map(Index))
+        .parse_next(input)
 }
 
 /// A combinator which parses a key surrounded by double quotes.
-pub(crate) fn parse_key<'a, E>() -> impl FnMut(&'a str) -> IResult<&'a str, &'a str, E>
-where
-    E: ParseError<&'a str>,
-{
-    trim(delimited(char('"'), take_until(r#"""#), char('"')))
+pub(crate) fn parse_key<'a>(input: &mut &'a str) -> PResult<&'a str> {
+    trim(delimited(DOUBLE_QUOTE, take_until0(r#"""#), DOUBLE_QUOTE)).parse_next(input)
 }
 
 /// A combinator which parses a list of `Index`.
-pub(crate) fn parse_indexes(input: &str) -> IResult<&str, Vec<Index>> {
-    separated_list1(trim(tag(",")), trim(parse_number))(input)
+pub(crate) fn parse_indexes(input: &mut &str) -> PResult<Vec<Index>> {
+    separated(1.., parse_number, trim(COMMA)).parse_next(input)
 }
 
 /// A combinator which parses a list of keys.
-fn parse_keys(input: &str) -> IResult<&str, Vec<&str>> {
-    separated_list1(trim(tag(",")), trim(parse_key()))(input)
+fn parse_keys<'a>(input: &mut &'a str) -> PResult<Vec<&'a str>> {
+    separated(1.., trim(parse_key), trim(COMMA)).parse_next(input)
 }
 
 /// A combinator which parses a list of keys surrounded by curly braces.
-pub(crate) fn parse_multi_key<'a>() -> impl FnMut(&'a str) -> IResult<&'a str, Vec<&'a str>> {
-    trim(delimited(char('{'), parse_keys, char('}')))
+pub(crate) fn parse_multi_key<'a>(input: &mut &'a str) -> PResult<Vec<&'a str>> {
+    trim(delimited(
+        trim(CURLY_BRACE_OPEN),
+        parse_keys,
+        trim(CURLY_BRACE_CLOSE),
+    ))
+    .parse_next(input)
 }
 
 /// A combinator which parses an array of `Index`.
-pub(crate) fn parse_array_index<'a>() -> impl FnMut(&'a str) -> IResult<&'a str, Vec<Index>> {
-    trim(delimited(char('['), parse_indexes, char(']')))
+pub(crate) fn parse_array_index(input: &mut &str) -> PResult<Vec<Index>> {
+    trim(delimited(
+        trim(SQUARE_BRACE_OPEN),
+        parse_indexes,
+        trim(SQUARE_BRACE_CLOSE),
+    ))
+    .parse_next(input)
 }
 
 /// A combinator which parses an array range.
-pub(crate) fn parse_array_range<'a>()
--> impl FnMut(&'a str) -> IResult<&'a str, (Option<Index>, Option<Index>)> {
+pub(crate) fn parse_array_range(input: &mut &str) -> PResult<(Option<Index>, Option<Index>)> {
     trim(delimited(
-        char('['),
-        separated_pair(opt(parse_number), tag(":"), opt(parse_number)),
-        char(']'),
+        SQUARE_BRACE_OPEN,
+        separated_pair(opt(parse_number), trim(COLON), opt(parse_number)),
+        SQUARE_BRACE_CLOSE,
     ))
+    .parse_next(input)
 }
 
 /// A combinator which parses a list of index surrounded by curly braces.
-pub(crate) fn parse_object_index<'a>() -> impl FnMut(&'a str) -> IResult<&'a str, Vec<Index>> {
-    trim(delimited(char('{'), parse_indexes, char('}')))
+pub(crate) fn parse_object_index(input: &mut &str) -> PResult<Vec<Index>> {
+    trim(delimited(
+        trim(CURLY_BRACE_OPEN),
+        parse_indexes,
+        trim(CURLY_BRACE_CLOSE),
+    ))
+    .parse_next(input)
 }
 
 /// A combinator which parses an object range.
-pub(crate) fn parse_object_range<'a>()
--> impl FnMut(&'a str) -> IResult<&'a str, (Option<Index>, Option<Index>)> {
+pub(crate) fn parse_object_range(input: &mut &str) -> PResult<(Option<Index>, Option<Index>)> {
     trim(delimited(
-        char('{'),
-        separated_pair(opt(parse_number), tag(":"), opt(parse_number)),
-        char('}'),
+        trim(CURLY_BRACE_OPEN),
+        separated_pair(opt(parse_number), trim(COLON), opt(parse_number)),
+        trim(CURLY_BRACE_CLOSE),
     ))
-}
-
-/// A combinator which parses a `LensValue::Null`.
-pub(crate) fn parse_null_lens_value<'a, E>() -> impl FnMut(&'a str) -> IResult<&'a str, LensValue, E>
-where
-    E: ParseError<&'a str>,
-{
-    value(LensValue::Null, tag("null"))
-}
-
-/// A combinator which parses a `LensValue::String`.
-pub(crate) fn parse_string_lens_value<'a, E>()
--> impl FnMut(&'a str) -> IResult<&'a str, LensValue, E>
-where
-    E: ParseError<&'a str>,
-{
-    map(parse_key(), LensValue::String)
-}
-
-/// A combinator which parses a `LensValue::Number`.
-pub(crate) fn parse_number_lens_value(input: &str) -> IResult<&str, LensValue> {
-    map_res(recognize(digit1), |index: &str| {
-        index.parse::<usize>().map(LensValue::Number)
-    })(input)
-}
-
-/// A combinator which parses a `LensValue::Bool`.
-pub(crate) fn parse_bool_lens_value<'a, E>() -> impl FnMut(&'a str) -> IResult<&'a str, LensValue, E>
-where
-    E: ParseError<&'a str>,
-{
-    alt((
-        map(tag("false"), |_| LensValue::Bool(false)),
-        map(tag("true"), |_| LensValue::Bool(true)),
-    ))
+    .parse_next(input)
 }
 
 /// A combinator which parses any lens value.
-pub(crate) fn parse_lens_value<'a>() -> impl FnMut(&'a str) -> IResult<&'a str, LensValue> {
+pub(crate) fn parse_lens_value<'a>(input: &mut &'a str) -> PResult<LensValue<'a>> {
     alt((
-        parse_bool_lens_value(),
-        parse_null_lens_value(),
-        parse_number_lens_value,
-        parse_string_lens_value(),
+        FALSE.value(LensValue::Bool(false)),
+        TRUE.value(LensValue::Bool(true)),
+        "null".value(LensValue::Null),
+        digit1.try_map(|s: &str| s.parse::<usize>().map(LensValue::Number)),
+        parse_key.map(LensValue::String),
     ))
+    .parse_next(input)
 }
-
+//
 /// A combinator which parses a lens key.
-fn parse_lens_key(key: &str) -> IResult<&str, Token> {
+fn parse_lens_key<'a>(input: &mut &'a str) -> PResult<Token<'a>> {
     alt((
-        map(parse_array_index(), Token::ArrayIndexSelector),
-        map(parse_array_range(), |(start, end)| {
-            Token::ArrayRangeSelector(Range(start, end))
-        }),
-        map(parse_key(), Token::KeySelector),
-        map(parse_multi_key(), Token::MultiKeySelector),
-        map(parse_object_index(), Token::ObjectIndexSelector),
-        map(parse_object_range(), |(start, end)| {
-            Token::ObjectRangeSelector(Range(start, end))
-        }),
-    ))(key)
+        parse_array_index.map(Token::ArrayIndexSelector),
+        parse_array_range.map(|(start, end)| Token::ArrayRangeSelector(Range(start, end))),
+        parse_key.map(Token::KeySelector),
+        parse_multi_key.map(Token::MultiKeySelector),
+        parse_object_index.map(Token::ObjectIndexSelector),
+        parse_object_range.map(|(start, end)| Token::ObjectRangeSelector(Range(start, end))),
+    ))
+    .parse_next(input)
 }
 
 /// A combinator which parses multiple lens keys.
-fn parse_lens_keys(key: &str) -> IResult<&str, Vec<Token>> {
-    let mut parser_iterator = iterator(key, parse_lens_key);
-    let tokens = parser_iterator.collect::<Vec<Token>>();
-
-    let (rest, ()) = parser_iterator.finish()?;
-
-    Ok((rest, tokens))
+fn parse_lens_keys<'a>(input: &mut &'a str) -> PResult<Vec<Token<'a>>> {
+    repeat(1.., parse_lens_key).parse_next(input)
 }
 
 /// A combinator which parses a lens.
-pub(crate) fn parse_lens<'a>()
--> impl FnMut(&'a str) -> IResult<&'a str, (Vec<Token>, Option<LensValue>)> {
-    trim(pair(
+pub(crate) fn parse_lens<'a>(
+    input: &mut &'a str,
+) -> PResult<(Vec<Token<'a>>, Option<LensValue<'a>>)> {
+    trim((
         parse_lens_keys,
-        opt(preceded(trim(tag("=")), parse_lens_value())),
+        opt(preceded(trim(EQUAL), parse_lens_value)),
     ))
+    .parse_next(input)
 }
 
 /// A combinator which parses a list of lenses.
-pub(crate) fn parse_lenses<'a>()
--> impl FnMut(&'a str) -> IResult<&'a str, Vec<(Vec<Token<'a>>, Option<LensValue<'a>>)>> {
+pub(crate) fn parse_lenses<'a>(
+    input: &mut &'a str,
+) -> PResult<Vec<(Vec<Token<'a>>, Option<LensValue<'a>>)>> {
     trim(delimited(
-        tag("|={"),
-        separated_list1(trim(tag(",")), trim(parse_lens())),
-        char('}'),
+        trim(LENSES_START),
+        separated(1.., trim(parse_lens), trim(COMMA)),
+        trim(CURLY_BRACE_CLOSE),
     ))
+    .parse_next(input)
 }
 
 /// A combinator which parses a flatten operator.
-pub(crate) fn parse_flatten_operator<'a, E>() -> impl FnMut(&'a str) -> IResult<&'a str, &'a str, E>
-where
-    E: ParseError<&'a str>,
-{
-    trim(tag(FLATTEN))
+pub(crate) fn parse_flatten_operator<'a>(input: &mut &'a str) -> PResult<&'a str> {
+    trim(FLATTEN).parse_next(input)
 }
 
 /// A combinator which parses a pipe in operator.
-pub(crate) fn parse_pipe_in_operator<'a, E>() -> impl FnMut(&'a str) -> IResult<&'a str, &'a str, E>
-where
-    E: ParseError<&'a str>,
-{
-    trim(tag(PIPE_IN))
+pub(crate) fn parse_pipe_in_operator<'a>(input: &mut &'a str) -> PResult<&'a str> {
+    trim(PIPE_IN).parse_next(input)
 }
 
 /// A combinator which parses a pipe out operator.
-pub(crate) fn parse_pipe_out_operator<'a, E>() -> impl FnMut(&'a str) -> IResult<&'a str, &'a str, E>
-where
-    E: ParseError<&'a str>,
-{
-    trim(tag(PIPE_OUT))
+pub(crate) fn parse_pipe_out_operator<'a>(input: &mut &'a str) -> PResult<&'a str> {
+    trim(PIPE_OUT).parse_next(input)
 }
 
 /// A combinator which parses a truncate operator.
-pub(crate) fn parse_truncate_operator<'a, E>() -> impl FnMut(&'a str) -> IResult<&'a str, &'a str, E>
-where
-    E: ParseError<&'a str>,
-{
-    trim(tag(TRUNCATE))
+pub(crate) fn parse_truncate_operator<'a>(input: &mut &'a str) -> PResult<&'a str> {
+    trim(TRUNCATE).parse_next(input)
 }
 
 /// A combinator which parses a group separator.
-pub(crate) fn parse_group_separator<'a, E>() -> impl FnMut(&'a str) -> IResult<&'a str, &'a str, E>
-where
-    E: ParseError<&'a str>,
-{
-    trim(tag(GROUP_SEP))
+pub(crate) fn parse_group_separator<'a>(input: &mut &'a str) -> PResult<&'a str> {
+    trim(GROUP_SEP).parse_next(input)
 }
 
 #[cfg(test)]
 mod tests {
-    use nom::{
-        bytes::complete::tag,
-        error::Error,
-    };
-
     use super::{
         parse_array_index,
         parse_array_range,
-        parse_bool_lens_value,
         parse_flatten_operator,
         parse_group_separator,
         parse_indexes,
@@ -265,16 +234,12 @@ mod tests {
         parse_lens,
         parse_lenses,
         parse_multi_key,
-        parse_null_lens_value,
         parse_number,
-        parse_number_lens_value,
         parse_object_index,
         parse_object_range,
         parse_pipe_in_operator,
         parse_pipe_out_operator,
-        parse_string_lens_value,
         parse_truncate_operator,
-        trim,
         FLATTEN,
         GROUP_SEP,
         PIPE_IN,
@@ -288,255 +253,173 @@ mod tests {
     };
 
     #[test]
-    fn check_trim() {
-        assert_eq!(
-            trim(tag::<&str, &str, Error<_>>("abc"))(" abc ").unwrap(),
-            ("", "abc")
-        );
-    }
-
-    #[test]
     fn check_parse_number() {
-        assert_eq!(parse_number("123").unwrap(), ("", Index(123)));
-        assert!(parse_number("abc").is_err());
-        assert!(parse_number("abc123").is_err());
+        assert_eq!(parse_number(&mut "123"), Ok(Index(123)));
+        assert!(parse_number(&mut "abc").is_err());
+        assert!(parse_number(&mut "abc123").is_err());
     }
 
     #[test]
     fn check_parse_key() {
-        assert_eq!(parse_key::<Error<_>>()(r#""abc""#).unwrap(), ("", "abc"));
-        assert!(parse_key::<Error<_>>()("abc").is_err());
+        assert_eq!(parse_key(&mut r#""abc""#), Ok("abc"));
+        assert!(parse_key(&mut "abc").is_err());
     }
 
     #[test]
     fn check_parse_indexes() {
-        assert_eq!(parse_indexes("123").unwrap(), ("", vec![Index(123)]));
+        assert_eq!(parse_indexes(&mut "123"), Ok(vec![Index(123)]));
         assert_eq!(
-            parse_indexes("123,456,789").unwrap(),
-            ("", vec![Index(123), Index(456), Index(789)])
+            parse_indexes(&mut "123,456,789"),
+            Ok(vec![Index(123), Index(456), Index(789)])
         );
-        assert!(parse_indexes("abc").is_err());
+        assert!(parse_indexes(&mut "abc").is_err());
     }
 
     #[test]
     fn check_parse_multi_key() {
-        assert_eq!(parse_multi_key()(r#"{"abc"}"#).unwrap(), ("", vec!["abc"]));
+        assert_eq!(parse_multi_key(&mut r#"{"abc"}"#), Ok(vec!["abc"]));
         assert_eq!(
-            parse_multi_key()(r#"{"abc","def"}"#).unwrap(),
-            ("", vec!["abc", "def"])
+            parse_multi_key(&mut r#"{"abc","def"}"#),
+            Ok(vec!["abc", "def"])
         );
-        assert!(parse_multi_key()("{}").is_err());
-        assert!(parse_multi_key()("{123}").is_err());
+        assert!(parse_multi_key(&mut "{}").is_err());
+        assert!(parse_multi_key(&mut "{123}").is_err());
     }
 
     #[test]
     fn check_parse_array_index() {
-        assert_eq!(parse_array_index()("[1]").unwrap(), ("", vec![Index(1)]));
+        assert_eq!(parse_array_index(&mut "[1]"), Ok(vec![Index(1)]));
         assert_eq!(
-            parse_array_index()("[1,2,3]").unwrap(),
-            ("", vec![Index(1), Index(2), Index(3)])
+            parse_array_index(&mut "[1,2,3]"),
+            Ok(vec![Index(1), Index(2), Index(3)])
         );
-        assert!(parse_array_index()("[]").is_err());
-        assert!(parse_array_index()(r#"["1"]"#).is_err());
+        assert!(parse_array_index(&mut "[]").is_err());
+        assert!(parse_array_index(&mut r#"["1"]"#).is_err());
     }
 
     #[test]
     fn check_parse_array_range() {
-        assert_eq!(parse_array_range()("[:]").unwrap(), ("", (None, None)));
+        assert_eq!(parse_array_range(&mut "[:]"), Ok((None, None)));
+        assert_eq!(parse_array_range(&mut "[1:]"), Ok((Some(Index(1)), None)));
+        assert_eq!(parse_array_range(&mut "[:1]"), Ok((None, Some(Index(1)))));
         assert_eq!(
-            parse_array_range()("[1:]").unwrap(),
-            ("", (Some(Index(1)), None))
+            parse_array_range(&mut "[1:3]"),
+            Ok((Some(Index(1)), Some(Index(3))))
         );
-        assert_eq!(
-            parse_array_range()("[:1]").unwrap(),
-            ("", (None, Some(Index(1))))
-        );
-        assert_eq!(
-            parse_array_range()("[1:3]").unwrap(),
-            ("", (Some(Index(1)), Some(Index(3))))
-        );
-        assert!(parse_array_range()("[]").is_err());
+        assert!(parse_array_range(&mut "[]").is_err());
     }
 
     #[test]
     fn check_parse_object_index() {
-        assert_eq!(parse_object_index()("{1}").unwrap(), ("", vec![Index(1)]));
+        assert_eq!(parse_object_index(&mut "{1}"), Ok(vec![Index(1)]));
         assert_eq!(
-            parse_object_index()("{1,2}").unwrap(),
-            ("", vec![Index(1), Index(2)])
+            parse_object_index(&mut "{1,2}"),
+            Ok(vec![Index(1), Index(2)])
         );
-        assert!(parse_object_index()("{}").is_err());
+        assert!(parse_object_index(&mut "{}").is_err());
     }
 
     #[test]
     fn check_parse_object_range() {
-        assert_eq!(parse_object_range()("{:}").unwrap(), ("", (None, None)));
+        assert_eq!(parse_object_range(&mut "{:}"), Ok((None, None)));
+        assert_eq!(parse_object_range(&mut "{1:}"), Ok((Some(Index(1)), None)));
+        assert_eq!(parse_object_range(&mut "{:1}"), Ok((None, Some(Index(1)))));
         assert_eq!(
-            parse_object_range()("{1:}").unwrap(),
-            ("", (Some(Index(1)), None))
+            parse_object_range(&mut "{1:3}"),
+            Ok((Some(Index(1)), Some(Index(3))))
         );
-        assert_eq!(
-            parse_object_range()("{:1}").unwrap(),
-            ("", (None, Some(Index(1))))
-        );
-        assert_eq!(
-            parse_object_range()("{1:3}").unwrap(),
-            ("", (Some(Index(1)), Some(Index(3))))
-        );
-        assert!(parse_object_range()("{}").is_err());
+        assert!(parse_object_range(&mut "{}").is_err());
     }
 
     #[test]
     fn check_parse_flatten_operator() {
-        assert_eq!(
-            parse_flatten_operator::<Error<_>>()("..").unwrap(),
-            ("", FLATTEN)
-        );
-        assert!(parse_flatten_operator::<Error<_>>()("").is_err());
+        assert_eq!(parse_flatten_operator(&mut ".."), Ok(FLATTEN));
+        assert_eq!(parse_flatten_operator(&mut " .. "), Ok(FLATTEN));
+        assert!(parse_flatten_operator(&mut "").is_err());
     }
 
     #[test]
     fn check_parse_pipe_in_operator() {
-        assert_eq!(
-            parse_pipe_in_operator::<Error<_>>()("|>").unwrap(),
-            ("", PIPE_IN)
-        );
-        assert!(parse_pipe_in_operator::<Error<_>>()("").is_err());
+        assert_eq!(parse_pipe_in_operator(&mut "|>"), Ok(PIPE_IN));
+        assert_eq!(parse_pipe_in_operator(&mut " |> "), Ok(PIPE_IN));
+        assert!(parse_pipe_in_operator(&mut "").is_err());
     }
 
     #[test]
     fn check_parse_pipe_out_operator() {
-        assert_eq!(
-            parse_pipe_out_operator::<Error<_>>()("<|").unwrap(),
-            ("", PIPE_OUT)
-        );
-        assert!(parse_pipe_out_operator::<Error<_>>()("").is_err());
+        assert_eq!(parse_pipe_out_operator(&mut "<|"), Ok(PIPE_OUT));
+        assert_eq!(parse_pipe_out_operator(&mut " <| "), Ok(PIPE_OUT));
+        assert!(parse_pipe_out_operator(&mut "").is_err());
     }
 
     #[test]
     fn check_parse_truncate_operator() {
-        assert_eq!(
-            parse_truncate_operator::<Error<_>>()("!").unwrap(),
-            ("", TRUNCATE)
-        );
-        assert!(parse_truncate_operator::<Error<_>>()("").is_err());
+        assert_eq!(parse_truncate_operator(&mut "!"), Ok(TRUNCATE));
+        assert_eq!(parse_truncate_operator(&mut " ! "), Ok(TRUNCATE));
+        assert!(parse_truncate_operator(&mut "").is_err());
     }
 
     #[test]
     fn check_parse_group_separator() {
-        assert_eq!(
-            parse_group_separator::<Error<_>>()(",").unwrap(),
-            ("", GROUP_SEP)
-        );
-        assert!(parse_group_separator::<Error<_>>()("").is_err());
-    }
-
-    #[test]
-    fn check_parse_bool_lens_value() {
-        assert_eq!(
-            parse_bool_lens_value::<Error<_>>()("false").unwrap(),
-            ("", LensValue::Bool(false))
-        );
-        assert_eq!(
-            parse_bool_lens_value::<Error<_>>()("true").unwrap(),
-            ("", LensValue::Bool(true))
-        );
-        assert!(parse_bool_lens_value::<Error<_>>()("").is_err());
-    }
-
-    #[test]
-    fn check_parse_null_lens_value() {
-        assert_eq!(
-            parse_null_lens_value::<Error<_>>()("null").unwrap(),
-            ("", LensValue::Null)
-        );
-        assert!(parse_null_lens_value::<Error<_>>()("").is_err());
-    }
-
-    #[test]
-    fn check_parse_string_lens_value() {
-        assert_eq!(
-            parse_string_lens_value::<Error<_>>()(r#""abc""#).unwrap(),
-            ("", LensValue::String("abc"))
-        );
-        assert!(parse_string_lens_value::<Error<_>>()("").is_err());
-    }
-
-    #[test]
-    fn check_parse_number_lens_value() {
-        assert_eq!(
-            parse_number_lens_value("123").unwrap(),
-            ("", LensValue::Number(123))
-        );
-        assert!(parse_number_lens_value("").is_err());
+        assert_eq!(parse_group_separator(&mut ","), Ok(GROUP_SEP));
+        assert_eq!(parse_group_separator(&mut " , "), Ok(GROUP_SEP));
+        assert!(parse_group_separator(&mut "").is_err());
     }
 
     #[test]
     fn check_parse_lens() {
         assert_eq!(
-            parse_lens()(r#""abc""#).unwrap(),
-            ("", (vec![Token::KeySelector("abc")], None))
+            parse_lens(&mut r#""abc""#),
+            Ok((vec![Token::KeySelector("abc")], None))
         );
         assert_eq!(
-            parse_lens()(r#""abc"=null"#).unwrap(),
-            ("", (vec![Token::KeySelector("abc")], Some(LensValue::Null)))
+            parse_lens(&mut r#""abc"=null"#),
+            Ok((vec![Token::KeySelector("abc")], Some(LensValue::Null)))
         );
         assert_eq!(
-            parse_lens()(r#""abc"="def""#).unwrap(),
-            (
-                "",
-                (
-                    vec![Token::KeySelector("abc")],
-                    Some(LensValue::String("def"))
-                )
-            )
+            parse_lens(&mut r#""abc"="def""#),
+            Ok((
+                vec![Token::KeySelector("abc")],
+                Some(LensValue::String("def"))
+            ))
         );
         assert_eq!(
-            parse_lens()(r#""abc"=123"#).unwrap(),
-            (
-                "",
-                (
-                    vec![Token::KeySelector("abc")],
-                    Some(LensValue::Number(123))
-                )
-            )
+            parse_lens(&mut r#""abc"=123"#),
+            Ok((
+                vec![Token::KeySelector("abc")],
+                Some(LensValue::Number(123))
+            ))
         );
         assert_eq!(
-            parse_lens()(r#""abc""bcd"[0]=123"#).unwrap(),
-            (
-                "",
-                (
-                    vec![
-                        Token::KeySelector("abc"),
-                        Token::KeySelector("bcd"),
-                        Token::ArrayIndexSelector(vec![Index(0)])
-                    ],
-                    Some(LensValue::Number(123))
-                )
-            )
+            parse_lens(&mut r#""abc""bcd"[0]=123"#),
+            Ok((
+                vec![
+                    Token::KeySelector("abc"),
+                    Token::KeySelector("bcd"),
+                    Token::ArrayIndexSelector(vec![Index(0)])
+                ],
+                Some(LensValue::Number(123))
+            ))
         );
-        assert_eq!(parse_lens()("").unwrap(), ("", (vec![], None)));
+        assert!(parse_lens(&mut "").is_err());
     }
 
     #[test]
     fn check_parse_lenses() {
         assert_eq!(
-            parse_lenses()(r#"|={"abc","bcd"=123,"efg"=null,"hij"="test"}"#).unwrap(),
-            (
-                "",
-                vec![
-                    (vec![Token::KeySelector("abc")], None),
-                    (
-                        vec![Token::KeySelector("bcd")],
-                        Some(LensValue::Number(123))
-                    ),
-                    (vec![Token::KeySelector("efg")], Some(LensValue::Null)),
-                    (
-                        vec![Token::KeySelector("hij")],
-                        Some(LensValue::String("test"))
-                    ),
-                ]
-            )
+            parse_lenses(&mut r#"|={"abc","bcd"=123,"efg"=null,"hij"="test"}"#),
+            Ok(vec![
+                (vec![Token::KeySelector("abc")], None),
+                (
+                    vec![Token::KeySelector("bcd")],
+                    Some(LensValue::Number(123))
+                ),
+                (vec![Token::KeySelector("efg")], Some(LensValue::Null)),
+                (
+                    vec![Token::KeySelector("hij")],
+                    Some(LensValue::String("test"))
+                ),
+            ])
         );
     }
 }
