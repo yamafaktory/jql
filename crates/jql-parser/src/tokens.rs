@@ -1,6 +1,10 @@
 use std::{
     fmt,
-    num::NonZeroUsize,
+    num::{
+        NonZeroUsize,
+        ParseIntError,
+    },
+    str::FromStr,
     string::ToString,
 };
 
@@ -26,6 +30,14 @@ impl From<Index> for usize {
 impl fmt::Display for Index {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "Index ({})", self.0)
+    }
+}
+
+impl FromStr for Index {
+    type Err = ParseIntError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Ok(Index(s.parse::<usize>()?))
     }
 }
 
