@@ -26,4 +26,3 @@ path = "src/lib.rs"
 harness = false
 name = "benchmark"
 path = "benches/benchmark.rs"
-
