@@ -18,8 +18,8 @@ use winnow::{
     error::ParserError,
     token::{
         any,
-        tag,
-        take_until0,
+        literal,
+        take_until,
     },
     PResult,
     Parser,
@@ -86,7 +86,12 @@ pub(crate) fn parse_number(input: &mut &str) -> PResult<Index> {
 
 /// A combinator which parses a key surrounded by double quotes.
 pub(crate) fn parse_key<'a>(input: &mut &'a str) -> PResult<&'a str> {
-    trim(delimited(DOUBLE_QUOTE, take_until0(r#"""#), DOUBLE_QUOTE)).parse_next(input)
+    trim(delimited(
+        DOUBLE_QUOTE,
+        take_until(0.., r#"""#),
+        DOUBLE_QUOTE,
+    ))
+    .parse_next(input)
 }
 
 /// A combinator which parses a list of `Index`.
@@ -210,17 +215,17 @@ pub(crate) fn parse_lenses<'a>(
 
 /// A combinator which parses a flatten operator.
 pub(crate) fn parse_flatten_operator<'a>(input: &mut &'a str) -> PResult<&'a str> {
-    tag(FLATTEN).parse_next(input)
+    literal(FLATTEN).parse_next(input)
 }
 
 /// A combinator which parses a pipe in operator.
 pub(crate) fn parse_pipe_in_operator<'a>(input: &mut &'a str) -> PResult<&'a str> {
-    tag(PIPE_IN).parse_next(input)
+    literal(PIPE_IN).parse_next(input)
 }
 
 /// A combinator which parses a pipe out operator.
 pub(crate) fn parse_pipe_out_operator<'a>(input: &mut &'a str) -> PResult<&'a str> {
-    tag(PIPE_OUT).parse_next(input)
+    literal(PIPE_OUT).parse_next(input)
 }
 
 /// A combinator which parses a truncate operator.
@@ -230,7 +235,7 @@ pub(crate) fn parse_truncate_operator<'a>(input: &mut &'a str) -> PResult<&'a st
 
 /// A combinator which parses a group separator.
 pub(crate) fn parse_group_separator<'a>(input: &mut &'a str) -> PResult<&'a str> {
-    tag(GROUP_SEP).parse_next(input)
+    literal(GROUP_SEP).parse_next(input)
 }
 
 #[cfg(test)]
