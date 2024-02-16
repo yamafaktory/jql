@@ -11,7 +11,7 @@ repository = { workspace = true }
 version = { workspace = true }
 
 [dependencies]
-jql-parser = { path = "../jql-parser", version = "7.1.4" }
+jql-parser = { path = "../jql-parser", version = "7.1.5" }
 rayon = "1.8.1"
 serde_json = { workspace = true }
 thiserror = { workspace = true }
