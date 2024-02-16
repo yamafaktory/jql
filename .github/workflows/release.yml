@@ -90,10 +90,15 @@ jobs:
 
       - uses: Swatinem/rust-cache@v2
 
-      - name: Build
+      - name: Build Linux
+        if: matrix.os == 'ubuntu-latest'
         run: |
           cargo install cross --git https://github.com/cross-rs/cross
           cross build --release --target ${{ matrix.target }}
+      
+      - name: Build Darwin & Windows
+        if: matrix.os == 'macos-latest' || matrix.os == 'windows-latest'
+        run: cargo build --release --target ${{ matrix.target }}
 
       - name: Package Artifacts
         shell: bash
