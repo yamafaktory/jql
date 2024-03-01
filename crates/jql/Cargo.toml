@@ -11,11 +11,11 @@ repository = { workspace = true }
 version = { workspace = true }
 
 [dependencies]
-anyhow = "1.0.79"
-clap = { version = "4.5.0", features = ["derive"] }
+anyhow = "1.0.80"
+clap = { version = "4.5.1", features = ["derive"] }
 colored_json = { version = "4.1.0" }
 jql-runner = { path = "../jql-runner", version = "7.1.5" }
-serde = "1.0.196"
+serde = "1.0.197"
 serde_stacker = "0.1.11"
 serde_json = { workspace = true }
 tokio = { version = "1.36.0", features = ["fs", "io-std", "io-util", "macros", "rt-multi-thread"] }
