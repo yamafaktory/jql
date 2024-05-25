@@ -5,8 +5,8 @@ members = [
 ]
 
 [workspace.dependencies]
-thiserror = "1.0.59"
-serde_json = { features = ["preserve_order", "unbounded_depth"], version = "1.0.116" }
+thiserror = "1.0.61"
+serde_json = { features = ["preserve_order", "unbounded_depth"], version = "1.0.117" }
 
 [workspace.package]
 authors = ["Davy Duperron <yamafaktory@gmail.com>"]
@@ -27,7 +27,7 @@ unreachable_pub = "warn"
 unsafe_code = "deny"
 
 [workspace.lints.clippy]
-clippy_pedantic = "deny"
+all = "deny"
 
 # https://github.com/rust-lang/cargo/issues/8264
 [profile.release]
