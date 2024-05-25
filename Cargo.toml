@@ -27,7 +27,7 @@ unreachable_pub = "warn"
 unsafe_code = "deny"
 
 [workspace.lints.clippy]
-clippy_pedantic = "deny"
+all = "deny"
 
 # https://github.com/rust-lang/cargo/issues/8264
 [profile.release]
