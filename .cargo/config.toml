@@ -6,4 +6,3 @@ rustflags = ["-C", "target-feature=+simd128"]
 
 [target.wasm32-wasi]
 rustflags = ["-C", "target-feature=+simd128"]
-

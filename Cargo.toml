@@ -5,8 +5,8 @@ members = [
 ]
 
 [workspace.dependencies]
-thiserror = "1.0.40"
-serde_json = { features = ["preserve_order", "unbounded_depth"], version = "1.0.96" }
+thiserror = "1.0.61"
+serde_json = { features = ["preserve_order", "unbounded_depth"], version = "1.0.117" }
 
 [workspace.package]
 authors = ["Davy Duperron <yamafaktory@gmail.com>"]
@@ -16,7 +16,18 @@ keywords = ["cli", "json", "terminal", "tool", "query"]
 license = "MIT OR Apache-2.0"
 readme = "README.md"
 repository = "https://github.com/yamafaktory/jql"
-version = "6.0.6"
+version = "7.1.10"
+
+[workspace.lints.rust]
+missing_debug_implementations = "warn"
+missing_docs = "warn"
+nonstandard_style = { level = "deny", priority= -1 }
+rust_2021_compatibility = { level = "forbid", priority= -1 }
+unreachable_pub = "warn"
+unsafe_code = "deny"
+
+[workspace.lints.clippy]
+all = "deny"
 
 # https://github.com/rust-lang/cargo/issues/8264
 [profile.release]
@@ -24,4 +35,3 @@ codegen-units = 1
 lto = true
 opt-level = 'z'
 panic = 'abort'
-

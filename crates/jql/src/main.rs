@@ -1,7 +1,3 @@
-#![deny(clippy::pedantic)]
-#![deny(unsafe_code, nonstandard_style)]
-#![forbid(rust_2021_compatibility)]
-#![warn(missing_debug_implementations, missing_docs)]
 #![doc = include_str!("../README.md")]
 
 mod args;
@@ -86,14 +82,14 @@ async fn process_json(json: &[u8], args: &Args) -> Result<String> {
     };
 
     let value = serde::from_slice::<Value>(&mut json.to_vec())
-        .with_context(|| format!("Failed to deserialize the JSON data"))?;
+        .with_context(|| "Failed to deserialize the JSON data".to_string())?;
 
     let result: Value = runner::raw(&query, &value)?;
 
     if args.inline {
         return ColoredFormatter::new(CompactFormatter {})
             .to_colored_json_auto(&result)
-            .with_context(|| format!("Failed to inline the JSON data"));
+            .with_context(|| "Failed to inline the JSON data".to_string());
     }
 
     if args.raw_string && result.is_string() {
@@ -103,7 +99,7 @@ async fn process_json(json: &[u8], args: &Args) -> Result<String> {
 
     ColoredFormatter::new(PrettyFormatter::new())
         .to_colored_json_auto(&result)
-        .with_context(|| format!("Failed to format the JSON data"))
+        .with_context(|| "Failed to format the JSON data".to_string())
 }
 
 #[tokio::main]
@@ -129,14 +125,14 @@ async fn main() -> Result<()> {
         while let Some(mut line) = reader
             .next_line()
             .await
-            .with_context(|| format!("Failed to read stream"))?
+            .with_context(|| "Failed to read stream".to_string())?
         {
             render(process_json(line.as_bytes(), &args).await);
 
             stdout
                 .flush()
                 .await
-                .with_context(|| format!("Failed to flush stdout"))?;
+                .with_context(|| "Failed to flush stdout".to_string())?;
 
             line.clear();
         }
@@ -151,10 +147,10 @@ async fn main() -> Result<()> {
     stdin
         .read_to_end(&mut buffer)
         .await
-        .with_context(|| format!("Failed to read piped content from stdin"))?;
+        .with_context(|| "Failed to read piped content from stdin".to_string())?;
 
     let lines = String::from_utf8(buffer)
-        .with_context(|| format!("Failed to convert piped content from stdin"))?;
+        .with_context(|| "Failed to convert piped content from stdin".to_string())?;
 
     render(process_json(lines.as_bytes(), &args).await);
 

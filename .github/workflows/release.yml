@@ -8,30 +8,33 @@ jobs:
   performance:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           ref: "main"
-      - uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: stable
-          override: true
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+      
       - name: Install hyperfine and jql - jq is already available!
         run: cargo install hyperfine && cargo install jql
+
       - name: Run performance benchmarks
         run: ./performance.sh
+
       - name: Create pull-request
-        uses: peter-evans/create-pull-request@v3
+        uses: peter-evans/create-pull-request@v5
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          author: ${{ github.actor }} <${{ github.actor }}@users.noreply.github.com>
+          body: Update PERFORMANCE.md file
+          branch: performance
           commit-message: "chore(performance): update benchmarks"
           committer: GitHub <noreply@github.com>
-          author: ${{ github.actor }} <${{ github.actor }}@users.noreply.github.com>
-          title: "[Performance] Update benchmarks"
-          body: Update PERFORMANCE.md file
+          delete-branch: true
           labels: enhancement
           reviewers: yamafaktory
-          branch: performance
+          title: "[Performance] Update benchmarks"
+          token: ${{ secrets.GITHUB_TOKEN }}
 
   build-release:
     runs-on: ${{ matrix.os }}
@@ -52,6 +55,11 @@ jobs:
             sha-cmd: sha256sum
           - os: ubuntu-latest
             target: arm-unknown-linux-musleabihf
+            archive: tar.gz
+            archive-cmd: tar czf
+            sha-cmd: sha256sum
+          - os: ubuntu-latest
+            target: loongarch64-unknown-linux-gnu
             archive: tar.gz
             archive-cmd: tar czf
             sha-cmd: sha256sum
@@ -77,22 +85,25 @@ jobs:
 
     steps:
       - name: Checkout repo
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Setup Rust toolchain
-        uses: actions-rs/toolchain@v1
+        uses: dtolnay/rust-toolchain@master
         with:
-          profile: minimal
-          override: true
           target: ${{ matrix.target }}
           toolchain: stable
 
-      - name: Build
-        uses: actions-rs/cargo@v1
-        with:
-          use-cross: true
-          command: build
-          args: --release --target ${{ matrix.target }}
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Build Linux
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          cargo install cross --git https://github.com/cross-rs/cross
+          cross build --release --target ${{ matrix.target }}
+      
+      - name: Build Darwin & Windows
+        if: matrix.os == 'macos-latest' || matrix.os == 'windows-latest'
+        run: cargo build --release --target ${{ matrix.target }}
 
       - name: Package Artifacts
         shell: bash
@@ -109,8 +120,8 @@ jobs:
           cd $src
           ${{ matrix.sha-cmd }} $asset_name > $CHECKSUM_PATH
           if [ "$RUNNER_OS" == "Windows" ]; then
-            echo "ASSET_PATH=$(cygpath -w $ASSET_PATH)" >> $GITHUB_ENV
-            echo "CHECKSUM_PATH=$(cygpath -w $CHECKSUM_PATH)" >> $GITHUB_ENV
+            echo "ASSET_PATH=$(cygpath -m $ASSET_PATH)" >> $GITHUB_ENV
+            echo "CHECKSUM_PATH=$(cygpath -m $CHECKSUM_PATH)" >> $GITHUB_ENV
           else
             echo "ASSET_PATH=$ASSET_PATH" >> $GITHUB_ENV
             echo "CHECKSUM_PATH=$CHECKSUM_PATH" >> $GITHUB_ENV
@@ -120,6 +131,7 @@ jobs:
         uses: softprops/action-gh-release@v1
         if: startsWith(github.ref, 'refs/tags/')
         with:
+          fail_on_unmatched_files: true
           files: |
             ${{ env.ASSET_PATH }}
             ${{ env.CHECKSUM_PATH }}

@@ -7,40 +7,39 @@ on:
       - main
 
 jobs:
-  clippy:
-    name: 🔍 clippy
+  audit:
+    name: audit
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions-rs/toolchain@v1
+      - uses: actions/checkout@v4
+      - uses: rustsec/audit-check@v1.4.1
         with:
-          components: clippy
-          override: true
-          profile: minimal
-          toolchain: stable
-      - uses: actions-rs/clippy-check@v1
-        with:
-          args: --all-features
           token: ${{ secrets.GITHUB_TOKEN }}
 
-  fmt:
-    name: 🛠️ format
+  clippy:
+    name: clippy
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions-rs/toolchain@v1
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo clippy --all-targets --all-features -- -D warnings
+
+  fmt:
+    name: format
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@nightly
         with:
           components: rustfmt
-          override: true
-          profile: minimal
-          toolchain: nightly
-      - uses: actions-rs/cargo@v1
-        with:
-          args: --all -- --check
-          command: fmt
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo fmt --all -- --check
 
   test:
-    name: ⚗️ test
+    name: test
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -48,31 +47,26 @@ jobs:
         os: [ubuntu-latest, windows-latest, macOS-latest]
         rust: [stable, beta, nightly]
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions-rs/toolchain@v1
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@master
         with:
-          override: true
-          profile: minimal
           toolchain: ${{ matrix.rust }}
-      - uses: actions-rs/cargo@v1
-        with:
-          args: --all-features
-          command: test
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo test --all-features
 
   shell-tests:
-    name: 💻 shell tests
+    name: shell tests
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         os: [ubuntu-latest, macOS-latest]
         rust: [stable, beta, nightly]
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions-rs/toolchain@v1
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@master
         with:
-          override: true
-          profile: minimal
           toolchain: ${{ matrix.rust }}
+      - uses: Swatinem/rust-cache@v2
       - name: Test pipe
         run: if ! echo "{\"a\":4}" | cargo run '"a"' | grep -q "4"; then exit 1; fi
       - name: Test raw-string flag
@@ -102,19 +96,18 @@ jobs:
 
   bench:
     if: "!contains(github.ref, 'refs/heads/main')"
-    name: ⚡bench
+    name: bench
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         os: [ubuntu-latest]
         rust: [stable, beta, nightly]
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions-rs/toolchain@v1
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@master
         with:
-          override: true
-          profile: minimal
           toolchain: ${{ matrix.rust }}
+      - uses: Swatinem/rust-cache@v2
       - name: Run the benchmarks against the current branch, main and compare
         run: |
           git fetch origin main

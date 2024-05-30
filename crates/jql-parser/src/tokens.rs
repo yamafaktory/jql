@@ -1,6 +1,10 @@
 use std::{
     fmt,
-    num::NonZeroUsize,
+    num::{
+        NonZeroUsize,
+        ParseIntError,
+    },
+    str::FromStr,
     string::ToString,
 };
 
@@ -26,6 +30,14 @@ impl From<Index> for usize {
 impl fmt::Display for Index {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "Index ({})", self.0)
+    }
+}
+
+impl FromStr for Index {
+    type Err = ParseIntError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Ok(Index(s.parse::<usize>()?))
     }
 }
 
@@ -70,21 +82,22 @@ impl fmt::Display for Range {
 }
 
 /// `Lens` used for `LensSelector`.
-/// Internally mapped to a tuple of `Option` of `Index`.
+/// Internally mapped to a tuple of a slice of `Token` and `Option` of
+/// `LensValue`.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Lens<'a>(pub(crate) &'a str, pub(crate) Option<LensValue<'a>>);
+pub struct Lens<'a>(pub(crate) Vec<Token<'a>>, pub(crate) Option<LensValue<'a>>);
 
 impl<'a> Lens<'a> {
     #[must_use]
     /// Creates a new `Lens`.
-    pub fn new(key: &'a str, value: Option<LensValue<'a>>) -> Lens<'a> {
-        Lens(key, value)
+    pub fn new(tokens: &[Token<'a>], value: Option<LensValue<'a>>) -> Lens<'a> {
+        Lens(tokens.to_vec(), value)
     }
 
     #[must_use]
     /// Gets the content of a `Lens`.
-    pub fn get(&self) -> (&'a str, Option<LensValue<'a>>) {
-        (self.0, self.1.clone())
+    pub fn get(&self) -> (Vec<Token<'a>>, Option<LensValue<'a>>) {
+        (self.0.clone(), self.1.clone())
     }
 }
 
@@ -93,7 +106,7 @@ impl<'a> fmt::Display for Lens<'a> {
         write!(
             f,
             "{}{}",
-            self.0,
+            self.0.stringify(),
             match &self.1 {
                 Some(lens_value) => {
                     lens_value.to_string()

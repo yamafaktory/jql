@@ -7,7 +7,7 @@ version = "0.0.0"
 cargo-fuzz = true
 
 [dependencies]
-libfuzzer-sys = "0.4.6"
+libfuzzer-sys = "0.4.7"
 
 [dependencies.jql-parser]
 path = "../crates/jql-parser"
