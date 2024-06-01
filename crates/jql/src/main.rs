@@ -21,10 +21,10 @@ use colored_json::{
     PrettyFormatter,
 };
 use jql_runner::runner;
+use mimalloc::MiMalloc;
 use panic::use_custom_panic_hook;
-use serde::Deserialize;
 use serde_json::Value;
-use serde_stacker::Deserializer;
+use simd_json::serde;
 use tokio::{
     fs::File,
     io::{
@@ -37,8 +37,11 @@ use tokio::{
     },
 };
 
+#[global_allocator]
+static GLOBAL: MiMalloc = MiMalloc;
+
 /// Reads a file from `path`.
-async fn read_file(path: impl AsRef<Path>) -> Result<String> {
+async fn read_file(path: impl AsRef<Path>) -> Result<Vec<u8>> {
     let display_path = path.as_ref().display();
     let mut file = File::open(&path)
         .await
@@ -49,7 +52,7 @@ async fn read_file(path: impl AsRef<Path>) -> Result<String> {
         .await
         .with_context(|| format!("Failed to read from file {display_path}"))?;
 
-    Ok(String::from_utf8_lossy(&contents).into_owned())
+    Ok(contents)
 }
 
 /// Renders the output or the error and exits.
@@ -64,27 +67,23 @@ fn render(result: Result<String>) {
 }
 
 /// Processes the JSON content based on the arguments.
-async fn process_json(json: &str, args: &Args) -> Result<String> {
+async fn process_json(json: &[u8], args: &Args) -> Result<String> {
     if args.validate {
-        return serde_json::from_str::<Value>(json).map_or_else(
+        return serde::from_slice::<Value>(&mut json.to_vec()).map_or_else(
             |_| Err(anyhow!("Invalid JSON file or content")),
             |_| Ok("Valid JSON file or content".to_string()),
         );
     }
 
     let query = match args.query_from_file.as_deref() {
-        Some(path) => read_file(path).await?,
+        Some(path) => String::from_utf8_lossy(&read_file(path).await?).into_owned(),
         // We can safely unwrap since clap is taking care of the validation.
         None => args.query.as_deref().unwrap().to_string(),
     };
 
-    let mut deserializer = serde_json::Deserializer::from_str(json);
-
-    deserializer.disable_recursion_limit();
-
-    let deserializer = Deserializer::new(&mut deserializer);
-    let value: Value = Value::deserialize(deserializer)
+    let value = serde::from_slice::<Value>(&mut json.to_vec())
         .with_context(|| "Failed to deserialize the JSON data".to_string())?;
+
     let result: Value = runner::raw(&query, &value)?;
 
     if args.inline {
@@ -128,7 +127,7 @@ async fn main() -> Result<()> {
             .await
             .with_context(|| "Failed to read stream".to_string())?
         {
-            render(process_json(&line, &args).await);
+            render(process_json(line.as_bytes(), &args).await);
 
             stdout
                 .flush()
@@ -153,7 +152,7 @@ async fn main() -> Result<()> {
     let lines = String::from_utf8(buffer)
         .with_context(|| "Failed to convert piped content from stdin".to_string())?;
 
-    render(process_json(&lines, &args).await);
+    render(process_json(lines.as_bytes(), &args).await);
 
     Ok(())
 }

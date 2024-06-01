@@ -13,7 +13,7 @@ Pronounce it as **jackal** 🐺.
 
 ## 📜 Philosophy
 
-- ⚡Be fast
+- ⚡Be fast (**SIMD** + **parallelism**)
 - 🪶 Stay lightweight
 - 🎮 Keep its features as simple as possible
 - 🧠 Avoid redundancy
