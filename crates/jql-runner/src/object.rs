@@ -1,9 +1,12 @@
 use std::{
-    collections::HashSet,
     num::NonZeroUsize,
     string::ToString,
 };
 
+use indexmap::{
+    IndexMap,
+    IndexSet,
+};
 use jql_parser::tokens::{
     Index,
     Range,
@@ -51,22 +54,22 @@ pub(crate) fn get_object_multi_key(
 ) -> Result<Value, JqlRunnerError> {
     let len = keys.len();
 
-    let (new_map, found_keys) = as_object_mut(json)?
+    let (mut result, found_keys) = as_object_mut(json)?
         .iter_mut()
         .par_bridge()
         .try_fold_with(
-            (Map::with_capacity(len), HashSet::with_capacity(len)),
-            |mut acc: (Map<String, Value>, HashSet<String>), (key, value)| {
-                if keys.iter().any(|s| s == key) {
-                    acc.0.insert(key.to_string(), value.clone());
+            (IndexMap::with_capacity(len), IndexSet::with_capacity(len)),
+            |mut acc: (IndexMap<usize, Value>, IndexSet<String>), (key, value)| {
+                if let Some(index) = keys.iter().position(|s| s == key) {
+                    acc.0.insert(index, value.clone());
                     acc.1.insert(key.to_string());
                 }
 
-                Ok::<(Map<String, Value>, HashSet<String>), JqlRunnerError>(acc)
+                Ok::<(IndexMap<usize, Value>, IndexSet<String>), JqlRunnerError>(acc)
             },
         )
         .try_reduce(
-            || (Map::with_capacity(len), HashSet::with_capacity(len)),
+            || (IndexMap::with_capacity(len), IndexSet::with_capacity(len)),
             |mut a, b| {
                 a.0.extend(b.0);
                 a.1.extend(b.1);
@@ -75,7 +78,7 @@ pub(crate) fn get_object_multi_key(
             },
         )?;
 
-    let keys_set: HashSet<String> = keys.iter().map(ToString::to_string).collect();
+    let keys_set: IndexSet<String> = keys.iter().map(ToString::to_string).collect();
     let mut keys_not_found: Vec<String> = found_keys
         .symmetric_difference(&keys_set)
         .map(ToString::to_string)
@@ -88,6 +91,17 @@ pub(crate) fn get_object_multi_key(
             parent: json.clone(),
         });
     }
+
+    // Restore the original order.
+    result.par_sort_keys();
+
+    let new_map = result
+        .into_iter()
+        .fold(Map::with_capacity(len), |mut acc, (index, value)| {
+            acc.insert(keys[index].to_owned(), value);
+
+            acc
+        });
 
     Ok(json!(new_map))
 }
@@ -147,7 +161,7 @@ pub(crate) fn get_object_indexes(
     }
 
     let len = indexes.len();
-    // We can safely unwrap since indexes can be empty.
+    // We can safely unwrap since indexes can't be empty.
     let max: usize = (*indexes.iter().max().unwrap()).into();
 
     if max + 1 > mut_object.len() {
@@ -157,26 +171,26 @@ pub(crate) fn get_object_indexes(
         });
     }
 
-    let result = mut_object
+    let mut result = mut_object
         .iter_mut()
         .enumerate()
         .par_bridge()
         .try_fold_with(
-            Map::with_capacity(len),
-            |mut acc: Map<String, Value>, (index, (key, value))| {
-                if indexes.iter().any(|i| {
+            IndexMap::with_capacity(len),
+            |mut acc: IndexMap<usize, (String, Value)>, (index, (key, value))| {
+                if let Some(index) = indexes.iter().position(|i| {
                     let num: usize = (*i).into();
 
                     num == index
                 }) {
-                    acc.insert(key.to_string(), value.clone());
+                    acc.insert(index, (key.to_string(), value.clone()));
                 }
 
-                Ok::<Map<String, Value>, JqlRunnerError>(acc)
+                Ok::<IndexMap<usize, (String, Value)>, JqlRunnerError>(acc)
             },
         )
         .try_reduce(
-            || Map::with_capacity(len),
+            || IndexMap::with_capacity(len),
             |mut a, b| {
                 a.extend(b);
 
@@ -184,7 +198,18 @@ pub(crate) fn get_object_indexes(
             },
         )?;
 
-    Ok(json!(result))
+    // Restore the original order.
+    result.par_sort_keys();
+
+    let new_map = result
+        .into_iter()
+        .fold(Map::with_capacity(len), |mut acc, (_, (key, value))| {
+            acc.insert(key, value);
+
+            acc
+        });
+
+    Ok(json!(new_map))
 }
 
 /// Takes a reference of a `Range` and a mutable reference of a JSON `Value`.
@@ -212,36 +237,48 @@ pub(crate) fn get_object_range(range: &Range, json: &mut Value) -> Result<Value,
 
     let is_natural_order = start < end;
 
-    let result = mut_object
+    let mut result = mut_object
         .iter_mut()
         .enumerate()
         .par_bridge()
         .try_fold_with(
-            Map::with_capacity(len),
-            |mut acc: Map<String, Value>, (index, (key, value))| {
+            IndexMap::with_capacity(len),
+            |mut acc: IndexMap<usize, (String, Value)>, (index, (key, value))| {
                 if (is_natural_order && index >= start && index <= end)
                     || (!is_natural_order && index >= end && index <= start)
                 {
-                    acc.insert(key.to_string(), value.clone());
+                    acc.insert(index, (key.to_string(), value.clone()));
                 }
 
-                Ok::<Map<String, Value>, JqlRunnerError>(acc)
+                Ok::<IndexMap<usize, (String, Value)>, JqlRunnerError>(acc)
             },
         )
         .try_reduce(
-            || Map::with_capacity(len),
-            |mut a, mut b| {
-                if is_natural_order {
-                    a.extend(b);
-                } else {
-                    a.append(&mut b);
-                }
+            || IndexMap::with_capacity(len),
+            |mut a, b| {
+                a.extend(b);
 
                 Ok(a)
             },
         )?;
 
-    Ok(json!(result))
+    // Restore the original order.
+    result.par_sort_keys();
+
+    // Reverse if not in natural order.
+    if !is_natural_order {
+        result.reverse();
+    }
+
+    let new_map = result
+        .into_iter()
+        .fold(Map::with_capacity(len), |mut acc, (_, (key, value))| {
+            acc.insert(key, value);
+
+            acc
+        });
+
+    Ok(json!(new_map))
 }
 
 #[cfg(test)]
@@ -250,7 +287,10 @@ mod tests {
         Index,
         Range,
     };
-    use serde_json::json;
+    use serde_json::{
+        json,
+        Value,
+    };
 
     use super::{
         get_flattened_object,
@@ -260,6 +300,17 @@ mod tests {
         get_object_range,
     };
     use crate::errors::JqlRunnerError;
+
+    /// If we perform a direct comparison between the processed value and
+    /// the expected value from the `json!` macro, we might get a false
+    /// positive since the order of the keys is not checked on equality.
+    fn assert_string_eq(processed: Result<Value, JqlRunnerError>, expected: Value) {
+        let processed = processed.unwrap();
+        let processed = serde_json::to_string(&processed).unwrap();
+        let expected = serde_json::to_string(&expected).unwrap();
+
+        assert_eq!(processed, expected);
+    }
 
     #[test]
     fn check_get_object_key() {
@@ -278,14 +329,13 @@ mod tests {
     #[test]
     fn check_get_object_multi_key() {
         let value = json!({ "a": 1, "b": 2, "c": 3, "d": 4, "e": 5 });
-
         assert_eq!(
             get_object_multi_key(&["a", "b", "c"], &mut value.clone()),
             Ok(json!({ "a": 1, "b": 2, "c": 3 }))
         );
-        assert_eq!(
+        assert_string_eq(
             get_object_multi_key(&["c", "a", "b"], &mut value.clone()),
-            Ok(json!({ "c": 3, "a": 1, "b": 2 }))
+            json!({"c": 3, "a": 1, "b": 2}),
         );
         assert_eq!(
             get_object_multi_key(&["w", "a", "t"], &mut value.clone()),
@@ -320,12 +370,12 @@ mod tests {
     fn check_get_object_indexes() {
         let value = json!({ "a": 1, "b": 2, "c": 3, "d": 4, "e": 5 });
 
-        assert_eq!(
+        assert_string_eq(
             get_object_indexes(
                 &[Index::new(4), Index::new(2), Index::new(0)],
-                &mut value.clone()
+                &mut value.clone(),
             ),
-            Ok(json!({ "e": 5, "c": 3, "a": 1 }))
+            json!({ "e": 5, "c": 3, "a": 1 }),
         );
         assert_eq!(
             get_object_indexes(
@@ -350,19 +400,20 @@ mod tests {
             ),
             Ok(json!({}))
         );
-        assert_eq!(
+
+        assert_string_eq(
             get_object_range(
                 &Range::new(Some(Index::new(0)), Some(Index::new(2))),
-                &mut value.clone()
+                &mut value.clone(),
             ),
-            Ok(json!({ "a": 1, "b": 2, "c": 3 }))
+            json!({ "a": 1, "b": 2, "c": 3 }),
         );
-        assert_eq!(
+        assert_string_eq(
             get_object_range(
                 &Range::new(Some(Index::new(2)), Some(Index::new(0))),
-                &mut value.clone()
+                &mut value.clone(),
             ),
-            Ok(json!({ "c": 3, "b": 2, "a": 1 }))
+            json!({ "c": 3, "b": 2, "a": 1 }),
         );
         assert_eq!(
             get_object_range(
@@ -371,9 +422,9 @@ mod tests {
             ),
             Ok(json!({ "a": 1 }))
         );
-        assert_eq!(
+        assert_string_eq(
             get_object_range(&Range::new(None, Some(Index::new(4))), &mut value.clone()),
-            Ok(json!({ "a": 1, "b": 2, "c": 3, "d": 4, "e": 5 }))
+            json!({ "a": 1, "b": 2, "c": 3, "d": 4, "e": 5 }),
         );
         assert_eq!(
             get_object_range(&Range::new(Some(Index::new(4)), None), &mut value.clone()),

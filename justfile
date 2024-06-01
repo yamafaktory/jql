@@ -1,3 +1,7 @@
+# Clippy.
+clippy:
+  cargo clippy
+
 # Fuzz parser.
 fuzz:
   cargo fuzz run fuzz_parser

@@ -1,18 +1,18 @@
 [package]
-authors = { workspace = true }
-categories = { workspace = true }
+authors.workspace = true
+categories.workspace = true
 description = "Parser for jql - the JSON Query Language tool."
-edition = { workspace = true }
-keywords = { workspace = true }
-license = { workspace = true }
+edition.workspace = true
+keywords.workspace = true
+license.workspace = true
 name = "jql-parser"
-readme = { workspace = true }
-repository = { workspace = true }
-version = { workspace = true }
+readme.workspace = true
+repository.workspace = true
+version.workspace = true
 
 [dependencies]
-thiserror = { workspace = true }
-winnow = { version = "0.6.8", features = ["simd"] }
+thiserror.workspace = true
+winnow = { version = "0.6.9", features = ["simd"] }
 
 [lib]
 path = "src/lib.rs"
