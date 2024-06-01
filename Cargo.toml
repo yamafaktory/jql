@@ -21,8 +21,8 @@ version = "7.1.10"
 [workspace.lints.rust]
 missing_debug_implementations = "warn"
 missing_docs = "warn"
-nonstandard_style = "deny"
-rust_2021_compatibility = "forbid"
+nonstandard_style = { level = "deny", priority= -1 }
+rust_2021_compatibility = { level = "forbid", priority= -1 }
 unreachable_pub = "warn"
 unsafe_code = "deny"
 

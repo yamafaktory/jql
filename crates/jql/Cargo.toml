@@ -1,21 +1,21 @@
 [package]
-authors = { workspace = true }
-categories = { workspace = true }
+authors.workspace = true
+categories.workspace = true
 description = "jql - JSON Query Language - is a fast and simple command-line tool to manipulate JSON data."
-edition = { workspace = true }
-keywords = { workspace = true }
-license = { workspace = true }
+edition.workspace = true
+keywords.workspace = true
+license.workspace = true
 name = "jql"
-readme = { workspace = true }
-repository = { workspace = true }
-version = { workspace = true }
+readme.workspace = true
+repository.workspace = true
+version.workspace = true
 
 [dependencies]
 anyhow = "1.0.86"
 clap = { version = "4.5.4", features = ["derive"] }
 colored_json = { version = "5.0.0" }
 jql-runner = { path = "../jql-runner", version = "7.1.10" }
-serde = "1.0.202"
+serde = "1.0.203"
 serde_stacker = "0.1.11"
-serde_json = { workspace = true }
-tokio = { version = "1.37.0", features = ["fs", "io-std", "io-util", "macros", "rt-multi-thread"] }
+serde_json.workspace = true
+tokio = { version = "1.38.0", features = ["fs", "io-std", "io-util", "macros", "rt-multi-thread"] }
