@@ -1,20 +1,21 @@
 [package]
-authors = { workspace = true }
-categories = { workspace = true }
+authors.workspace = true
+categories.workspace = true
 description = "Runner for jql - the JSON Query Language tool."
-edition = { workspace = true }
-keywords = { workspace = true }
-license = { workspace = true }
+edition.workspace = true
+keywords.workspace = true
+license.workspace = true
 name = "jql-runner"
-readme = { workspace = true }
-repository = { workspace = true }
-version = { workspace = true }
+readme.workspace = true
+repository.workspace = true
+version.workspace = true
 
 [dependencies]
-jql-parser = { path = "../jql-parser", version = "7.1.10" }
+indexmap = { version = "2.2.6", features = ["rayon"] }
+jql-parser = { path = "../jql-parser", version = "7.1.11" }
 rayon = "1.10.0"
-serde_json = { workspace = true }
-thiserror = { workspace = true }
+serde_json.workspace = true
+thiserror.workspace = true
 
 [dev-dependencies]
 criterion = "0.5.1"
