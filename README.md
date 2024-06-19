@@ -44,6 +44,12 @@ yay -S jql
 cargo install jql
 ```
 
+### Cargo Binstall
+
+```sh
+cargo binstall jql
+```
+
 ### Fedora
 
 ```sh
