@@ -11,7 +11,7 @@ repository.workspace = true
 version.workspace = true
 
 [dependencies]
-indexmap = { version = "2.2.6", features = ["rayon"] }
+indexmap = { version = "2.5.0", features = ["rayon"] }
 jql-parser = { path = "../jql-parser", version = "7.1.13" }
 rayon = "1.10.0"
 serde_json.workspace = true

@@ -1,4 +1,6 @@
 use winnow::{
+    PResult,
+    Parser,
     combinator::{
         alt,
         dispatch,
@@ -7,8 +9,6 @@ use winnow::{
         peek,
     },
     token::any,
-    PResult,
-    Parser,
 };
 
 use crate::{
