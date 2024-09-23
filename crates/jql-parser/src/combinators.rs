@@ -1,4 +1,6 @@
 use winnow::{
+    PResult,
+    Parser,
     ascii::{
         digit1,
         multispace0,
@@ -21,8 +23,6 @@ use winnow::{
         literal,
         take_until,
     },
-    PResult,
-    Parser,
 };
 
 use crate::tokens::{
@@ -241,6 +241,11 @@ pub(crate) fn parse_group_separator<'a>(input: &mut &'a str) -> PResult<&'a str>
 #[cfg(test)]
 mod tests {
     use super::{
+        FLATTEN,
+        GROUP_SEP,
+        PIPE_IN,
+        PIPE_OUT,
+        TRUNCATE,
         parse_array_index,
         parse_array_range,
         parse_flatten_operator,
@@ -256,11 +261,6 @@ mod tests {
         parse_pipe_in_operator,
         parse_pipe_out_operator,
         parse_truncate_operator,
-        FLATTEN,
-        GROUP_SEP,
-        PIPE_IN,
-        PIPE_OUT,
-        TRUNCATE,
     };
     use crate::tokens::{
         Index,

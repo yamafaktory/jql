@@ -13,9 +13,9 @@ use jql_parser::tokens::{
 };
 use rayon::prelude::*;
 use serde_json::{
-    json,
     Map,
     Value,
+    json,
 };
 
 use crate::errors::JqlRunnerError;
@@ -288,8 +288,8 @@ mod tests {
         Range,
     };
     use serde_json::{
-        json,
         Value,
+        json,
     };
 
     use super::{
