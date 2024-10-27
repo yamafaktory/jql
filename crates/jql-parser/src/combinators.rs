@@ -57,6 +57,8 @@ static TRUE: &str = "true";
 /// Lenses start.
 static LENSES_START: &str = "|={";
 
+/// Keys operator.
+static KEYS: &str = "@";
 /// Flatten operator.
 static FLATTEN: &str = "..";
 /// Group separator.
@@ -213,6 +215,11 @@ pub(crate) fn parse_lenses<'a>(
     .parse_next(input)
 }
 
+/// A combinator which parses a keys operator.
+pub(crate) fn parse_keys_operator<'a>(input: &mut &'a str) -> PResult<&'a str> {
+    literal(KEYS).parse_next(input)
+}
+
 /// A combinator which parses a flatten operator.
 pub(crate) fn parse_flatten_operator<'a>(input: &mut &'a str) -> PResult<&'a str> {
     literal(FLATTEN).parse_next(input)
@@ -243,6 +250,7 @@ mod tests {
     use super::{
         FLATTEN,
         GROUP_SEP,
+        KEYS,
         PIPE_IN,
         PIPE_OUT,
         TRUNCATE,
@@ -252,6 +260,7 @@ mod tests {
         parse_group_separator,
         parse_indexes,
         parse_key,
+        parse_keys_operator,
         parse_lens,
         parse_lenses,
         parse_multi_key,
@@ -345,6 +354,12 @@ mod tests {
             Ok((Some(Index(1)), Some(Index(3))))
         );
         assert!(parse_object_range(&mut "{}").is_err());
+    }
+
+    #[test]
+    fn check_parse_keys_operator() {
+        assert_eq!(parse_keys_operator(&mut "@"), Ok(KEYS));
+        assert!(parse_keys_operator(&mut "").is_err());
     }
 
     #[test]

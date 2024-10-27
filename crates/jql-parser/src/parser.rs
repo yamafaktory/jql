@@ -18,6 +18,7 @@ use crate::{
         parse_flatten_operator,
         parse_group_separator,
         parse_key,
+        parse_keys_operator,
         parse_lenses,
         parse_multi_key,
         parse_object_index,
@@ -67,6 +68,7 @@ fn parse_fragment<'a>(input: &mut &'a str) -> PResult<Token<'a>> {
                     parse_pipe_in_operator.value(Token::PipeInOperator),
                 ))
             },
+            '@' => parse_keys_operator.value(Token::FlattenOperator),
             '.' => parse_flatten_operator.value(Token::FlattenOperator),
             '<' => parse_pipe_out_operator.value(Token::PipeOutOperator),
             ',' => parse_group_separator.value(Token::GroupSeparator),

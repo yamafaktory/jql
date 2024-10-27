@@ -178,6 +178,29 @@ pub(crate) fn get_array_lenses(lenses: &[Lens], json: &mut Value) -> Result<Valu
     Ok(json!(result))
 }
 
+/// Takes a reference of a JSON `Value`.
+/// Converts the original array as indexes and returns a JSON `Value` or an error.
+/// Note: the runner checks that the input is a JSON array.
+pub(crate) fn get_array_as_indexes(json: &Value) -> Result<Value, JqlRunnerError> {
+    let result = json
+        .as_array()
+        .unwrap()
+        .par_iter()
+        .enumerate()
+        .try_fold_with(Vec::new(), |mut acc: Vec<Value>, (i, _)| {
+            acc.push(i.into());
+
+            Ok::<Vec<Value>, JqlRunnerError>(acc)
+        })
+        .try_reduce(Vec::new, |mut a, b| {
+            a.extend(b);
+
+            Ok(a)
+        })?;
+
+    Ok(json!(result))
+}
+
 #[cfg(test)]
 mod tests {
     use jql_parser::tokens::{
@@ -190,6 +213,7 @@ mod tests {
     use serde_json::json;
 
     use super::{
+        get_array_as_indexes,
         get_array_index,
         get_array_indexes,
         get_array_lenses,
@@ -228,6 +252,13 @@ mod tests {
                 parent: value
             })
         );
+    }
+
+    #[test]
+    fn check_get_array_as_indexes() {
+        let value = json!(["a", "b", "c"]);
+
+        assert_eq!(get_array_as_indexes(&value), Ok(json!([0, 1, 2])));
     }
 
     #[test]

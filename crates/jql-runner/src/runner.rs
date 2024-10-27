@@ -11,6 +11,7 @@ use serde_json::{
 
 use crate::{
     array::{
+        get_array_as_indexes,
         get_array_indexes,
         get_array_lenses,
         get_array_range,
@@ -19,6 +20,7 @@ use crate::{
     errors::JqlRunnerError,
     object::{
         get_flattened_object,
+        get_object_as_keys,
         get_object_indexes,
         get_object_key,
         get_object_multi_key,
@@ -135,6 +137,15 @@ fn matcher(
             Value::Array(_) => get_flattened_array(&acc),
             Value::Object(_) => Ok(get_flattened_object(&acc)),
             _ => Err(JqlRunnerError::FlattenError(acc)),
+        },
+        Token::KeyOperator => match acc {
+            Value::Array(_) => get_array_as_indexes(&acc),
+            Value::Object(_) => get_object_as_keys(&mut acc),
+            // Return the original value for Null, Bool, Number and String.
+            Value::Bool(bool) => Ok(json!(bool)),
+            Value::Number(number) => Ok(json!(number)),
+            Value::String(string) => Ok(json!(string)),
+            Value::Null => Ok(json!(null)),
         },
         Token::GroupSeparator => unreachable!(),
         Token::KeySelector(key) => get_object_key(key, &acc),
@@ -278,5 +289,12 @@ mod tests {
                 { "a": { "b": { "c": 2 }}}
             ]))
         );
+    }
+
+    #[test]
+    fn check_runner_keys() {
+        let value = json!({ "a": { "b": { "c": { "d": 1 }}}});
+
+        assert_eq!(raw(r#""a""b""c"@"#, &value), Ok(json!(["d"])));
     }
 }
