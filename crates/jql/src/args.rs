@@ -61,6 +61,11 @@ Flatten operator ..
     ┬
     ╰→ flattens arrays and objects
 
+Keys operator @
+    ┬
+    ╰→ returns the keys of an object or the indexes of an array,
+       other primitives are returned as is
+
 Pipe in operator |> 
     ┬
     ╰→ applies the next tokens in parallel on each element of an array

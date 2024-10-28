@@ -68,7 +68,7 @@ fn parse_fragment<'a>(input: &mut &'a str) -> PResult<Token<'a>> {
                     parse_pipe_in_operator.value(Token::PipeInOperator),
                 ))
             },
-            '@' => parse_keys_operator.value(Token::FlattenOperator),
+            '@' => parse_keys_operator.value(Token::KeyOperator),
             '.' => parse_flatten_operator.value(Token::FlattenOperator),
             '<' => parse_pipe_out_operator.value(Token::PipeOutOperator),
             ',' => parse_group_separator.value(Token::GroupSeparator),
