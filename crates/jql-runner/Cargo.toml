@@ -12,7 +12,7 @@ version.workspace = true
 
 [dependencies]
 indexmap = { version = "2.6.0", features = ["rayon"] }
-jql-parser = { path = "../jql-parser", version = "7.2.0" }
+jql-parser = { path = "../jql-parser", version = "8.0.0" }
 rayon = "1.10.0"
 serde_json.workspace = true
 thiserror.workspace = true
