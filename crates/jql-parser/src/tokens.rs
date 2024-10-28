@@ -101,7 +101,7 @@ impl<'a> Lens<'a> {
     }
 }
 
-impl<'a> fmt::Display for Lens<'a> {
+impl fmt::Display for Lens<'_> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}{}", self.0.stringify(), match &self.1 {
             Some(lens_value) => {
@@ -125,7 +125,7 @@ pub enum LensValue<'a> {
     String(&'a str),
 }
 
-impl<'a> fmt::Display for LensValue<'a> {
+impl fmt::Display for LensValue<'_> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             LensValue::Bool(boolean) => {
@@ -151,6 +151,8 @@ pub enum Token<'a> {
     ArrayRangeSelector(Range),
     /// Flatten operator.
     FlattenOperator,
+    /// Key operator.
+    KeyOperator,
     /// Group separator.
     GroupSeparator,
     /// Key selector.
@@ -177,6 +179,7 @@ impl<'a> Token<'a> {
             Token::ArrayIndexSelector(_) => "Array Index Selector",
             Token::ArrayRangeSelector(_) => "Array Range Selector",
             Token::FlattenOperator => "Flatten Operator",
+            Token::KeyOperator => "Key Operator",
             Token::GroupSeparator => "Group Separator",
             Token::KeySelector(_) => "Key Selector",
             Token::LensSelector(_) => "Lens Selector",
@@ -190,7 +193,7 @@ impl<'a> Token<'a> {
     }
 }
 
-impl<'a> fmt::Display for Token<'a> {
+impl fmt::Display for Token<'_> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             Token::ArrayIndexSelector(indexes) | Token::ObjectIndexSelector(indexes) => {
@@ -223,6 +226,7 @@ impl<'a> fmt::Display for Token<'a> {
                 write!(f, "{} {formatted_keys}", self.get_name())
             }
             Token::FlattenOperator
+            | Token::KeyOperator
             | Token::GroupSeparator
             | Token::PipeInOperator
             | Token::PipeOutOperator

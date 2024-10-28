@@ -339,6 +339,28 @@ Flattens arrays and objects.
 }
 ```
 
+##### Keys operator
+
+Returns the keys of an object or the indices of an array. Other primitives are returned as is.
+
+**JSON input**
+
+```json
+{ "a": 1, "b": 2, "c": 3 }
+```
+
+**Query**
+
+```sh
+'@'
+```
+
+**JSON output**
+
+```json
+["a", "b", "c"]
+```
+
 ##### Pipe in operator
 
 Applies the next tokens in parallel on each element of an array.
