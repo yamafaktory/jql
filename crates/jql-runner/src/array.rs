@@ -313,7 +313,7 @@ mod tests {
         let value = json!(1);
         assert_eq!(
             get_array_range(&Range::new(None, Some(Index::new(5))), &mut value.clone()),
-            Err(JqlRunnerError::InvalidArrayError(value))
+            Err(JqlRunnerError::InvalidArrayError(value.clone()))
         );
     }
 
