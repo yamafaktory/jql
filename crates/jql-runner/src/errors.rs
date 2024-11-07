@@ -58,11 +58,11 @@ pub enum JqlRunnerError {
     },
 
     /// Invalid array error.
-    #[error("Value {0} is not a JSON array ({})", get_json_type(.0))]
+    #[error("Value {} is not a JSON array ({})", .0, get_json_type(.0))]
     InvalidArrayError(Value),
 
     /// Invalid object error.
-    #[error("Value {0} is not a JSON object ({})", get_json_type(.0))]
+    #[error("Value {} is not a JSON object ({})", .0, get_json_type(.0))]
     InvalidObjectError(Value),
 
     /// Key not found error.
