@@ -5,8 +5,8 @@ members = [
 ]
 
 [workspace.dependencies]
-thiserror = "2.0.0"
-serde_json = { features = ["preserve_order", "unbounded_depth"], version = "1.0.132" }
+thiserror = "2.0.4"
+serde_json = { features = ["preserve_order", "unbounded_depth"], version = "1.0.133" }
 
 [workspace.package]
 authors = ["Davy Duperron <yamafaktory@gmail.com>"]
