@@ -1,3 +1,7 @@
+# Audit.
+audit:
+  cargo audit
+
 # Clippy.
 clippy:
   cargo clippy
