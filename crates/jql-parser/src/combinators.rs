@@ -1,6 +1,6 @@
 use winnow::{
-    PResult,
     Parser,
+    Result,
     ascii::{
         digit1,
         multispace0,
@@ -82,12 +82,12 @@ where
 }
 
 /// A combinator which parses a stringified number as an `Index`.
-pub(crate) fn parse_number(input: &mut &str) -> PResult<Index> {
+pub(crate) fn parse_number(input: &mut &str) -> Result<Index> {
     digit1.parse_to().parse_next(input)
 }
 
 /// A combinator which parses a key surrounded by double quotes.
-pub(crate) fn parse_key<'a>(input: &mut &'a str) -> PResult<&'a str> {
+pub(crate) fn parse_key<'a>(input: &mut &'a str) -> Result<&'a str> {
     trim(delimited(
         DOUBLE_QUOTE,
         take_until(0.., r#"""#),
@@ -97,22 +97,22 @@ pub(crate) fn parse_key<'a>(input: &mut &'a str) -> PResult<&'a str> {
 }
 
 /// A combinator which parses a list of `Index`.
-pub(crate) fn parse_indexes(input: &mut &str) -> PResult<Vec<Index>> {
+pub(crate) fn parse_indexes(input: &mut &str) -> Result<Vec<Index>> {
     separated(1.., parse_number, trim(COMMA)).parse_next(input)
 }
 
 /// A combinator which parses a list of keys.
-fn parse_keys<'a>(input: &mut &'a str) -> PResult<Vec<&'a str>> {
+fn parse_keys<'a>(input: &mut &'a str) -> Result<Vec<&'a str>> {
     trim(separated(1.., parse_key, trim(COMMA))).parse_next(input)
 }
 
 /// A combinator which parses a list of keys surrounded by curly braces.
-pub(crate) fn parse_multi_key<'a>(input: &mut &'a str) -> PResult<Vec<&'a str>> {
+pub(crate) fn parse_multi_key<'a>(input: &mut &'a str) -> Result<Vec<&'a str>> {
     delimited(CURLY_BRACKET_OPEN, parse_keys, CURLY_BRACKET_CLOSE).parse_next(input)
 }
 
 /// A combinator which parses an array of `Index`.
-pub(crate) fn parse_array_index(input: &mut &str) -> PResult<Vec<Index>> {
+pub(crate) fn parse_array_index(input: &mut &str) -> Result<Vec<Index>> {
     delimited(
         trim(SQUARE_BRACKET_OPEN),
         parse_indexes,
@@ -122,7 +122,7 @@ pub(crate) fn parse_array_index(input: &mut &str) -> PResult<Vec<Index>> {
 }
 
 /// A combinator which parses an array range.
-pub(crate) fn parse_array_range(input: &mut &str) -> PResult<(Option<Index>, Option<Index>)> {
+pub(crate) fn parse_array_range(input: &mut &str) -> Result<(Option<Index>, Option<Index>)> {
     trim(delimited(
         SQUARE_BRACKET_OPEN,
         separated_pair(opt(parse_number), trim(COLON), opt(parse_number)),
@@ -132,7 +132,7 @@ pub(crate) fn parse_array_range(input: &mut &str) -> PResult<(Option<Index>, Opt
 }
 
 /// A combinator which parses a list of index surrounded by curly braces.
-pub(crate) fn parse_object_index(input: &mut &str) -> PResult<Vec<Index>> {
+pub(crate) fn parse_object_index(input: &mut &str) -> Result<Vec<Index>> {
     delimited(
         trim(CURLY_BRACKET_OPEN),
         parse_indexes,
@@ -142,7 +142,7 @@ pub(crate) fn parse_object_index(input: &mut &str) -> PResult<Vec<Index>> {
 }
 
 /// A combinator which parses an object range.
-pub(crate) fn parse_object_range(input: &mut &str) -> PResult<(Option<Index>, Option<Index>)> {
+pub(crate) fn parse_object_range(input: &mut &str) -> Result<(Option<Index>, Option<Index>)> {
     delimited(
         trim(CURLY_BRACKET_OPEN),
         separated_pair(opt(parse_number), trim(COLON), opt(parse_number)),
@@ -152,7 +152,7 @@ pub(crate) fn parse_object_range(input: &mut &str) -> PResult<(Option<Index>, Op
 }
 
 /// A combinator which parses any lens value.
-pub(crate) fn parse_lens_value<'a>(input: &mut &'a str) -> PResult<LensValue<'a>> {
+pub(crate) fn parse_lens_value<'a>(input: &mut &'a str) -> Result<LensValue<'a>> {
     dispatch! {peek(any);
         'f' => FALSE.value(LensValue::Bool(false)),
         't' => TRUE.value(LensValue::Bool(true)),
@@ -164,7 +164,7 @@ pub(crate) fn parse_lens_value<'a>(input: &mut &'a str) -> PResult<LensValue<'a>
 }
 //
 /// A combinator which parses a lens key.
-fn parse_lens_key<'a>(input: &mut &'a str) -> PResult<Token<'a>> {
+fn parse_lens_key<'a>(input: &mut &'a str) -> Result<Token<'a>> {
     trim(
         dispatch! {peek(any);
             '[' => {
@@ -188,14 +188,14 @@ fn parse_lens_key<'a>(input: &mut &'a str) -> PResult<Token<'a>> {
 }
 
 /// A combinator which parses multiple lens keys.
-fn parse_lens_keys<'a>(input: &mut &'a str) -> PResult<Vec<Token<'a>>> {
+fn parse_lens_keys<'a>(input: &mut &'a str) -> Result<Vec<Token<'a>>> {
     repeat(1.., parse_lens_key).parse_next(input)
 }
 
 /// A combinator which parses a lens.
 pub(crate) fn parse_lens<'a>(
     input: &mut &'a str,
-) -> PResult<(Vec<Token<'a>>, Option<LensValue<'a>>)> {
+) -> Result<(Vec<Token<'a>>, Option<LensValue<'a>>)> {
     trim((
         parse_lens_keys,
         opt(preceded(trim(EQUAL), parse_lens_value)),
@@ -206,7 +206,7 @@ pub(crate) fn parse_lens<'a>(
 /// A combinator which parses a list of lenses.
 pub(crate) fn parse_lenses<'a>(
     input: &mut &'a str,
-) -> PResult<Vec<(Vec<Token<'a>>, Option<LensValue<'a>>)>> {
+) -> Result<Vec<(Vec<Token<'a>>, Option<LensValue<'a>>)>> {
     delimited(
         trim(LENSES_START),
         separated(1.., parse_lens, trim(COMMA)),
@@ -216,32 +216,32 @@ pub(crate) fn parse_lenses<'a>(
 }
 
 /// A combinator which parses a keys operator.
-pub(crate) fn parse_keys_operator<'a>(input: &mut &'a str) -> PResult<&'a str> {
+pub(crate) fn parse_keys_operator<'a>(input: &mut &'a str) -> Result<&'a str> {
     literal(KEYS).parse_next(input)
 }
 
 /// A combinator which parses a flatten operator.
-pub(crate) fn parse_flatten_operator<'a>(input: &mut &'a str) -> PResult<&'a str> {
+pub(crate) fn parse_flatten_operator<'a>(input: &mut &'a str) -> Result<&'a str> {
     literal(FLATTEN).parse_next(input)
 }
 
 /// A combinator which parses a pipe in operator.
-pub(crate) fn parse_pipe_in_operator<'a>(input: &mut &'a str) -> PResult<&'a str> {
+pub(crate) fn parse_pipe_in_operator<'a>(input: &mut &'a str) -> Result<&'a str> {
     literal(PIPE_IN).parse_next(input)
 }
 
 /// A combinator which parses a pipe out operator.
-pub(crate) fn parse_pipe_out_operator<'a>(input: &mut &'a str) -> PResult<&'a str> {
+pub(crate) fn parse_pipe_out_operator<'a>(input: &mut &'a str) -> Result<&'a str> {
     literal(PIPE_OUT).parse_next(input)
 }
 
 /// A combinator which parses a truncate operator.
-pub(crate) fn parse_truncate_operator<'a>(input: &mut &'a str) -> PResult<&'a str> {
+pub(crate) fn parse_truncate_operator<'a>(input: &mut &'a str) -> Result<&'a str> {
     trim(TRUNCATE).parse_next(input)
 }
 
 /// A combinator which parses a group separator.
-pub(crate) fn parse_group_separator<'a>(input: &mut &'a str) -> PResult<&'a str> {
+pub(crate) fn parse_group_separator<'a>(input: &mut &'a str) -> Result<&'a str> {
     literal(GROUP_SEP).parse_next(input)
 }
 

@@ -103,12 +103,17 @@ impl<'a> Lens<'a> {
 
 impl fmt::Display for Lens<'_> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}{}", self.0.stringify(), match &self.1 {
-            Some(lens_value) => {
-                lens_value.to_string()
+        write!(
+            f,
+            "{}{}",
+            self.0.stringify(),
+            match &self.1 {
+                Some(lens_value) => {
+                    lens_value.to_string()
+                }
+                None => String::new(),
             }
-            None => String::new(),
-        })
+        )
     }
 }
 

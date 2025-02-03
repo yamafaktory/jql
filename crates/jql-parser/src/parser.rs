@@ -1,6 +1,6 @@
 use winnow::{
-    PResult,
     Parser,
+    Result,
     combinator::{
         alt,
         dispatch,
@@ -38,7 +38,7 @@ use crate::{
 };
 
 /// Parses the provided input and map it to the first matching token.
-fn parse_fragment<'a>(input: &mut &'a str) -> PResult<Token<'a>> {
+fn parse_fragment<'a>(input: &mut &'a str) -> Result<Token<'a>> {
     trim(
         dispatch! {peek(any);
             '[' => {
@@ -87,7 +87,7 @@ fn parse_fragment<'a>(input: &mut &'a str) -> PResult<Token<'a>> {
 pub fn parse(input: &str) -> Result<Vec<Token>, JqlParserError> {
     let mut parser_iterator = iterator(input, parse_fragment);
     let tokens = parser_iterator.collect::<Vec<Token>>();
-    let result: PResult<_, _> = parser_iterator.finish();
+    let result: Result<_, _> = parser_iterator.finish();
 
     match result {
         Ok((unparsed, ())) => {

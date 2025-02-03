@@ -6,6 +6,10 @@ audit:
 clippy:
   cargo clippy
 
+# Format.
+fmt:
+  cargo fmt --all
+
 # Fuzz parser.
 fuzz:
   cargo fuzz run fuzz_parser
