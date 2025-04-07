@@ -16,7 +16,7 @@ keywords = ["cli", "json", "terminal", "tool", "query"]
 license = "MIT OR Apache-2.0"
 readme = "README.md"
 repository = "https://github.com/yamafaktory/jql"
-version = "8.0.4"
+version = "8.0.5"
 
 [workspace.lints.rust]
 missing_debug_implementations = "warn"
