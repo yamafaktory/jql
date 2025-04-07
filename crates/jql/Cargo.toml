@@ -12,13 +12,13 @@ version.workspace = true
 
 [dependencies]
 anyhow = "1.0.97"
-clap = { version = "4.5.31", features = ["derive"] }
+clap = { version = "4.5.35", features = ["derive"] }
 colored_json = { version = "5.0.0" }
 jql-runner = { path = "../jql-runner", version = "8.0.4" }
-serde = "1.0.218"
+serde = "1.0.219"
 serde_stacker = "0.1.12"
 serde_json.workspace = true
-tokio = { version = "1.43.0", features = ["fs", "io-std", "io-util", "macros", "rt-multi-thread"] }
+tokio = { version = "1.44.2", features = ["fs", "io-std", "io-util", "macros", "rt-multi-thread"] }
 
 [package.metadata.binstall]
 pkg-url = "{ repo }/releases/download/{ name }-v{ version }/{ name }-v{ version }-{ target }{ archive-suffix }"
