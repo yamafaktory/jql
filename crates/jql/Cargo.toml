@@ -11,8 +11,8 @@ repository.workspace = true
 version.workspace = true
 
 [dependencies]
-anyhow = "1.0.97"
-clap = { version = "4.5.35", features = ["derive"] }
+anyhow = "1.0.98"
+clap = { version = "4.5.37", features = ["derive"] }
 colored_json = { version = "5.0.0" }
 jql-runner = { path = "../jql-runner", version = "8.0.5" }
 serde = "1.0.219"
