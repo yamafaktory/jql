@@ -18,7 +18,7 @@ serde_json.workspace = true
 thiserror.workspace = true
 
 [dev-dependencies]
-criterion = "0.5.1"
+criterion = "0.6.0"
 
 [lib]
 path = "src/lib.rs"
