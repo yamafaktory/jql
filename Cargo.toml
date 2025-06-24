@@ -11,7 +11,7 @@ serde_json = { features = ["preserve_order", "unbounded_depth"], version = "1.0.
 [workspace.package]
 authors = ["Davy Duperron <yamafaktory@gmail.com>"]
 categories = ["command-line-utilities", "filesystem"]
-edition = "2021"
+edition = "2024"
 keywords = ["cli", "json", "terminal", "tool", "query"]
 license = "MIT OR Apache-2.0"
 readme = "README.md"
