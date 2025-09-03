@@ -1,12 +1,13 @@
 [workspace]
 resolver = "2"
-members = [
-    "crates/*"
-]
+members = ["crates/*"]
 
 [workspace.dependencies]
-thiserror = "2.0.12"
-serde_json = { features = ["preserve_order", "unbounded_depth"], version = "1.0.140" }
+thiserror = "2.0.16"
+serde_json = { features = [
+	"preserve_order",
+	"unbounded_depth",
+], version = "1.0.143" }
 
 [workspace.package]
 authors = ["Davy Duperron <yamafaktory@gmail.com>"]
@@ -21,8 +22,8 @@ version = "8.0.7"
 [workspace.lints.rust]
 missing_debug_implementations = "warn"
 missing_docs = "warn"
-nonstandard_style = { level = "deny", priority= -1 }
-rust_2021_compatibility = { level = "forbid", priority= -1 }
+nonstandard_style = { level = "deny", priority = -1 }
+rust_2021_compatibility = { level = "forbid", priority = -1 }
 unreachable_pub = "warn"
 unsafe_code = "deny"
 
