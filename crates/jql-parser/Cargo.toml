@@ -12,7 +12,7 @@ version.workspace = true
 
 [dependencies]
 thiserror.workspace = true
-winnow = { version = "0.7.13", features = ["simd"] }
+winnow = { version = "0.7.14", features = ["simd"] }
 
 [lib]
 path = "src/lib.rs"

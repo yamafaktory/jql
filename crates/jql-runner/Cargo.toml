@@ -11,14 +11,14 @@ repository.workspace = true
 version.workspace = true
 
 [dependencies]
-indexmap = { version = "2.11.4", features = ["rayon"] }
+indexmap = { version = "2.13.0", features = ["rayon"] }
 jql-parser = { path = "../jql-parser", version = "8.0.9" }
 rayon = "1.11.0"
 serde_json.workspace = true
 thiserror.workspace = true
 
 [dev-dependencies]
-criterion = "0.7.0"
+criterion = "0.8.1"
 
 [lib]
 path = "src/lib.rs"
