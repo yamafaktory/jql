@@ -85,16 +85,17 @@ fn parse_fragment<'a>(input: &mut &'a str) -> Result<Token<'a>> {
 ///
 /// Returns a `JqlParserError` on failure.
 pub fn parse(input: &str) -> Result<Vec<Token<'_>>, JqlParserError> {
-    let mut parser_iterator = iterator(input, parse_fragment);
+    let mut input = input;
+    let mut parser_iterator = iterator(&mut input, parse_fragment);
     let tokens = parser_iterator.collect::<Vec<Token>>();
     let result: Result<_, _> = parser_iterator.finish();
 
     match result {
-        Ok((unparsed, ())) => {
-            if !unparsed.is_empty() {
+        Ok(()) => {
+            if !input.is_empty() {
                 return Err(JqlParserError::ParsingError {
                     tokens: tokens.stringify(),
-                    unparsed: unparsed.to_string(),
+                    unparsed: input.to_string(),
                 });
             }
 

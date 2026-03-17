@@ -1,10 +1,14 @@
 use criterion::{
+    BenchmarkId,
     Criterion,
     criterion_group,
     criterion_main,
 };
 use jql_runner::runner::raw;
-use serde_json::json;
+use serde_json::{
+    Value,
+    json,
+};
 
 fn array_range_selector(c: &mut Criterion) {
     c.bench_function("Array range selector", move |b| {
@@ -59,13 +63,45 @@ fn pipe_operators(c: &mut Criterion) {
     });
 }
 
+fn flatten_threshold(c: &mut Criterion) {
+    let mut group = c.benchmark_group("Flatten threshold");
+
+    for size in [1, 2, 4, 8, 16, 32, 64, 80, 96, 128] {
+        // Each element is itself a single-element array so every item recurses.
+        let input: Value = json!((0..size).map(|i| json!([i])).collect::<Vec<_>>());
+
+        group.bench_with_input(BenchmarkId::from_parameter(size), &input, |b, json| {
+            b.iter(|| raw("..", json))
+        });
+    }
+
+    group.finish();
+}
+
+fn pipe_threshold(c: &mut Criterion) {
+    let mut group = c.benchmark_group("Pipe threshold");
+
+    for size in [1, 2, 4, 8, 16, 32, 64, 80, 96, 128] {
+        let items: Value = json!((0..size).map(|i| json!({ "a": i })).collect::<Vec<_>>());
+        let input: Value = json!({ "items": items });
+
+        group.bench_with_input(BenchmarkId::from_parameter(size), &input, |b, json| {
+            b.iter(|| raw(r#""items"|>"a"<|[0]"#, json))
+        });
+    }
+
+    group.finish();
+}
+
 criterion_group!(
     benches,
     array_range_selector,
     flatten_operator,
+    flatten_threshold,
     group_separator,
     key_selector,
     pipe_operators,
+    pipe_threshold,
 );
 
 criterion_main!(benches);

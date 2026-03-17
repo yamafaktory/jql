@@ -55,6 +55,22 @@ pub fn raw(input: &str, json: &Value) -> Result<Value, JqlRunnerError> {
 pub fn token(tokens: &[Token], json: &Value) -> Result<Value, JqlRunnerError> {
     let groups = split(tokens);
 
+    if groups.len() == 1 {
+        return group_runner(&groups[0], json);
+    }
+
+    if groups.len() < 8 {
+        let result = groups
+            .iter()
+            .try_fold(Vec::with_capacity(groups.len()), |mut acc, group| {
+                acc.push(group_runner(group, json)?);
+
+                Ok::<Vec<Value>, JqlRunnerError>(acc)
+            })?;
+
+        return Ok(json!(result));
+    }
+
     let result = groups
         .par_iter()
         .try_fold_with(vec![], |mut acc: Vec<Value>, group| {
@@ -68,13 +84,7 @@ pub fn token(tokens: &[Token], json: &Value) -> Result<Value, JqlRunnerError> {
             Ok(a)
         });
 
-    result.map(|group| {
-        if groups.len() == 1 {
-            json!(group[0])
-        } else {
-            json!(group)
-        }
-    })
+    result.map(|group| json!(group))
 }
 
 /// Takes a slice of references of `Token` and a reference of a JSON `Value`.
@@ -88,16 +98,35 @@ pub(crate) fn group_runner(tokens: &[&Token], json: &Value) -> Result<Value, Jql
         // sequentially.
         .try_fold((json.clone(), false), |mut outer_acc, &token| {
             if outer_acc.1 {
-                let result = outer_acc
-                    .0
-                    .as_array_mut()
-                    // We can safely unwrap since `outer_acc.1` is truthy.
-                    .unwrap()
+                let piped = outer_acc.1;
+                let array = outer_acc.0.as_array_mut().unwrap();
+
+                // Rayon's thread-spawn overhead (~40 µs) dominates for
+                // lightweight per-element work. Benchmarks sweeping 1–128
+                // elements show serial is consistently faster throughout; at
+                // 128 elements serial costs ~16 µs vs Rayon's ~180 µs. Rayon's
+                // overhead curve for this operation is steep enough that the
+                // break-even lies well above 128 elements.
+                if array.len() < 128 {
+                    let mut values = Vec::with_capacity(array.len());
+                    let mut last_piped = piped;
+
+                    for inner_value in array.iter() {
+                        let r = matcher((inner_value.clone(), piped), token)?;
+
+                        values.push(r.0);
+                        last_piped = r.1;
+                    }
+
+                    return Ok((json!(values), last_piped));
+                }
+
+                let result = array
                     .par_iter()
                     .try_fold_with(
-                        (vec![], outer_acc.1),
+                        (vec![], piped),
                         |mut inner_acc: (Vec<Value>, bool), inner_value| {
-                            let result = matcher((inner_value.clone(), outer_acc.1), token)?;
+                            let result = matcher((inner_value.clone(), piped), token)?;
 
                             inner_acc.0.push(result.0);
                             inner_acc.1 = result.1;
