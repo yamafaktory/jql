@@ -13,6 +13,7 @@ version.workspace = true
 [dependencies]
 anyhow = "1.0.102"
 clap = { version = "4.6.0", features = ["derive"] }
+mimalloc = { version = "0.1", default-features = false }
 colored_json = { version = "5.0.0" }
 jql-runner = { path = "../jql-runner", version = "8.1.0" }
 serde = "1.0.228"
