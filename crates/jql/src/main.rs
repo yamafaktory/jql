@@ -3,8 +3,10 @@
 mod args;
 mod panic;
 
+#[cfg(not(target_arch = "loongarch64"))]
 use mimalloc::MiMalloc;
 
+#[cfg(not(target_arch = "loongarch64"))]
 #[global_allocator]
 static GLOBAL: MiMalloc = MiMalloc;
 
