@@ -99,6 +99,12 @@ impl<'a> Lens<'a> {
     pub fn get(&self) -> (Vec<Token<'a>>, Option<LensValue<'a>>) {
         (self.0.clone(), self.1.clone())
     }
+
+    #[must_use]
+    /// Gets references to the content of a `Lens` without cloning.
+    pub fn get_ref(&self) -> (&[Token<'a>], Option<&LensValue<'a>>) {
+        (&self.0, self.1.as_ref())
+    }
 }
 
 impl fmt::Display for Lens<'_> {

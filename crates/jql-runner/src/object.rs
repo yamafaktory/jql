@@ -78,10 +78,10 @@ pub(crate) fn get_object_multi_key(
             },
         )?;
 
-    let keys_set: IndexSet<String> = keys.iter().map(ToString::to_string).collect();
-    let mut keys_not_found: Vec<String> = found_keys
-        .symmetric_difference(&keys_set)
-        .map(ToString::to_string)
+    let mut keys_not_found: Vec<String> = keys
+        .iter()
+        .filter(|k| !found_keys.contains(**k))
+        .map(|k| k.to_string())
         .collect();
 
     if !keys_not_found.is_empty() {
@@ -139,7 +139,11 @@ fn flatten_object(
 ) {
     for (k, v) in map {
         let parent_key = if depth > 0 {
-            format!("{}{}{}", parent_key, ".", k)
+            let mut s = String::with_capacity(parent_key.len() + 1 + k.len());
+            s.push_str(parent_key);
+            s.push('.');
+            s.push_str(k);
+            s
         } else {
             k.to_string()
         };
@@ -302,7 +306,7 @@ pub(crate) fn get_object_as_keys(json: &mut Value) -> Result<Value, JqlRunnerErr
 
     // Restore the original order.
     // We can safely unwrap here since the key is a string.
-    result.par_sort_by_key(|v| String::from(v.as_str().unwrap()));
+    result.par_sort_unstable_by(|a, b| a.as_str().unwrap().cmp(b.as_str().unwrap()));
 
     Ok(json!(result))
 }
