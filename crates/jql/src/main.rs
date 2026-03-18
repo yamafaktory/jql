@@ -3,6 +3,11 @@
 mod args;
 mod panic;
 
+use mimalloc::MiMalloc;
+
+#[global_allocator]
+static GLOBAL: MiMalloc = MiMalloc;
+
 use std::{
     path::Path,
     process::exit,
