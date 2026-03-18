@@ -60,13 +60,14 @@ pub fn token(tokens: &[Token], json: &Value) -> Result<Value, JqlRunnerError> {
     }
 
     if groups.len() < 8 {
-        let result = groups
-            .iter()
-            .try_fold(Vec::with_capacity(groups.len()), |mut acc, group| {
-                acc.push(group_runner(group, json)?);
+        let result =
+            groups
+                .iter()
+                .try_fold(Vec::with_capacity(groups.len()), |mut acc, group| {
+                    acc.push(group_runner(group, json)?);
 
-                Ok::<Vec<Value>, JqlRunnerError>(acc)
-            })?;
+                    Ok::<Vec<Value>, JqlRunnerError>(acc)
+                })?;
 
         return Ok(json!(result));
     }
