@@ -9,8 +9,6 @@ cargo-fuzz = true
 
 [dependencies]
 libfuzzer-sys = "0.4.13"
-serde = "1.0.229"
-serde_stacker = "0.1.14"
 
 [dependencies.jql-parser]
 path = "../crates/jql-parser"

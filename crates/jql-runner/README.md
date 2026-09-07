@@ -8,9 +8,10 @@ This crate is a workspace dependency of the [jql](https://github.com/yamafaktory
 
 - Raw runner (string slice as input)
 - Token runner (tokens as input)
-- Lazy runner (mutable byte slice as input; scans drill-down queries into a
-  simd-json tape and materializes only the selected subtree, falling back to the
-  token runner otherwise)
+- Lazy runner (byte slice as input; evaluates selection queries against a
+  simd-json tape and materializes only what the query selects, falling back to
+  the token runner for the flatten operator, nested pipes and inputs simd-json
+  cannot parse identically)
 - Errors
 
 ## License

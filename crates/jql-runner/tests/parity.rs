@@ -174,6 +174,11 @@ fn scalars_and_numbers() {
     ] {
         assert_parity(r#""n""#, &format!(r#"{{ "n": {literal} }}"#));
     }
+    // Long decimal mantissa.
+    assert_parity(
+        r#""n""#,
+        r#"{ "n": 1111110004366660488538014150.111111111111111111 }"#,
+    );
     // `-0` inside a string must not trigger the fall back incorrectly.
     assert_parity(r#""s""#, r#"{ "s": "-0 degrees" }"#);
     // Integers past i64/u64 make simd-json reject the tape -> fall back.
@@ -186,6 +191,34 @@ fn scalars_and_numbers() {
     assert_parity(r#""z""#, r#"{ "z": null }"#);
     assert_parity(r#""e""#, r#"{ "e": {} }"#);
     assert_parity(r#""e""#, r#"{ "e": [] }"#);
+}
+
+/// The one accepted departure from exact parity: simd-json and serde_json round
+/// the last `f64` bit of some scientific-notation literals differently, and
+/// telling a number's exponent from an `e` inside a string is too expensive to
+/// scan for (see `numbers_may_diverge`). The values stay within one ULP.
+#[test]
+fn scientific_notation_stays_within_one_ulp() {
+    for literal in [
+        "1222211e222",
+        "1222211e30",
+        "1222211e250",
+        "1.5e12",
+        "9.87e-40",
+        "1e200",
+        "1e10",
+    ] {
+        let json = format!(r#"{{ "n": {literal} }}"#);
+        let query = r#""n""#;
+
+        let oracle = runner::raw(query, &deserialize(&json)).unwrap();
+        let lazy = lazy::raw(query, json.as_bytes()).unwrap();
+
+        let (oracle, lazy) = (oracle.as_f64().unwrap(), lazy.as_f64().unwrap());
+        let ulps = ((oracle.to_bits() as i128) - (lazy.to_bits() as i128)).abs();
+
+        assert!(ulps <= 1, "{literal} differs by {ulps} ULP");
+    }
 }
 
 #[test]
@@ -239,15 +272,66 @@ fn pipe_operator() {
 
     // Pipe body that delegates (flatten inside the pipe).
     assert_parity(r#""r"|>..[0]"#, r#"{ "r": [[1, [2]], [3, [4]]] }"#);
+
+    // Empty pipe body, and a stray second `<|`.
+    assert_parity(r#""r"|><|"#, r#"{ "r": [1, 2] }"#);
+    assert_parity(r#""r"|>"k"<|<|"#, r#"{ "r": [{ "k": 1 }] }"#);
+    assert_parity(r#""r"|><|[0]"#, r#"{ "r": [1, 2] }"#);
+
+    // Piping into an empty array leaves the runner's `piped` flag set, so every
+    // later token maps over nothing and the group yields `[]`.
+    assert_parity(r#""r"|>"k""#, r#"{ "r": [] }"#);
+    assert_parity(r#""r"|>"k"<|[0,2]"#, r#"{ "r": [] }"#);
+    assert_parity(r#""r"|>"k"<|@"#, r#"{ "r": [] }"#);
+    assert_parity(r#""r"|><|{"a"}"#, r#"{ "r": [] }"#);
+    assert_parity(r#""r"|>"k"<|"missing""#, r#"{ "r": [] }"#);
+}
+
+#[test]
+fn lens_selector() {
+    let people = r#"[
+        { "a": 1, "b": 2 },
+        { "a": 2, "b": "some" },
+        { "a": 2, "b": null },
+        { "a": 2, "b": true }
+    ]"#;
+    assert_parity(r#"|={"a"}"#, people);
+    assert_parity(r#"|={"a"=1}"#, people);
+    assert_parity(r#"|={"a"=1, "a"=2}"#, people);
+    assert_parity(r#"|={"a"=1, "b"=2}"#, people);
+    assert_parity(r#"|={"a"=1, "b"="some"}"#, people);
+    assert_parity(r#"|={"a"=1, "b"=true}"#, people);
+    assert_parity(r#"|={"a"=1, "b"=null}"#, people);
+    assert_parity(r#"|={"missing"}"#, people);
+    assert_parity(r#"|={"a"}"#, "[]");
+    assert_parity(r#"|={"a"}"#, "1");
+    assert_parity(r#""x"|={"k"}"#, r#"{ "x": [{ "k": 1 }, { "j": 2 }] }"#);
+    assert_parity(
+        r#"|={"a""b""c"=2}"#,
+        r#"[{ "a": { "b": { "c": 2 } } }, { "a": { "b": { "c": 3 } } }]"#,
+    );
+    // A lens body accepts every selector `parse_lens_key` allows.
+    assert_parity(r#"|={[0]}"#, r#"[[1, 2], "x", []]"#);
+    assert_parity(r#"|={[0]=1}"#, r#"[[1, 2], [3, 4]]"#);
+    assert_parity(r#"|={[0:1]}"#, r#"[[1, 2], "x"]"#);
+    assert_parity(r#"|={{"a","b"}}"#, r#"[{ "a": 1, "b": 2 }, { "a": 1 }]"#);
+    assert_parity(r#"|={{0}}"#, r#"[{ "a": 1 }, "x"]"#);
+    assert_parity(r#"|={{0:0}}"#, r#"[{ "a": 1 }, "x"]"#);
+    // A key that merely looks like the flatten operator.
+    assert_parity(r#"|={".."}"#, r#"[{ "..": 1 }, { "x": 2 }]"#);
+    // Lens after a pipe.
+    assert_parity(
+        r#""g"|>"rows"<||={"k"=1}"#,
+        r#"{ "g": [{ "rows": [{ "k": 1 }, { "k": 2 }] }] }"#,
+    );
 }
 
 #[test]
 fn delegated_operators() {
-    // Flatten, lens and nested pipes are not on the tape path: `lazy` delegates.
+    // Flatten and nested pipes are not on the tape path: `lazy` delegates.
     assert_parity("..", r#"[1, [2], [[3]]]"#);
     assert_parity(r#""a"..[0]"#, r#"{ "a": [1, [2], [[3]]] }"#);
-    assert_parity(r#"|={"a""b""c"=2}"#, r#"[{ "a": { "b": { "c": 2 } } }]"#);
-    assert_parity(r#""x"|={"k"}"#, r#"{ "x": [{ "k": 1 }, { "j": 2 }] }"#);
+    assert_parity("..", r#"{ "a": { "c": false }, "b": { "d": { "e": 1 } } }"#);
     assert_parity(r#""a"|>"b"|>"c""#, r#"{ "a": [{ "b": [{ "c": 1 }] }] }"#);
 }
 

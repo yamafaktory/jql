@@ -1,12 +1,11 @@
 #![no_main]
 
 use libfuzzer_sys::fuzz_target;
-use serde::Deserialize;
-use serde_json::Value;
 
 // Splits the input as `query \n json`, runs it through both the Value-based
-// runner (the oracle) and the tape-based lazy evaluator, and asserts they agree.
-// Inputs that are not `query \n <single valid JSON document>` are skipped.
+// runner (the oracle) and the tape-based lazy evaluator, and asserts they agree
+// exactly. Inputs that are not `query \n <single valid JSON document>` are
+// skipped.
 fuzz_target!(|data: &[u8]| {
     let Some(newline) = data.iter().position(|&byte| byte == b'\n') else {
         return;
@@ -18,11 +17,14 @@ fuzz_target!(|data: &[u8]| {
         return;
     };
 
-    let mut deserializer = serde_json::Deserializer::from_str(json_str);
-    deserializer.disable_recursion_limit();
-    let Ok(value) =
-        serde_json::Value::deserialize(serde_stacker::Deserializer::new(&mut deserializer))
-    else {
+    if has_exponent_or_long_mantissa(json) {
+        return;
+    }
+
+    // The default recursion limit is left in place so that serializing the
+    // results below cannot overflow the stack; `parity.rs` covers the
+    // deep-nesting fall back explicitly.
+    let Ok(value) = serde_json::from_str::<serde_json::Value>(json_str) else {
         return;
     };
 
@@ -30,9 +32,10 @@ fuzz_target!(|data: &[u8]| {
     let lazy = jql_runner::lazy::raw(query, json);
 
     match (oracle, lazy) {
-        (Ok(oracle), Ok(lazy)) => assert!(
-            values_match(&oracle, &lazy),
-            "output divergence\n  query: {query:?}\n  json:  {json_str:?}\n  oracle: {oracle}\n  lazy:   {lazy}"
+        (Ok(oracle), Ok(lazy)) => assert_eq!(
+            serde_json::to_string(&oracle).unwrap(),
+            serde_json::to_string(&lazy).unwrap(),
+            "output divergence\n  query: {query:?}\n  json:  {json_str:?}"
         ),
         (Err(oracle), Err(lazy)) => assert_eq!(
             oracle, lazy,
@@ -44,30 +47,34 @@ fuzz_target!(|data: &[u8]| {
     }
 });
 
-/// Structural equality, but two numbers match if they are within a few ULP:
-/// simd-json and serde_json can round the last bit of an exponent-only literal
-/// like `123456789012345678e9` differently (fractional forms are handled by
-/// `lazy`'s own scan). Object key order is still compared.
-fn values_match(a: &Value, b: &Value) -> bool {
-    match (a, b) {
-        (Value::Number(x), Value::Number(y)) => {
-            x == y
-                || match (x.as_f64(), y.as_f64()) {
-                    (Some(x), Some(y)) => {
-                        (x - y).abs() <= 8.0 * f64::EPSILON * x.abs().max(y.abs()).max(1.0)
-                    }
-                    _ => false,
-                }
+/// Whether `json` holds a digit run of 16 or more, or a digit immediately before
+/// an `e`/`E`.
+///
+/// Those are the mantissas simd-json and serde_json can round differently.
+/// `lazy` skips the tape for the long fractional ones; for scientific notation
+/// it accepts a one-ULP difference, because recognising it in production would
+/// mean a quote-aware scan (see `numbers_may_diverge`). Skipping such inputs
+/// here — over-eagerly, which costs nothing on fuzz-sized input — keeps both
+/// comparisons below exact rather than hiding real divergence behind a
+/// tolerance.
+fn has_exponent_or_long_mantissa(json: &[u8]) -> bool {
+    let mut digits = 0;
+
+    for &byte in json {
+        if byte.is_ascii_digit() {
+            digits += 1;
+
+            if digits >= 16 {
+                return true;
+            }
+        } else if matches!(byte, b'e' | b'E') {
+            if digits > 0 {
+                return true;
+            }
+        } else if byte != b'.' {
+            digits = 0;
         }
-        (Value::Array(x), Value::Array(y)) => {
-            x.len() == y.len() && x.iter().zip(y).all(|(x, y)| values_match(x, y))
-        }
-        (Value::Object(x), Value::Object(y)) => {
-            x.len() == y.len()
-                && x.iter()
-                    .zip(y)
-                    .all(|((kx, vx), (ky, vy))| kx == ky && values_match(vx, vy))
-        }
-        _ => a == b,
     }
+
+    false
 }

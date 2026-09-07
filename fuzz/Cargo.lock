@@ -184,9 +184,7 @@ dependencies = [
  "jql-parser",
  "jql-runner",
  "libfuzzer-sys",
- "serde",
  "serde_json",
- "serde_stacker",
 ]
 
 [[package]]
