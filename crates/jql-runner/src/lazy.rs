@@ -61,10 +61,10 @@ pub fn raw(query: &str, json: &mut [u8]) -> Result<Value, JqlRunnerError> {
 /// Takes a raw query and a slice of JSON bytes holding one or more documents.
 /// Returns one JSON `Value` per document.
 ///
-/// A single document takes the same tape path as [`raw`]. Several — concatenated
-/// with or without separating whitespace, each pretty-printed or not — are read
-/// one at a time by serde_json, which simd-json has no equivalent for, and the
-/// query is applied to each.
+/// A single document takes the same tape path as [`raw`]. Several —
+/// concatenated with or without separating whitespace, each pretty-printed or
+/// not — are split apart first, then evaluated one at a time, each on its own
+/// tape wherever that is possible.
 ///
 /// # Errors
 ///
