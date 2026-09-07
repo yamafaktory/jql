@@ -440,6 +440,7 @@ dependencies = [
  "criterion",
  "indexmap",
  "jql-parser",
+ "memchr",
  "rayon",
  "serde",
  "serde_json",

@@ -60,7 +60,7 @@ fn render(result: Result<String>) {
 }
 
 /// Processes the JSON content based on the arguments.
-fn process_json(json: &mut [u8], args: &Args) -> Result<String> {
+fn process_json(json: &[u8], args: &Args) -> Result<String> {
     if args.validate {
         return serde_json::from_slice::<Value>(json).map_or_else(
             |_| Err(anyhow!("Invalid JSON file or content")),
@@ -103,9 +103,9 @@ fn main() -> Result<()> {
     let args = Args::parse();
 
     if let Some(path) = args.json_file.as_deref() {
-        let mut contents = read_file(path)?.into_bytes();
+        let contents = read_file(path)?.into_bytes();
 
-        render(process_json(&mut contents, &args));
+        render(process_json(&contents, &args));
 
         return Ok(());
     }
@@ -114,11 +114,11 @@ fn main() -> Result<()> {
         let mut stdout = stdout().lock();
 
         for line in stdin().lock().lines() {
-            let mut line = line
+            let line = line
                 .with_context(|| "Failed to read stream".to_string())?
                 .into_bytes();
 
-            render(process_json(&mut line, &args));
+            render(process_json(&line, &args));
 
             stdout
                 .flush()
@@ -136,7 +136,7 @@ fn main() -> Result<()> {
         .read_to_end(&mut buffer)
         .with_context(|| "Failed to read piped content from stdin".to_string())?;
 
-    render(process_json(&mut buffer, &args));
+    render(process_json(&buffer, &args));
 
     Ok(())
 }
@@ -147,20 +147,20 @@ mod tests {
 
     #[test]
     fn sort_keys_flag_sorts_objects_recursively() {
-        let mut json = br#"{ "root": { "d": 1, "b": { "y": 1, "x": 2 }, "a": 3 } }"#.to_vec();
+        let json = br#"{ "root": { "d": 1, "b": { "y": 1, "x": 2 }, "a": 3 } }"#.to_vec();
         let args = Args::parse_from(["jql", "--sort-keys", "--inline", r#""root""#]);
 
         assert_eq!(
-            process_json(&mut json, &args).unwrap(),
+            process_json(&json, &args).unwrap(),
             r#"{"a":3,"b":{"x":2,"y":1},"d":1}"#
         );
     }
 
     #[test]
     fn output_keeps_source_order_without_the_flag() {
-        let mut json = br#"{ "root": { "d": 1, "a": 3 } }"#.to_vec();
+        let json = br#"{ "root": { "d": 1, "a": 3 } }"#.to_vec();
         let args = Args::parse_from(["jql", "--inline", r#""root""#]);
 
-        assert_eq!(process_json(&mut json, &args).unwrap(), r#"{"d":1,"a":3}"#);
+        assert_eq!(process_json(&json, &args).unwrap(), r#"{"d":1,"a":3}"#);
     }
 }

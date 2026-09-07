@@ -1,4 +1,7 @@
-use std::num::NonZeroUsize;
+use std::{
+    collections::HashSet,
+    num::NonZeroUsize,
+};
 
 use jql_parser::{
     group::split,
@@ -17,7 +20,10 @@ use simd_json::{
         ValueAsScalar,
         ValueType,
     },
-    tape::Value as TapeValue,
+    tape::{
+        Object as TapeObject,
+        Value as TapeValue,
+    },
 };
 
 use crate::{
@@ -25,33 +31,82 @@ use crate::{
     runner,
 };
 
-/// Takes a raw query and a mutable slice of JSON bytes.
+/// Takes a raw query and a slice of JSON bytes.
 /// Returns a JSON `Value` or an error.
 ///
-/// Selection queries (key, index, range, multi-key, keys `@` and truncate `!`
-/// operators) are evaluated against a simd-json tape, materializing only the
-/// selected subtrees. Queries using the flatten, lens or pipe operators, and any
-/// input the tape builder rejects (nested beyond simd-json's limit, trailing
-/// data, malformed), fall back to the `Value`-based [`runner`], preserving its
-/// exact behavior.
+/// Selection queries (key, index, range, multi-key, keys `@`, truncate `!` and a
+/// single pipe `|> … <|`) are evaluated against a simd-json tape, materializing
+/// only the selected subtrees. Queries using the flatten or lens operators or
+/// nested pipes, and any input the tape builder rejects (nested beyond
+/// simd-json's limit, trailing data, malformed), fall back to the `Value`-based
+/// [`runner`], preserving its exact behavior.
 ///
 /// # Errors
 ///
 /// Returns a `JqlRunnerError` on failure.
-pub fn raw(query: &str, json: &mut [u8]) -> Result<Value, JqlRunnerError> {
+pub fn raw(query: &str, json: &[u8]) -> Result<Value, JqlRunnerError> {
     if query.is_empty() {
         return Err(JqlRunnerError::EmptyQueryError);
     }
 
     let tokens = parse(query)?;
 
-    if can_lazy(&tokens)
-        && let Ok(tape) = simd_json::to_tape(json)
-    {
-        return eval(&tokens, tape.as_value());
+    if can_lazy(&tokens) && !numbers_may_diverge(json) {
+        // `to_tape` parses in place, so give it a copy — the original bytes must
+        // stay pristine for the fallback deserializer.
+        let mut scratch = json.to_vec();
+
+        if let Ok(tape) = simd_json::to_tape(&mut scratch) {
+            return eval(&tokens, tape.as_value());
+        }
     }
 
     runner::token(&tokens, &deserialize(json)?)
+}
+
+/// A digit count this far past a decimal point is already well over the 16 that
+/// matters, and caps the work on adversarial input.
+const DIGIT_SCAN_CAP: usize = 24;
+
+/// Whether `json` has a number literal that simd-json and serde_json could parse
+/// to different `f64` bits, so the tape path must be skipped:
+///
+/// - `-0`: serde_json makes it the float `-0.0`, simd-json the integer `0`.
+/// - a fractional literal with 16+ significant digits: the two parsers can round
+///   the last bit differently. Only `.`-bearing literals are scanned — that is
+///   what serializers emit for non-integers, so real input stays exact; the rare
+///   `123…e10` form is left to the caller's tolerant comparison.
+///
+/// Plain integers are fine: exact both ways, or simd-json rejects them and the
+/// tape build fails anyway. The scan is loose — a false positive inside a string
+/// only costs a fall back to the runner, never correctness.
+fn numbers_may_diverge(json: &[u8]) -> bool {
+    let bare_negative_zero = memchr::memchr_iter(b'-', json).any(|index| {
+        json.get(index + 1) == Some(&b'0')
+            && !matches!(json.get(index + 2), Some(b'0'..=b'9' | b'.' | b'e' | b'E'))
+    });
+
+    bare_negative_zero
+        || memchr::memchr_iter(b'.', json).any(|dot| {
+            // A digit must border the point on the left for this to be a number.
+            if dot == 0 || !json[dot - 1].is_ascii_digit() {
+                return false;
+            }
+
+            let before = json[..dot]
+                .iter()
+                .rev()
+                .take(DIGIT_SCAN_CAP)
+                .take_while(|byte| byte.is_ascii_digit())
+                .count();
+            let after = json[dot + 1..]
+                .iter()
+                .take(DIGIT_SCAN_CAP)
+                .take_while(|byte| byte.is_ascii_digit())
+                .count();
+
+            before + after >= 16
+        })
 }
 
 /// Deserializes JSON bytes into a `Value`, growing the stack for deeply nested
@@ -71,7 +126,11 @@ fn deserialize(json: &[u8]) -> Result<Value, JqlRunnerError> {
 /// Returns `true` when the query only uses operators the tape evaluator handles
 /// and its first selector narrows the input (so building the tape pays off).
 fn can_lazy(tokens: &[Token]) -> bool {
-    let narrowing_first = tokens
+    let unsupported =
+        |token: &&Token| matches!(token, Token::FlattenOperator | Token::LensSelector(_));
+
+    // A leading flatten/lens/pipe-out builds the tape only to discard it.
+    let usable_first = tokens
         .iter()
         .find(|token| !matches!(token, Token::GroupSeparator))
         .is_some_and(|token| {
@@ -81,16 +140,13 @@ fn can_lazy(tokens: &[Token]) -> bool {
             )
         });
 
-    narrowing_first
-        && !tokens.iter().any(|token| {
-            matches!(
-                token,
-                Token::FlattenOperator
-                    | Token::LensSelector(_)
-                    | Token::PipeInOperator
-                    | Token::PipeOutOperator
-            )
-        })
+    // Nested pipe-ins have subtle semantics; leave more than one to the runner.
+    let pipe_ins = tokens
+        .iter()
+        .filter(|token| matches!(token, Token::PipeInOperator))
+        .count();
+
+    usable_first && pipe_ins <= 1 && !tokens.iter().any(|token| unsupported(&token))
 }
 
 /// Evaluates the token groups against the tape root, mirroring
@@ -126,22 +182,81 @@ impl Cursor<'_, '_> {
     }
 }
 
-/// Folds a group's tokens over a cursor. Once an operator the tape path does not
-/// implement is reached, the remaining tokens are handed to [`runner`].
+/// Evaluates a group's tokens starting from the tape root.
 fn eval_group(tokens: &[&Token], root: TapeValue) -> Result<Value, JqlRunnerError> {
-    let mut cursor = Cursor::Tape(root);
+    eval_tokens(tokens, Cursor::Tape(root))
+}
 
-    for (position, &token) in tokens.iter().enumerate() {
-        cursor = match cursor {
-            Cursor::Owned(value) => return runner::group_runner(&tokens[position..], &value),
-            Cursor::Tape(value) => match step(value, token)? {
-                Some(next) => next,
-                None => return runner::group_runner(&tokens[position..], &materialize(value)),
-            },
-        };
+/// Folds tokens over a cursor. `|>` maps the tokens up to the matching `<|` (or
+/// the end) over each element; `<|` without a preceding `|>` is an error. Once an
+/// operator the tape path does not implement is reached, the remaining tokens are
+/// handed to [`runner`].
+fn eval_tokens<'tape, 'input>(
+    tokens: &[&Token],
+    mut cursor: Cursor<'tape, 'input>,
+) -> Result<Value, JqlRunnerError> {
+    let mut index = 0;
+
+    while let Some(&token) = tokens.get(index) {
+        match token {
+            Token::PipeInOperator => {
+                let elements = pipe_elements(cursor)?;
+                let rest = &tokens[index + 1..];
+                let body_len = rest
+                    .iter()
+                    .position(|token| matches!(token, Token::PipeOutOperator))
+                    .unwrap_or(rest.len());
+
+                let mapped = elements
+                    .into_iter()
+                    .map(|element| eval_tokens(&rest[..body_len], element))
+                    .collect::<Result<Vec<Value>, _>>()?;
+
+                cursor = Cursor::Owned(Value::Array(mapped));
+                index += 1 + body_len;
+
+                // Consume the matching `<|`, if any.
+                if matches!(tokens.get(index), Some(Token::PipeOutOperator)) {
+                    index += 1;
+                }
+            }
+
+            Token::PipeOutOperator => return Err(JqlRunnerError::PipeOutError),
+
+            _ => {
+                cursor = match cursor {
+                    Cursor::Owned(value) => {
+                        return runner::group_runner(&tokens[index..], &value);
+                    }
+                    Cursor::Tape(value) => match step(value, token)? {
+                        Some(next) => next,
+                        None => {
+                            return runner::group_runner(&tokens[index..], &materialize(value));
+                        }
+                    },
+                };
+
+                index += 1;
+            }
+        }
     }
 
     Ok(cursor.into_value())
+}
+
+/// Splits a cursor into per-element cursors for `|>`, or errors if it is not an
+/// array (mirroring `matcher`'s `PipeInError`).
+fn pipe_elements<'tape, 'input>(
+    cursor: Cursor<'tape, 'input>,
+) -> Result<Vec<Cursor<'tape, 'input>>, JqlRunnerError> {
+    match cursor {
+        Cursor::Tape(value) => value.as_array().map_or_else(
+            || Err(JqlRunnerError::PipeInError(materialize(value))),
+            |array| Ok(array.iter().map(Cursor::Tape).collect()),
+        ),
+        Cursor::Owned(Value::Array(items)) => Ok(items.into_iter().map(Cursor::Owned).collect()),
+        Cursor::Owned(other) => Err(JqlRunnerError::PipeInError(other)),
+    }
 }
 
 /// Applies one token to a tape view. `Ok(None)` means the tape path does not
@@ -151,6 +266,16 @@ fn step<'tape, 'input>(
     value: TapeValue<'tape, 'input>,
     token: &Token,
 ) -> Result<Option<Cursor<'tape, 'input>>, JqlRunnerError> {
+    // serde_json keeps only the last value for a repeated key; the tape keeps
+    // every entry. Any object operator on such an object would diverge, so
+    // delegate: `materialize` collapses duplicates the same way serde_json does.
+    if operates_on_object(token)
+        && let Some(object) = value.as_object()
+        && has_duplicate_keys(&object)
+    {
+        return Ok(None);
+    }
+
     let cursor = match token {
         Token::KeySelector(key) => {
             let Some(object) = value.as_object() else {
@@ -355,8 +480,9 @@ fn step<'tape, 'input>(
             _ => materialize(value),
         }),
 
-        // `GroupSeparator` is removed by `split` before evaluation; the flatten,
-        // lens and pipe operators are not on the tape path yet. All delegate.
+        // `GroupSeparator` is removed by `split` and the pipe operators are
+        // handled by `eval_tokens`, so only flatten and lens reach here; both
+        // delegate.
         Token::GroupSeparator
         | Token::FlattenOperator
         | Token::LensSelector(_)
@@ -365,6 +491,26 @@ fn step<'tape, 'input>(
     };
 
     Ok(Some(cursor))
+}
+
+/// Whether `token` reads an object by key or position (and so is sensitive to
+/// how duplicate keys are handled).
+fn operates_on_object(token: &Token) -> bool {
+    matches!(
+        token,
+        Token::KeySelector(_)
+            | Token::MultiKeySelector(_)
+            | Token::ObjectIndexSelector(_)
+            | Token::ObjectRangeSelector(_)
+            | Token::KeyOperator
+    )
+}
+
+/// Whether any key appears more than once in `object`.
+fn has_duplicate_keys(object: &TapeObject) -> bool {
+    let mut seen = HashSet::with_capacity(object.len());
+
+    object.keys().any(|key| !seen.insert(key))
 }
 
 /// Turns a directional `(start, end)` into an ordered `(low, high, reverse)`,
@@ -428,7 +574,7 @@ mod tests {
     use crate::errors::JqlRunnerError;
 
     fn run(query: &str, json: &str) -> Result<serde_json::Value, JqlRunnerError> {
-        raw(query, &mut json.to_string().into_bytes())
+        raw(query, json.as_bytes())
     }
 
     #[test]

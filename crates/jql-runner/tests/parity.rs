@@ -27,7 +27,7 @@ fn assert_parity(query: &str, json: &str) {
     let value = deserialize(json);
 
     let oracle = runner::raw(query, &value);
-    let lazy = lazy::raw(query, &mut json.to_string().into_bytes());
+    let lazy = lazy::raw(query, json.as_bytes());
 
     match (oracle, lazy) {
         (Ok(oracle), Ok(lazy)) => assert_eq!(
@@ -168,9 +168,16 @@ fn scalars_and_numbers() {
         "1234567890123456789",
         "0.1",
         "2.5e-3",
+        "-0",
+        "-0e2",
+        "-0.5",
     ] {
         assert_parity(r#""n""#, &format!(r#"{{ "n": {literal} }}"#));
     }
+    // `-0` inside a string must not trigger the fall back incorrectly.
+    assert_parity(r#""s""#, r#"{ "s": "-0 degrees" }"#);
+    // Integers past i64/u64 make simd-json reject the tape -> fall back.
+    assert_parity(r#""n""#, r#"{ "n": 18446744073709551616 }"#);
     assert_parity(
         r#""s""#,
         r#"{ "s": "with \"quotes\" and \n newline and é 🦀" }"#,
@@ -179,6 +186,22 @@ fn scalars_and_numbers() {
     assert_parity(r#""z""#, r#"{ "z": null }"#);
     assert_parity(r#""e""#, r#"{ "e": {} }"#);
     assert_parity(r#""e""#, r#"{ "e": [] }"#);
+}
+
+#[test]
+fn duplicate_keys() {
+    // serde_json keeps the last value per key; the tape keeps every entry, so
+    // object operators on such an object must delegate.
+    let dup = r#"{ "a": 0, "b": 2, "c": 2, "c": 33 }"#;
+    assert_parity(r#""c""#, dup);
+    assert_parity("{2,0}", dup);
+    assert_parity("{0:2}", dup);
+    assert_parity(r#"{"c","a"}"#, dup);
+    assert_parity("@", dup);
+    assert_parity("!", dup);
+    assert_parity(r#""o""#, r#"{ "o": { "x": 1, "x": 9 } }"#);
+    assert_parity(r#""o""x""#, r#"{ "o": { "x": 1, "x": 9 } }"#);
+    assert_parity("{5}", dup);
 }
 
 #[test]
@@ -193,20 +216,39 @@ fn key_order_preserved() {
 }
 
 #[test]
+fn pipe_operator() {
+    let nested = r#"{ "a": [{ "b": { "c": 1 } }, { "b": { "c": 2 } }] }"#;
+    assert_parity(r#""a"|>"b""c""#, nested);
+    assert_parity(r#""a"|>"b""c"<|[1]"#, nested);
+    assert_parity(r#""a"|>"b""#, nested);
+    assert_parity(r#""a"|>"b"<|"#, nested);
+    assert_parity(r#""a"|>"b""c"<|@"#, nested);
+
+    // Pipe over a projection: `{name}` per row.
+    let rows = r#"{ "rows": [{ "name": "a", "n": 1 }, { "name": "b", "n": 2 }, { "name": "c", "n": 3 }] }"#;
+    assert_parity(r#""rows"|>{"name","n"}"#, rows);
+    assert_parity(r#""rows"|>"name""#, rows);
+    assert_parity(r#""rows"|>[0]"#, r#"{ "rows": [[1, 2], [3, 4]] }"#);
+    assert_parity(r#""rows"|>"name"<|[2,0]"#, rows);
+
+    // Pipe where an element has the wrong type, and pipe on a non-array.
+    assert_parity(r#""r"|>"k""#, r#"{ "r": [{ "k": 1 }, 5] }"#);
+    assert_parity(r#""r"|>"k""#, r#"{ "r": { "k": 1 } }"#);
+    assert_parity("<|", r#"[1, 2]"#);
+    assert_parity(r#""r"|>"missing""#, r#"{ "r": [{ "k": 1 }] }"#);
+
+    // Pipe body that delegates (flatten inside the pipe).
+    assert_parity(r#""r"|>..[0]"#, r#"{ "r": [[1, [2]], [3, [4]]] }"#);
+}
+
+#[test]
 fn delegated_operators() {
-    // Flatten, lens and pipes are not on the tape path yet: `lazy` delegates.
+    // Flatten, lens and nested pipes are not on the tape path: `lazy` delegates.
     assert_parity("..", r#"[1, [2], [[3]]]"#);
     assert_parity(r#""a"..[0]"#, r#"{ "a": [1, [2], [[3]]] }"#);
-    assert_parity(
-        r#""a"|>"b""c""#,
-        r#"{ "a": [{ "b": { "c": 1 } }, { "b": { "c": 2 } }] }"#,
-    );
-    assert_parity(
-        r#""a"|>"b""c"<|[1]"#,
-        r#"{ "a": [{ "b": { "c": 1 } }, { "b": { "c": 2 } }] }"#,
-    );
     assert_parity(r#"|={"a""b""c"=2}"#, r#"[{ "a": { "b": { "c": 2 } } }]"#);
     assert_parity(r#""x"|={"k"}"#, r#"{ "x": [{ "k": 1 }, { "j": 2 }] }"#);
+    assert_parity(r#""a"|>"b"|>"c""#, r#"{ "a": [{ "b": [{ "c": 1 }] }] }"#);
 }
 
 #[test]
