@@ -11,6 +11,14 @@ use mimalloc::MiMalloc;
 static GLOBAL: MiMalloc = MiMalloc;
 
 use std::{
+    fs,
+    io::{
+        BufRead,
+        Read,
+        Write,
+        stdin,
+        stdout,
+    },
     path::Path,
     process::exit,
 };
@@ -32,29 +40,12 @@ use panic::use_custom_panic_hook;
 use serde::Deserialize;
 use serde_json::Value;
 use serde_stacker::Deserializer;
-use tokio::{
-    fs::File,
-    io::{
-        AsyncBufReadExt,
-        AsyncReadExt,
-        AsyncWriteExt,
-        BufReader,
-        stdin,
-        stdout,
-    },
-};
 
 /// Reads a file from `path`.
-async fn read_file(path: impl AsRef<Path>) -> Result<String> {
+fn read_file(path: impl AsRef<Path>) -> Result<String> {
     let display_path = path.as_ref().display();
-    let mut file = File::open(&path)
-        .await
-        .with_context(|| format!("Failed to open file {display_path}"))?;
-    let mut contents = vec![];
-
-    file.read_to_end(&mut contents)
-        .await
-        .with_context(|| format!("Failed to read from file {display_path}"))?;
+    let contents =
+        fs::read(&path).with_context(|| format!("Failed to read from file {display_path}"))?;
 
     Ok(String::from_utf8_lossy(&contents).into_owned())
 }
@@ -71,7 +62,7 @@ fn render(result: Result<String>) {
 }
 
 /// Processes the JSON content based on the arguments.
-async fn process_json(json: &str, args: &Args) -> Result<String> {
+fn process_json(json: &str, args: &Args) -> Result<String> {
     if args.validate {
         return serde_json::from_str::<Value>(json).map_or_else(
             |_| Err(anyhow!("Invalid JSON file or content")),
@@ -80,7 +71,7 @@ async fn process_json(json: &str, args: &Args) -> Result<String> {
     }
 
     let query = match args.query_from_file.as_deref() {
-        Some(path) => read_file(path).await?,
+        Some(path) => read_file(path)?,
         // We can safely unwrap since clap is taking care of the validation.
         None => args.query.as_deref().unwrap().to_string(),
     };
@@ -114,57 +105,48 @@ async fn process_json(json: &str, args: &Args) -> Result<String> {
         .with_context(|| "Failed to format the JSON data".to_string())
 }
 
-#[tokio::main]
-async fn main() -> Result<()> {
+fn main() -> Result<()> {
     // Use a custom panic hook.
     use_custom_panic_hook();
 
     let args = Args::parse();
 
     if let Some(path) = args.json_file.as_deref() {
-        let contents = read_file(path).await?;
+        let contents = read_file(path)?;
 
-        render(process_json(&contents, &args).await);
+        render(process_json(&contents, &args));
 
         return Ok(());
     }
 
-    let mut stdout = stdout();
-
     if args.stream {
-        let mut reader = BufReader::new(stdin()).lines();
+        let mut stdout = stdout().lock();
 
-        while let Some(mut line) = reader
-            .next_line()
-            .await
-            .with_context(|| "Failed to read stream".to_string())?
-        {
-            render(process_json(&line, &args).await);
+        for line in stdin().lock().lines() {
+            let line = line.with_context(|| "Failed to read stream".to_string())?;
+
+            render(process_json(&line, &args));
 
             stdout
                 .flush()
-                .await
                 .with_context(|| "Failed to flush stdout".to_string())?;
-
-            line.clear();
         }
 
         return Ok(());
     }
 
     let mut buffer = Vec::new();
-    let mut stdin = stdin();
 
     // By default, read the whole piped content from stdin.
-    stdin
+    stdin()
+        .lock()
         .read_to_end(&mut buffer)
-        .await
         .with_context(|| "Failed to read piped content from stdin".to_string())?;
 
     let lines = String::from_utf8(buffer)
         .with_context(|| "Failed to convert piped content from stdin".to_string())?;
 
-    render(process_json(&lines, &args).await);
+    render(process_json(&lines, &args));
 
     Ok(())
 }
@@ -173,22 +155,22 @@ async fn main() -> Result<()> {
 mod tests {
     use super::*;
 
-    #[tokio::test]
-    async fn sort_keys_flag_sorts_objects_recursively() {
+    #[test]
+    fn sort_keys_flag_sorts_objects_recursively() {
         let json = r#"{ "root": { "d": 1, "b": { "y": 1, "x": 2 }, "a": 3 } }"#;
         let args = Args::parse_from(["jql", "--sort-keys", "--inline", r#""root""#]);
 
         assert_eq!(
-            process_json(json, &args).await.unwrap(),
+            process_json(json, &args).unwrap(),
             r#"{"a":3,"b":{"x":2,"y":1},"d":1}"#
         );
     }
 
-    #[tokio::test]
-    async fn output_keeps_source_order_without_the_flag() {
+    #[test]
+    fn output_keeps_source_order_without_the_flag() {
         let json = r#"{ "root": { "d": 1, "a": 3 } }"#;
         let args = Args::parse_from(["jql", "--inline", r#""root""#]);
 
-        assert_eq!(process_json(json, &args).await.unwrap(), r#"{"d":1,"a":3}"#);
+        assert_eq!(process_json(json, &args).unwrap(), r#"{"d":1,"a":3}"#);
     }
 }
