@@ -7,7 +7,6 @@ use jql_parser::tokens::{
     Range,
     Token,
 };
-use rayon::prelude::*;
 use serde_json::{
     Value,
     json,
@@ -105,46 +104,17 @@ pub(crate) fn get_array_range(range: &Range, json: &mut Value) -> Result<Value, 
 /// Note: the runner checks that the input is a JSON array.
 pub(crate) fn get_flattened_array(json: &Value) -> Result<Value, JqlRunnerError> {
     let array = json.as_array().unwrap();
+    let mut result = Vec::with_capacity(array.len());
 
-    // Rayon's thread-spawn overhead (~15 µs) dominates for lightweight
-    // per-element work. Benchmarks sweeping 1–128 elements show serial is
-    // consistently 3–11x faster throughout; at 128 elements serial costs
-    // ~20 µs vs Rayon's ~67 µs. The break-even requires ~150+ elements
-    // for this operation, so 128 is a safe upper bound for the serial path.
-    if array.len() < 128 {
-        let mut result = Vec::new();
+    for inner_value in array {
+        if inner_value.is_array() {
+            let mut flattened = get_flattened_array(inner_value)?;
 
-        for inner_value in array {
-            if inner_value.is_array() {
-                let mut flattened = get_flattened_array(inner_value)?;
-                result.append(as_array_mut(&mut flattened)?);
-            } else {
-                result.push(inner_value.clone());
-            }
+            result.append(as_array_mut(&mut flattened)?);
+        } else {
+            result.push(inner_value.clone());
         }
-
-        return Ok(json!(result));
     }
-
-    let result = array
-        .par_iter()
-        .try_fold_with(Vec::new(), |mut acc: Vec<Value>, inner_value| {
-            if inner_value.is_array() {
-                let mut flattened = get_flattened_array(inner_value)?;
-                let result = as_array_mut(&mut flattened)?;
-
-                acc.append(result);
-            } else {
-                acc.push(inner_value.clone());
-            }
-
-            Ok::<Vec<Value>, JqlRunnerError>(acc)
-        })
-        .try_reduce(Vec::new, |mut a, b| {
-            a.extend(b);
-
-            Ok(a)
-        })?;
 
     Ok(json!(result))
 }
@@ -159,8 +129,8 @@ pub(crate) fn get_array_lenses(lenses: &[Lens], json: &mut Value) -> Result<Valu
     }
 
     let result = array
-        .par_iter()
-        .try_fold_with(Vec::new(), |mut acc: Vec<Value>, inner_value| {
+        .iter()
+        .try_fold(Vec::new(), |mut acc: Vec<Value>, inner_value| {
             if lenses.iter().any(|lens| {
                 let (tokens, value) = lens.get_ref();
                 let tokens: Vec<&Token> = tokens.iter().collect();
@@ -188,11 +158,6 @@ pub(crate) fn get_array_lenses(lenses: &[Lens], json: &mut Value) -> Result<Valu
             }
 
             Ok::<Vec<Value>, JqlRunnerError>(acc)
-        })
-        .try_reduce(Vec::new, |mut a, b| {
-            a.extend(b);
-
-            Ok(a)
         })?;
 
     Ok(json!(result))
@@ -202,21 +167,9 @@ pub(crate) fn get_array_lenses(lenses: &[Lens], json: &mut Value) -> Result<Valu
 /// Converts the original array as indexes and returns a JSON `Value` or an error.
 /// Note: the runner checks that the input is a JSON array.
 pub(crate) fn get_array_as_indexes(json: &Value) -> Result<Value, JqlRunnerError> {
-    let result = json
-        .as_array()
-        .unwrap()
-        .par_iter()
-        .enumerate()
-        .try_fold_with(Vec::new(), |mut acc: Vec<Value>, (i, _)| {
-            acc.push(i.into());
-
-            Ok::<Vec<Value>, JqlRunnerError>(acc)
-        })
-        .try_reduce(Vec::new, |mut a, b| {
-            a.extend(b);
-
-            Ok(a)
-        })?;
+    let result: Vec<Value> = (0..json.as_array().unwrap().len())
+        .map(Into::into)
+        .collect();
 
     Ok(json!(result))
 }

@@ -14,6 +14,10 @@ fmt:
 fuzz:
   cargo fuzz run fuzz_parser
 
+# Fuzz the lazy evaluator against the runner.
+fuzz-lazy:
+  cargo fuzz run fuzz_lazy
+
 # Run all tests.
 test:
   cargo nextest run

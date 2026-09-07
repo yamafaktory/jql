@@ -11,7 +11,6 @@ use jql_parser::tokens::{
     Index,
     Range,
 };
-use rayon::prelude::*;
 use serde_json::{
     Map,
     Value,
@@ -54,29 +53,17 @@ pub(crate) fn get_object_multi_key(
 ) -> Result<Value, JqlRunnerError> {
     let len = keys.len();
 
-    let (mut result, found_keys) = as_object_mut(json)?
-        .iter_mut()
-        .par_bridge()
-        .try_fold_with(
-            (IndexMap::with_capacity(len), IndexSet::with_capacity(len)),
-            |mut acc: (IndexMap<usize, Value>, IndexSet<String>), (key, value)| {
-                if let Some(index) = keys.iter().position(|s| s == key) {
-                    acc.0.insert(index, value.clone());
-                    acc.1.insert(key.to_string());
-                }
+    let (mut result, found_keys) = as_object_mut(json)?.iter_mut().fold(
+        (IndexMap::with_capacity(len), IndexSet::with_capacity(len)),
+        |mut acc: (IndexMap<usize, Value>, IndexSet<String>), (key, value)| {
+            if let Some(index) = keys.iter().position(|s| s == key) {
+                acc.0.insert(index, value.clone());
+                acc.1.insert(key.to_string());
+            }
 
-                Ok::<(IndexMap<usize, Value>, IndexSet<String>), JqlRunnerError>(acc)
-            },
-        )
-        .try_reduce(
-            || (IndexMap::with_capacity(len), IndexSet::with_capacity(len)),
-            |mut a, b| {
-                a.0.extend(b.0);
-                a.1.extend(b.1);
-
-                Ok(a)
-            },
-        )?;
+            acc
+        },
+    );
 
     let mut keys_not_found: Vec<String> = keys
         .iter()
@@ -93,7 +80,7 @@ pub(crate) fn get_object_multi_key(
     }
 
     // Restore the original order.
-    result.par_sort_keys();
+    result.sort_keys();
 
     let new_map = result
         .into_iter()
@@ -175,35 +162,23 @@ pub(crate) fn get_object_indexes(
         });
     }
 
-    let mut result = mut_object
-        .iter_mut()
-        .enumerate()
-        .par_bridge()
-        .try_fold_with(
-            IndexMap::with_capacity(len),
-            |mut acc: IndexMap<usize, (String, Value)>, (index, (key, value))| {
-                if let Some(index) = indexes.iter().position(|i| {
-                    let num: usize = (*i).into();
+    let mut result = mut_object.iter_mut().enumerate().fold(
+        IndexMap::with_capacity(len),
+        |mut acc: IndexMap<usize, (String, Value)>, (index, (key, value))| {
+            if let Some(index) = indexes.iter().position(|i| {
+                let num: usize = (*i).into();
 
-                    num == index
-                }) {
-                    acc.insert(index, (key.to_string(), value.clone()));
-                }
+                num == index
+            }) {
+                acc.insert(index, (key.to_string(), value.clone()));
+            }
 
-                Ok::<IndexMap<usize, (String, Value)>, JqlRunnerError>(acc)
-            },
-        )
-        .try_reduce(
-            || IndexMap::with_capacity(len),
-            |mut a, b| {
-                a.extend(b);
-
-                Ok(a)
-            },
-        )?;
+            acc
+        },
+    );
 
     // Restore the original order.
-    result.par_sort_keys();
+    result.sort_keys();
 
     let new_map = result
         .into_iter()
@@ -241,33 +216,21 @@ pub(crate) fn get_object_range(range: &Range, json: &mut Value) -> Result<Value,
 
     let is_natural_order = start < end;
 
-    let mut result = mut_object
-        .iter_mut()
-        .enumerate()
-        .par_bridge()
-        .try_fold_with(
-            IndexMap::with_capacity(len),
-            |mut acc: IndexMap<usize, (String, Value)>, (index, (key, value))| {
-                if (is_natural_order && index >= start && index <= end)
-                    || (!is_natural_order && index >= end && index <= start)
-                {
-                    acc.insert(index, (key.to_string(), value.clone()));
-                }
+    let mut result = mut_object.iter_mut().enumerate().fold(
+        IndexMap::with_capacity(len),
+        |mut acc: IndexMap<usize, (String, Value)>, (index, (key, value))| {
+            if (is_natural_order && index >= start && index <= end)
+                || (!is_natural_order && index >= end && index <= start)
+            {
+                acc.insert(index, (key.to_string(), value.clone()));
+            }
 
-                Ok::<IndexMap<usize, (String, Value)>, JqlRunnerError>(acc)
-            },
-        )
-        .try_reduce(
-            || IndexMap::with_capacity(len),
-            |mut a, b| {
-                a.extend(b);
-
-                Ok(a)
-            },
-        )?;
+            acc
+        },
+    );
 
     // Restore the original order.
-    result.par_sort_keys();
+    result.sort_keys();
 
     // Reverse if not in natural order.
     if !is_natural_order {
@@ -290,23 +253,10 @@ pub(crate) fn get_object_range(range: &Range, json: &mut Value) -> Result<Value,
 /// Note: the runner checks that the input is a JSON object.
 pub(crate) fn get_object_as_keys(json: &mut Value) -> Result<Value, JqlRunnerError> {
     let mut_object = json.as_object_mut().unwrap();
-    let mut result = mut_object
-        .iter_mut()
-        .par_bridge()
-        .try_fold_with(Vec::new(), |mut acc: Vec<Value>, (k, _)| {
-            acc.push(json!(k));
+    let mut result: Vec<Value> = mut_object.iter().map(|(key, _)| json!(key)).collect();
 
-            Ok::<Vec<Value>, JqlRunnerError>(acc)
-        })
-        .try_reduce(Vec::new, |mut a, b| {
-            a.extend(b);
-
-            Ok(a)
-        })?;
-
-    // Restore the original order.
     // We can safely unwrap here since the key is a string.
-    result.par_sort_unstable_by(|a, b| a.as_str().unwrap().cmp(b.as_str().unwrap()));
+    result.sort_unstable_by(|a, b| a.as_str().unwrap().cmp(b.as_str().unwrap()));
 
     Ok(json!(result))
 }

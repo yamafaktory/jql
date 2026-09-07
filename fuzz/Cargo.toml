@@ -1,4 +1,5 @@
 [package]
+edition = "2024"
 name = "jql-parser-fuzz"
 publish = false
 version = "0.0.0"
@@ -12,6 +13,13 @@ libfuzzer-sys = "0.4.13"
 [dependencies.jql-parser]
 path = "../crates/jql-parser"
 
+[dependencies.jql-runner]
+path = "../crates/jql-runner"
+
+[dependencies.serde_json]
+version = "1.0.151"
+features = ["preserve_order", "unbounded_depth"]
+
 # Prevent this from interfering with workspaces.
 [workspace]
 members = ["."]
@@ -23,4 +31,10 @@ debug = 1
 doc = false
 name = "fuzz_parser"
 path = "fuzz_targets/fuzz_parser.rs"
+test = false
+
+[[bin]]
+doc = false
+name = "fuzz_lazy"
+path = "fuzz_targets/fuzz_lazy.rs"
 test = false

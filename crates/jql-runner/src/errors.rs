@@ -38,8 +38,16 @@ fn get_json_type(json: &Value) -> &str {
 }
 
 /// Error type returned by the runner.
+///
+/// Marked `#[non_exhaustive]`: new variants are added as the runner grows, and
+/// downstream code must not break when one appears.
 #[derive(Debug, Error, PartialEq)]
+#[non_exhaustive]
 pub enum JqlRunnerError {
+    /// Deserialization error.
+    #[error("Failed to deserialize the JSON data")]
+    DeserializationError,
+
     /// Empty query error.
     #[error("Query is empty")]
     EmptyQueryError,

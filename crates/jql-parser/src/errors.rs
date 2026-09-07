@@ -9,7 +9,11 @@ fn display_content(content: &str) -> String {
 }
 
 /// Error type returned by the parser.
+///
+/// Marked `#[non_exhaustive]`: new variants are added as the parser grows, and
+/// downstream code must not break when one appears.
 #[derive(Debug, Error, PartialEq)]
+#[non_exhaustive]
 pub enum JqlParserError {
     /// Empty input error.
     #[error("Empty input")]
