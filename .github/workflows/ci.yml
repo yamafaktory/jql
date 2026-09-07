@@ -71,6 +71,9 @@ jobs:
         run: if ! echo "{\"a\":4}" | cargo run '"a"' | grep -q "4"; then exit 1; fi
       - name: Test raw-string flag
         run: if echo "{\"foo\":\"bar\"}" | cargo run '"foo"' -r | grep -q \"bar\"; then exit 1; fi
+      - name: Test sort-keys flag
+        run: |
+          if ! echo '{"root":{"d":1,"b":{"y":1,"x":2},"a":3}}' | cargo run -- '"root"' -i -S | grep -qF '{"a":3,"b":{"x":2,"y":1},"d":1}'; then exit 1; fi
       - name: Test heredoc
         run: |
           cargo run -q -- '"one"[2:0],"two","three"' <<EOF

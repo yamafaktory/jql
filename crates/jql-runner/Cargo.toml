@@ -6,10 +6,12 @@ edition.workspace = true
 keywords.workspace = true
 license.workspace = true
 name = "jql-runner"
-readme.workspace = true
 repository.workspace = true
 rust-version.workspace = true
 version.workspace = true
+
+[lints]
+workspace = true
 
 [dependencies]
 indexmap = { version = "2.14.2", features = ["rayon"] }

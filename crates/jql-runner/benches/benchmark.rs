@@ -1,3 +1,5 @@
+#![allow(missing_docs)]
+
 use criterion::{
     BenchmarkId,
     Criterion,
