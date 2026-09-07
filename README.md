@@ -553,7 +553,7 @@ There's no plan to align `jql` with `jq` or any other similar tool.
 
 Some benchmarks comparing a set of similar functionalities provided by this tool and [jq](https://stedolan.github.io/jq/) are available [here](PERFORMANCE.md).
 
-Selection queries — keys, indexes, ranges, multi keys, `@`, `!`, `|=` and a single `|>` — are evaluated against a [simd-json](https://github.com/simd-lite/simd-json) tape, so only the part of the document a query actually selects is built. Queries using the flatten operator or nested pipes, and input that is deeply nested or holds more than one document, are parsed in full instead.
+Selection queries — keys, indexes, ranges, multi keys, `@`, `!`, `|=` and a single `|>` — are evaluated against a [simd-json](https://github.com/simd-lite/simd-json) tape, so only the part of the document a query actually selects is built. Input holding more than one document is evaluated a document at a time, on the tape as well. Queries using the flatten operator or nested pipes, and input that is deeply nested, are parsed in full instead.
 
 Two JSON parsers are therefore in play, and they disagree on the last bit of some numbers written in scientific notation (`1.5e12`, `1e200`): such a value can come back differing by one [ULP](https://en.wikipedia.org/wiki/Unit_in_the_last_place). Plain decimals, integers, strings and every other value are unaffected.
 
