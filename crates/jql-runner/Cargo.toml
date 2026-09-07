@@ -14,7 +14,7 @@ version.workspace = true
 workspace = true
 
 [dependencies]
-indexmap = { version = "2.14.2", features = ["rayon"] }
+indexmap = "2.14.2"
 jql-parser = { path = "../jql-parser", version = "8.3.0" }
 memchr = "2.8.3"
 rayon = "1.12.0"

@@ -93,56 +93,21 @@ pub fn token(tokens: &[Token], json: &Value) -> Result<Value, JqlRunnerError> {
 pub(crate) fn group_runner(tokens: &[&Token], json: &Value) -> Result<Value, JqlRunnerError> {
     tokens
         .iter()
-        // At this level we can use rayon since every token is applied
-        // sequentially.
         .try_fold((json.clone(), false), |mut outer_acc, &token| {
             if outer_acc.1 {
                 let piped = outer_acc.1;
                 let array = outer_acc.0.as_array_mut().unwrap();
+                let mut values = Vec::with_capacity(array.len());
+                let mut last_piped = piped;
 
-                // Rayon's thread-spawn overhead (~40 µs) dominates for
-                // lightweight per-element work. Benchmarks sweeping 1–128
-                // elements show serial is consistently faster throughout; at
-                // 128 elements serial costs ~16 µs vs Rayon's ~180 µs. Rayon's
-                // overhead curve for this operation is steep enough that the
-                // break-even lies well above 128 elements.
-                if array.len() < 128 {
-                    let mut values = Vec::with_capacity(array.len());
-                    let mut last_piped = piped;
+                for inner_value in array.iter() {
+                    let result = matcher((inner_value.clone(), piped), token)?;
 
-                    for inner_value in array.iter() {
-                        let r = matcher((inner_value.clone(), piped), token)?;
-
-                        values.push(r.0);
-                        last_piped = r.1;
-                    }
-
-                    return Ok((json!(values), last_piped));
+                    values.push(result.0);
+                    last_piped = result.1;
                 }
 
-                let result = array
-                    .par_iter()
-                    .try_fold_with(
-                        (vec![], piped),
-                        |mut inner_acc: (Vec<Value>, bool), inner_value| {
-                            let result = matcher((inner_value.clone(), piped), token)?;
-
-                            inner_acc.0.push(result.0);
-                            inner_acc.1 = result.1;
-
-                            Ok::<(Vec<Value>, bool), JqlRunnerError>(inner_acc)
-                        },
-                    )
-                    .try_reduce(
-                        || (vec![], false),
-                        |mut a, b| {
-                            a.0.extend(b.0);
-
-                            Ok((a.0, b.1))
-                        },
-                    )?;
-
-                Ok((json!(result.0), result.1))
+                Ok((json!(values), last_piped))
             } else {
                 matcher(outer_acc, token)
             }
