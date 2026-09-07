@@ -8,17 +8,18 @@ license.workspace = true
 name = "jql"
 readme.workspace = true
 repository.workspace = true
+rust-version.workspace = true
 version.workspace = true
 
 [dependencies]
-anyhow = "1.0.102"
-clap = { version = "4.6.0", features = ["derive"] }
+anyhow = "1.0.104"
+clap = { version = "4.6.6", features = ["derive"] }
 colored_json = { version = "5.0.0" }
 jql-runner = { path = "../jql-runner", version = "8.1.2" }
-serde = "1.0.228"
+serde = "1.0.229"
 serde_stacker = "0.1.14"
 serde_json.workspace = true
-tokio = { version = "1.50.0", features = [
+tokio = { version = "1.53.1", features = [
 	"fs",
 	"io-std",
 	"io-util",
