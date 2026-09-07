@@ -112,15 +112,17 @@ jobs:
         rust: [stable, beta, nightly]
     steps:
       - uses: actions/checkout@v7
+        with:
+          # The baseline is measured on main, which a shallow clone can't reach.
+          fetch-depth: 0
       - uses: dtolnay/rust-toolchain@master
         with:
           toolchain: ${{ matrix.rust }}
       - uses: Swatinem/rust-cache@v2
       - name: Run the benchmarks against the current branch, main and compare
         run: |
-          git fetch origin main
           cargo bench --bench benchmark -- --noplot --save-baseline current
-          git checkout -b main
+          git checkout --detach origin/main
           cargo bench --bench benchmark -- --noplot --save-baseline main
           cargo install critcmp --force
           critcmp main current
