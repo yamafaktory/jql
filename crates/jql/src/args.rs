@@ -137,6 +137,15 @@ pub(crate) struct Args {
     )]
     pub(crate) raw_string: bool,
 
+    /// Sort keys flag.
+    #[arg(
+        conflicts_with = "validate",
+        help = "Sort the keys of every object in the JSON output",
+        long = "sort-keys",
+        short = 'S'
+    )]
+    pub(crate) sort_keys: bool,
+
     /// Stream flag.
     #[arg(
         help = "Read a stream of JSON data line by line",

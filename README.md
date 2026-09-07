@@ -467,6 +467,14 @@ This can be useful to drop the double-quotes surrounding a string primitive.
 -r, --raw-string
 ```
 
+#### Sort the keys of every object in the JSON output
+
+The keys of every object in the output are recursively sorted in alphanumerical order, matching the behavior of `jq`'s `-S` flag.
+
+```sh
+-S, --sort-keys
+```
+
 #### Read a stream of JSON data line by line
 
 This flag is only about reading processing any JSON output streamed line by line (e.g. Docker logs with the `--follow` flag). This is not an option to read an incomplete streamed content (e.g. a very large input).

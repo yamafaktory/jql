@@ -92,7 +92,11 @@ async fn process_json(json: &str, args: &Args) -> Result<String> {
     let deserializer = Deserializer::new(&mut deserializer);
     let value: Value = Value::deserialize(deserializer)
         .with_context(|| "Failed to deserialize the JSON data".to_string())?;
-    let result: Value = runner::raw(&query, &value)?;
+    let mut result: Value = runner::raw(&query, &value)?;
+
+    if args.sort_keys {
+        result.sort_all_objects();
+    }
 
     if args.inline {
         return ColoredFormatter::new(CompactFormatter {})
@@ -163,4 +167,28 @@ async fn main() -> Result<()> {
     render(process_json(&lines, &args).await);
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn sort_keys_flag_sorts_objects_recursively() {
+        let json = r#"{ "root": { "d": 1, "b": { "y": 1, "x": 2 }, "a": 3 } }"#;
+        let args = Args::parse_from(["jql", "--sort-keys", "--inline", r#""root""#]);
+
+        assert_eq!(
+            process_json(json, &args).await.unwrap(),
+            r#"{"a":3,"b":{"x":2,"y":1},"d":1}"#
+        );
+    }
+
+    #[tokio::test]
+    async fn output_keeps_source_order_without_the_flag() {
+        let json = r#"{ "root": { "d": 1, "a": 3 } }"#;
+        let args = Args::parse_from(["jql", "--inline", r#""root""#]);
+
+        assert_eq!(process_json(json, &args).await.unwrap(), r#"{"d":1,"a":3}"#);
+    }
 }
