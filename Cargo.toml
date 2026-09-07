@@ -1,13 +1,13 @@
 [workspace]
-resolver = "2"
+resolver = "3"
 members = ["crates/*"]
 
 [workspace.dependencies]
-thiserror = "2.0.18"
+thiserror = "2.0.20"
 serde_json = { features = [
 	"preserve_order",
 	"unbounded_depth",
-], version = "1.0.149" }
+], version = "1.0.151" }
 
 [workspace.package]
 authors = ["Davy Duperron <yamafaktory@gmail.com>"]
@@ -17,15 +17,18 @@ keywords = ["cli", "json", "terminal", "tool", "query"]
 license = "MIT OR Apache-2.0"
 readme = "README.md"
 repository = "https://github.com/yamafaktory/jql"
+rust-version = "1.88"
 version = "8.1.2"
 
 [workspace.lints.rust]
 missing_debug_implementations = "warn"
 missing_docs = "warn"
 nonstandard_style = { level = "deny", priority = -1 }
-rust_2021_compatibility = { level = "forbid", priority = -1 }
+redundant_lifetimes = "warn"
+unit_bindings = "warn"
 unreachable_pub = "warn"
 unsafe_code = "deny"
+unused_qualifications = "warn"
 
 [workspace.lints.clippy]
 all = "deny"

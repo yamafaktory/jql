@@ -8,11 +8,12 @@ license.workspace = true
 name = "jql-parser"
 readme.workspace = true
 repository.workspace = true
+rust-version.workspace = true
 version.workspace = true
 
 [dependencies]
 thiserror.workspace = true
-winnow = { version = "1.0.0", features = ["simd"] }
+winnow = { version = "1.0.4", features = ["simd"] }
 
 [lib]
 path = "src/lib.rs"
