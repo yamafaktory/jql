@@ -29,7 +29,6 @@ use anyhow::{
     anyhow,
 };
 use args::Args;
-use clap::Parser;
 use colored_json::{
     ColoredFormatter,
     CompactFormatter,
@@ -131,7 +130,7 @@ fn main() -> Result<()> {
     // Use a custom panic hook.
     use_custom_panic_hook();
 
-    let args = Args::parse();
+    let args = Args::get();
     let query = if args.validate {
         String::new()
     } else {
@@ -182,6 +181,8 @@ fn main() -> Result<()> {
 
 #[cfg(test)]
 mod tests {
+    use clap::Parser;
+
     use super::*;
 
     #[test]

@@ -1,8 +1,10 @@
 use std::path::PathBuf;
 
 use clap::{
+    CommandFactory,
     Parser,
     ValueHint,
+    error::ErrorKind,
 };
 
 static QUERY_HELP: &str = r#"
@@ -91,8 +93,7 @@ Truncate operator !
 pub(crate) struct Args {
     /// Query argument.
     #[arg(
-        conflicts_with = "validate",
-        help = "Query to apply to the JSON data", 
+        help = "Query to apply to the JSON data",
         index = 1,
         long_help = QUERY_HELP,
         required_unless_present_any = ["no-query"]
@@ -164,9 +165,93 @@ pub(crate) struct Args {
     pub(crate) validate: bool,
 }
 
-#[test]
-fn check_args() {
-    use clap::CommandFactory;
+impl Args {
+    /// Parses the command-line arguments, reporting misuse the way clap does.
+    pub(crate) fn get() -> Self {
+        match Self::parse().with_positionals_in_place() {
+            Ok(args) => args,
+            Err(message) => Self::command()
+                .error(ErrorKind::TooManyValues, message)
+                .exit(),
+        }
+    }
 
-    Args::command().debug_assert();
+    /// Moves the lone positional into the file slot when no query is read from
+    /// the command line.
+    ///
+    /// `--validate` and `--query` take no query, so `jql -v input.json` means
+    /// the file. clap fills the positionals by their index either way — it
+    /// cannot renumber one per flag — leaving the path in the query slot.
+    fn with_positionals_in_place(mut self) -> Result<Self, String> {
+        if !self.validate && self.query_from_file.is_none() {
+            return Ok(self);
+        }
+
+        if let Some(first) = self.query.take() {
+            if let Some(second) = &self.json_file {
+                return Err(format!(
+                    "'{first}' and '{}' were both provided, but only one file is read with --validate or --query",
+                    second.display()
+                ));
+            }
+
+            self.json_file = Some(PathBuf::from(first));
+        }
+
+        Ok(self)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn parse(arguments: &[&str]) -> Result<Args, String> {
+        Args::parse_from(arguments).with_positionals_in_place()
+    }
+
+    #[test]
+    fn check_args() {
+        Args::command().debug_assert();
+    }
+
+    #[test]
+    fn check_file_is_read_without_a_query() {
+        let args = parse(&["jql", "--validate", "input.json"]).unwrap();
+
+        assert_eq!(args.json_file, Some(PathBuf::from("input.json")));
+        assert_eq!(args.query, None);
+
+        let args = parse(&["jql", "--query", "query.jql", "input.json"]).unwrap();
+
+        assert_eq!(args.json_file, Some(PathBuf::from("input.json")));
+        assert_eq!(args.query, None);
+    }
+
+    #[test]
+    fn check_query_and_file_are_left_alone() {
+        let args = parse(&["jql", r#""a""#, "input.json"]).unwrap();
+
+        assert_eq!(args.query.as_deref(), Some(r#""a""#));
+        assert_eq!(args.json_file, Some(PathBuf::from("input.json")));
+
+        let args = parse(&["jql", r#""a""#]).unwrap();
+
+        assert_eq!(args.query.as_deref(), Some(r#""a""#));
+        assert_eq!(args.json_file, None);
+    }
+
+    #[test]
+    fn check_stdin_is_left_alone_without_a_query() {
+        let args = parse(&["jql", "--validate"]).unwrap();
+
+        assert_eq!(args.json_file, None);
+        assert_eq!(args.query, None);
+    }
+
+    #[test]
+    fn check_two_files_are_rejected_without_a_query() {
+        assert!(parse(&["jql", "--validate", "one.json", "two.json"]).is_err());
+        assert!(parse(&["jql", "--query", "query.jql", "one.json", "two.json"]).is_err());
+    }
 }
