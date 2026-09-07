@@ -1,3 +1,5 @@
+#![allow(missing_docs)]
+
 use jql_parser::{
     parser::parse,
     tokens::{

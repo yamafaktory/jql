@@ -5,7 +5,7 @@ use std::{
 
 /// Use a custom hook to manage broken pipe errors.
 /// See #86.
-pub fn use_custom_panic_hook() {
+pub(crate) fn use_custom_panic_hook() {
     // Take the hook.
     let hook = panic::take_hook();
 

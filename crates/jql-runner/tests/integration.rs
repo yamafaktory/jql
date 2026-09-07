@@ -1,3 +1,5 @@
+#![allow(missing_docs)]
+
 use jql_parser::tokens::Token;
 use jql_runner::runner::{
     raw,
