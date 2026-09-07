@@ -44,7 +44,7 @@ fuzz_target!(|data: &[u8]| {
         .iter()
         .map(|document| jql_runner::runner::raw(query, document))
         .collect();
-    let lazy = jql_runner::lazy::raw_all(query, json);
+    let lazy = jql_runner::lazy::raw_all(query, &mut json.to_vec());
 
     match (oracle, lazy) {
         (Ok(oracle), Ok(lazy)) => assert_eq!(

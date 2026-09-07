@@ -27,7 +27,7 @@ fn assert_parity(query: &str, json: &str) {
     let value = deserialize(json);
 
     let oracle = runner::raw(query, &value);
-    let lazy = lazy::raw(query, json.as_bytes());
+    let lazy = lazy::raw(query, &mut json.as_bytes().to_vec());
 
     match (oracle, lazy) {
         (Ok(oracle), Ok(lazy)) => assert_eq!(
@@ -193,6 +193,47 @@ fn scalars_and_numbers() {
     assert_parity(r#""e""#, r#"{ "e": [] }"#);
 }
 
+/// The hazardous numbers are looked for in what a query returns, not in what it
+/// reads, so a `-0` or a long mantissa the query never selects must neither
+/// change the result nor cost the fast path.
+#[test]
+fn hazardous_numbers_outside_the_selection() {
+    let json = r#"{ "a": "kept", "b": -0, "c": 0.12345678901234567890, "d": 0 }"#;
+
+    assert_parity(r#""a""#, json);
+    assert_parity(r#""d""#, json);
+    assert_parity(r#""b""#, json);
+    assert_parity(r#""c""#, json);
+    assert_parity(r#"{"a","d"}"#, json);
+    assert_parity("@", json);
+    assert_parity("!", json);
+
+    // An integer zero selected out of input that holds a `-0` elsewhere is not
+    // itself in danger, but the scan cannot tell them apart, so this only has
+    // to stay correct.
+    assert_parity(r#""d","a""#, json);
+
+    // A lens comparing numbers decides the selection, so both hazards are
+    // looked for up front there.
+    assert_parity(r#"|={"n"=0}"#, r#"[{ "n": -0 }, { "n": 0 }, { "n": 1 }]"#);
+    assert_parity(
+        r#"|={"n"=1}"#,
+        r#"[{ "n": 0.12345678901234567890 }, { "n": 1 }]"#,
+    );
+}
+
+/// Hazardous numbers reached through an error must fall back too: the error
+/// embeds the value it was raised on and is compared whole.
+#[test]
+fn hazardous_numbers_inside_an_error() {
+    assert_parity(r#""missing""#, r#"{ "b": -0 }"#);
+    assert_parity(r#""missing""#, r#"{ "b": 0.12345678901234567890 }"#);
+    assert_parity("[9]", r#"[-0, 1]"#);
+    assert_parity(r#"{"missing","other"}"#, r#"{ "b": -0 }"#);
+    assert_parity("[0:9]", r#"[-0]"#);
+    assert_parity(r#""a"|>"b""#, r#"{ "a": { "b": -0 } }"#);
+}
+
 /// The one accepted departure from exact parity: simd-json and serde_json round
 /// the last `f64` bit of some scientific-notation literals differently, and
 /// telling a number's exponent from an `e` inside a string is too expensive to
@@ -212,7 +253,7 @@ fn scientific_notation_stays_within_one_ulp() {
         let query = r#""n""#;
 
         let oracle = runner::raw(query, &deserialize(&json)).unwrap();
-        let lazy = lazy::raw(query, json.as_bytes()).unwrap();
+        let lazy = lazy::raw(query, &mut json.as_bytes().to_vec()).unwrap();
 
         let (oracle, lazy) = (oracle.as_f64().unwrap(), lazy.as_f64().unwrap());
         let ulps = ((oracle.to_bits() as i128) - (lazy.to_bits() as i128)).abs();
@@ -374,7 +415,7 @@ fn assert_all_parity(query: &str, json: &str) {
         .iter()
         .map(|document| runner::raw(query, document))
         .collect();
-    let lazy = lazy::raw_all(query, json.as_bytes());
+    let lazy = lazy::raw_all(query, &mut json.as_bytes().to_vec());
 
     match (oracle, lazy) {
         (Ok(oracle), Ok(lazy)) => assert_eq!(
@@ -413,11 +454,32 @@ fn every_document_is_evaluated() {
     assert_all_parity(r#""a""#, r#"{ "a": 1 }[2]"#);
 }
 
+/// The boundaries between documents come out of the structural positions the
+/// failed tape build already found, and whitespace can sit anywhere around them.
+/// Top-level scalars and strings are read the slower way instead, so they have
+/// to keep working too.
+#[test]
+fn document_boundaries_in_every_shape() {
+    assert_all_parity(r#""a""#, r#"   { "a": 1 }   { "a": 2 }   "#);
+    assert_all_parity(r#""a""#, "\t{ \"a\": 1 }\r\n\r\n{ \"a\": 2 }\n");
+    assert_all_parity(r#""a""#, r#"{ "a": "}{" }{ "a": "][" }"#);
+    assert_all_parity(r#""a""#, r#"{ "a": "\"}\"" }{ "a": 2 }"#);
+    assert_all_parity("[0]", r#"[[1]][[2]]"#);
+    assert_all_parity("@", r#"{ "a": 1 }{ "b": 2, "c": 3 }"#);
+
+    // Top-level scalars, strings, booleans and nulls as whole documents.
+    assert_all_parity("@", "1 2 3");
+    assert_all_parity("@", r#""a" "b""#);
+    assert_all_parity("@", "true false null");
+    assert_all_parity("@", r#"{ "a": 1 } 2"#);
+    assert_all_parity("@", r#"1 { "a": 2 }"#);
+}
+
 #[test]
 fn multi_document_input_rejects_trailing_junk() {
     for json in [r#"{ "a": 1 } junk"#, r#"{ "a": 1 }{"#, "", "   "] {
         assert_eq!(
-            lazy::raw_all(r#""a""#, json.as_bytes()),
+            lazy::raw_all(r#""a""#, &mut json.as_bytes().to_vec()),
             Err(jql_runner::errors::JqlRunnerError::DeserializationError),
             "expected a deserialization error for `{json}`"
         );
@@ -450,7 +512,8 @@ fn deserialize_all(json: &str) -> Vec<Value> {
 #[test]
 fn deeply_nested_multi_document_input_is_read() {
     let json = format!("{}{}", nested(1100), nested(1100));
-    let results = lazy::raw_all("[0]", json.as_bytes()).expect("both documents should be read");
+    let results =
+        lazy::raw_all("[0]", &mut json.as_bytes().to_vec()).expect("both documents should be read");
 
     assert_eq!(results.len(), 2);
 }
