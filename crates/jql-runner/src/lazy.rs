@@ -1,6 +1,7 @@
 use std::{
     collections::HashSet,
     num::NonZeroUsize,
+    ops::Range,
 };
 
 use jql_parser::{
@@ -12,7 +13,10 @@ use jql_parser::{
         Token,
     },
 };
-use serde::Deserialize;
+use serde::{
+    Deserialize,
+    de::IgnoredAny,
+};
 use serde_json::{
     Map,
     Number,
@@ -69,6 +73,93 @@ pub fn raw(query: &str, json: &[u8]) -> Result<Value, JqlRunnerError> {
     runner::token(&tokens, &deserialize(json)?)
 }
 
+/// Takes a raw query and a slice of JSON bytes holding one or more documents.
+/// Returns one JSON `Value` per document.
+///
+/// A single document takes the same tape path as [`raw`]. Several — concatenated
+/// with or without separating whitespace, each pretty-printed or not — are read
+/// one at a time by serde_json, which simd-json has no equivalent for, and the
+/// query is applied to each.
+///
+/// # Errors
+///
+/// Returns a `JqlRunnerError` if the query or any document fails, including when
+/// content follows the last document that is not itself a document.
+pub fn raw_all(query: &str, json: &[u8]) -> Result<Vec<Value>, JqlRunnerError> {
+    if query.is_empty() {
+        return Err(JqlRunnerError::EmptyQueryError);
+    }
+
+    let tokens = parse(query)?;
+
+    // A single document — the common case — tapes the whole input. `to_tape`
+    // also rejects anything after the first document, which is what sends
+    // multi-document input down the path below.
+    if let Some(value) = evaluate(&tokens, json)? {
+        return Ok(vec![value]);
+    }
+
+    if let Some(ranges) = document_ranges(json) {
+        return ranges
+            .into_iter()
+            .map(|range| {
+                let document = &json[range];
+
+                match evaluate(&tokens, document)? {
+                    Some(value) => Ok(value),
+                    None => runner::token(&tokens, &deserialize(document)?),
+                }
+            })
+            .collect();
+    }
+
+    // Not a clean sequence of documents: the input must then be exactly one,
+    // which is also the path that reads arbitrarily deep nesting.
+    Ok(vec![runner::token(&tokens, &deserialize(json)?)?])
+}
+
+/// Evaluates `tokens` against a single document on the tape.
+/// `Ok(None)` means the tape declined the input and a caller must fall back.
+fn evaluate(tokens: &[Token], json: &[u8]) -> Result<Option<Value>, JqlRunnerError> {
+    if !can_lazy(tokens) || numbers_may_diverge(json) {
+        return Ok(None);
+    }
+
+    // `to_tape` parses in place, so give it a copy — the original bytes must
+    // stay pristine for the fallback deserializer.
+    let mut scratch = json.to_vec();
+
+    match simd_json::to_tape(&mut scratch) {
+        Ok(tape) => eval(tokens, tape.as_value()).map(Some),
+        Err(_) => Ok(None),
+    }
+}
+
+/// The byte range of every JSON document in `json`, or `None` if the input is
+/// not a clean sequence of at least two documents.
+///
+/// Documents are skipped rather than built, which is markedly cheaper than
+/// reading each one into a `Value` just to learn where it ends. serde_json skips
+/// with an explicit stack rather than by recursing, so this is safe at any
+/// nesting depth — each document is then read on its own, where a tape that
+/// refuses the depth falls back to the growable-stack deserializer.
+fn document_ranges(json: &[u8]) -> Option<Vec<Range<usize>>> {
+    let mut stream = serde_json::Deserializer::from_slice(json).into_iter::<IgnoredAny>();
+    let mut ranges = Vec::new();
+    let mut start = 0;
+
+    while let Some(document) = stream.next() {
+        document.ok()?;
+
+        let end = stream.byte_offset();
+
+        ranges.push(start..end);
+        start = end;
+    }
+
+    (ranges.len() > 1).then_some(ranges)
+}
+
 /// A digit count this far past a decimal point is already well over the 16 that
 /// matters, and caps the work on adversarial input.
 const DIGIT_SCAN_CAP: usize = 24;
@@ -120,9 +211,12 @@ fn numbers_may_diverge(json: &[u8]) -> bool {
         })
 }
 
-/// Deserializes JSON bytes into a `Value`, growing the stack for deeply nested
-/// input. Parses from `&str` so serde_json can slice string values without
-/// re-validating UTF-8, matching the pre-tape deserialization path.
+/// Deserializes JSON bytes into a single `Value`, growing the stack for deeply
+/// nested input. Parses from `&str` so serde_json can slice string values
+/// without re-validating UTF-8.
+///
+/// The whole input must be that one document: anything but trailing whitespace
+/// after it is an error rather than being quietly dropped.
 fn deserialize(json: &[u8]) -> Result<Value, JqlRunnerError> {
     let json = str::from_utf8(json).map_err(|_| JqlRunnerError::DeserializationError)?;
 
@@ -130,8 +224,14 @@ fn deserialize(json: &[u8]) -> Result<Value, JqlRunnerError> {
 
     deserializer.disable_recursion_limit();
 
-    Value::deserialize(serde_stacker::Deserializer::new(&mut deserializer))
-        .map_err(|_| JqlRunnerError::DeserializationError)
+    let value = Value::deserialize(serde_stacker::Deserializer::new(&mut deserializer))
+        .map_err(|_| JqlRunnerError::DeserializationError)?;
+
+    deserializer
+        .end()
+        .map_err(|_| JqlRunnerError::DeserializationError)?;
+
+    Ok(value)
 }
 
 /// Returns `true` when the query only uses operators the tape evaluator handles
@@ -207,7 +307,7 @@ fn eval_tokens<'tape, 'input>(
     while let Some(&token) = tokens.get(index) {
         match token {
             Token::PipeInOperator => {
-                let elements = cursor_elements(cursor).map_err(JqlRunnerError::PipeInError)?;
+                let mut elements = cursor_elements(cursor).map_err(JqlRunnerError::PipeInError)?;
 
                 // `group_runner` only clears its `piped` flag from inside the
                 // per-element loop, so piping into an empty array leaves it set
@@ -222,10 +322,17 @@ fn eval_tokens<'tape, 'input>(
                     .position(|token| matches!(token, Token::PipeOutOperator))
                     .unwrap_or(rest.len());
 
-                let mapped = elements
-                    .into_iter()
-                    .map(|element| eval_tokens(&rest[..body_len], element))
-                    .collect::<Result<Vec<Value>, _>>()?;
+                // Apply each token of the body to every element before moving on
+                // to the next, the way `group_runner` does, so that a failing
+                // document reports the same token's error.
+                for &token in &rest[..body_len] {
+                    elements = elements
+                        .into_iter()
+                        .map(|element| advance(element, token))
+                        .collect::<Result<Vec<_>, _>>()?;
+                }
+
+                let mapped = elements.into_iter().map(Cursor::into_value).collect();
 
                 cursor = Cursor::Owned(Value::Array(mapped));
                 index += 1 + body_len;
@@ -271,6 +378,21 @@ fn eval_tokens<'tape, 'input>(
     }
 
     Ok(cursor.into_value())
+}
+
+/// Applies one token to one cursor, falling back to [`runner`] when the tape
+/// declines it.
+fn advance<'tape, 'input>(
+    cursor: Cursor<'tape, 'input>,
+    token: &Token,
+) -> Result<Cursor<'tape, 'input>, JqlRunnerError> {
+    match cursor {
+        Cursor::Owned(value) => runner::group_runner(&[token], &value).map(Cursor::Owned),
+        Cursor::Tape(value) => match step(value, token)? {
+            Some(next) => Ok(next),
+            None => runner::group_runner(&[token], &materialize(value)).map(Cursor::Owned),
+        },
+    }
 }
 
 /// Splits a cursor into per-element cursors. `Err` carries the value when it is

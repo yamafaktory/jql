@@ -24,12 +24,27 @@ fuzz_target!(|data: &[u8]| {
     // The default recursion limit is left in place so that serializing the
     // results below cannot overflow the stack; `parity.rs` covers the
     // deep-nesting fall back explicitly.
-    let Ok(value) = serde_json::from_str::<serde_json::Value>(json_str) else {
-        return;
+    let documents: Vec<serde_json::Value> = {
+        let stream = serde_json::Deserializer::from_str(json_str).into_iter::<serde_json::Value>();
+        let Ok(documents) = stream.collect::<Result<Vec<_>, _>>() else {
+            return;
+        };
+
+        documents
     };
 
-    let oracle = jql_runner::runner::raw(query, &value);
-    let lazy = jql_runner::lazy::raw(query, json);
+    if documents.is_empty() {
+        return;
+    }
+
+    // Every document evaluated by the Value runner is the oracle for the whole
+    // input, covering the tape-per-document path in `raw_all` as well as the
+    // single-document one in `raw`.
+    let oracle: Result<Vec<_>, _> = documents
+        .iter()
+        .map(|document| jql_runner::runner::raw(query, document))
+        .collect();
+    let lazy = jql_runner::lazy::raw_all(query, json);
 
     match (oracle, lazy) {
         (Ok(oracle), Ok(lazy)) => assert_eq!(

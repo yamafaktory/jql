@@ -48,10 +48,14 @@ fn read_file(path: impl AsRef<Path>) -> Result<String> {
     Ok(String::from_utf8_lossy(&contents).into_owned())
 }
 
-/// Renders the output or the error and exits.
-fn render(result: Result<String>) {
+/// Renders the outputs or the error and exits.
+fn render(result: Result<Vec<String>>) {
     match result {
-        Ok(output) => println!("{output}"),
+        Ok(outputs) => {
+            for output in outputs {
+                println!("{output}");
+            }
+        }
         Err(error) => {
             eprintln!("{error}");
             exit(1);
@@ -60,11 +64,12 @@ fn render(result: Result<String>) {
 }
 
 /// Processes the JSON content based on the arguments.
-fn process_json(json: &[u8], args: &Args) -> Result<String> {
+/// Returns one rendered output per JSON document in `json`.
+fn process_json(json: &[u8], args: &Args) -> Result<Vec<String>> {
     if args.validate {
         return serde_json::from_slice::<Value>(json).map_or_else(
             |_| Err(anyhow!("Invalid JSON file or content")),
-            |_| Ok("Valid JSON file or content".to_string()),
+            |_| Ok(vec!["Valid JSON file or content".to_string()]),
         );
     }
 
@@ -74,8 +79,14 @@ fn process_json(json: &[u8], args: &Args) -> Result<String> {
         None => args.query.as_deref().unwrap().to_string(),
     };
 
-    let mut result: Value = lazy::raw(&query, json)?;
+    lazy::raw_all(&query, json)?
+        .into_iter()
+        .map(|result| format_json(result, args))
+        .collect()
+}
 
+/// Renders one query result according to the output arguments.
+fn format_json(mut result: Value, args: &Args) -> Result<String> {
     if args.sort_keys {
         result.sort_all_objects();
     }
@@ -152,7 +163,7 @@ mod tests {
 
         assert_eq!(
             process_json(&json, &args).unwrap(),
-            r#"{"a":3,"b":{"x":2,"y":1},"d":1}"#
+            [r#"{"a":3,"b":{"x":2,"y":1},"d":1}"#]
         );
     }
 
@@ -161,6 +172,6 @@ mod tests {
         let json = br#"{ "root": { "d": 1, "a": 3 } }"#.to_vec();
         let args = Args::parse_from(["jql", "--inline", r#""root""#]);
 
-        assert_eq!(process_json(&json, &args).unwrap(), r#"{"d":1,"a":3}"#);
+        assert_eq!(process_json(&json, &args).unwrap(), [r#"{"d":1,"a":3}"#]);
     }
 }

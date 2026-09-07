@@ -273,6 +273,15 @@ fn pipe_operator() {
     // Pipe body that delegates (flatten inside the pipe).
     assert_parity(r#""r"|>..[0]"#, r#"{ "r": [[1, [2]], [3, [4]]] }"#);
 
+    // Each body token is applied to every element before the next one, so a
+    // failure is reported for the token the runner reaches first — here the key
+    // missing from the last element, not the index applied to the first.
+    assert_parity(
+        r#""x"|>"k"[21]"#,
+        r#"{ "x": [{ "k": 4 }, { "k": 8 }, { "i": 7 }] }"#,
+    );
+    assert_parity(r#""x"|>"k"@"#, r#"{ "x": [{ "k": 4 }, { "i": 7 }] }"#);
+
     // Empty pipe body, and a stray second `<|`.
     assert_parity(r#""r"|><|"#, r#"{ "r": [1, 2] }"#);
     assert_parity(r#""r"|>"k"<|<|"#, r#"{ "r": [{ "k": 1 }] }"#);
@@ -353,4 +362,95 @@ fn empty_and_parse_errors() {
 /// Builds `[[…[value]…]]` nested `depth` levels deep.
 fn nested(depth: usize) -> String {
     format!("{}0{}", "[".repeat(depth), "]".repeat(depth))
+}
+
+/// Every document in the input is evaluated, and the tape-per-document path in
+/// `raw_all` agrees with running the `Value` runner over each document.
+#[track_caller]
+fn assert_all_parity(query: &str, json: &str) {
+    let documents = deserialize_all(json);
+
+    let oracle: Result<Vec<Value>, _> = documents
+        .iter()
+        .map(|document| runner::raw(query, document))
+        .collect();
+    let lazy = lazy::raw_all(query, json.as_bytes());
+
+    match (oracle, lazy) {
+        (Ok(oracle), Ok(lazy)) => assert_eq!(
+            serde_json::to_string(&oracle).unwrap(),
+            serde_json::to_string(&lazy).unwrap(),
+            "output mismatch for query `{query}` on `{json}`"
+        ),
+        (Err(oracle), Err(lazy)) => assert_eq!(
+            oracle, lazy,
+            "error mismatch for query `{query}` on `{json}`"
+        ),
+        (oracle, lazy) => panic!(
+            "ok/err mismatch for query `{query}` on `{json}`:\n  oracle: {oracle:?}\n  lazy:   {lazy:?}"
+        ),
+    }
+}
+
+#[test]
+fn every_document_is_evaluated() {
+    assert_all_parity(r#""a""#, r#"{ "a": 1 }"#);
+    assert_all_parity(r#""a""#, r#"{ "a": 1 }{ "a": 2 }"#);
+    assert_all_parity(r#""a""#, "{ \"a\": 1 }\n{ \"a\": 2 }\n{ \"a\": 3 }\n");
+    assert_all_parity(r#""a""#, "{\n  \"a\": 1\n}\n{\n  \"a\": 2\n}\n");
+    assert_all_parity("[0]", "[1][2][3][4][5][6][7][8][9][10]");
+    assert_all_parity(r#"|>{"n"}"#, r#"[{ "n": 1 }][{ "n": 2 }]"#);
+    assert_all_parity(r#""a"@"#, r#"{ "a": { "y": 1 } }{ "a": { "x": 2 } }"#);
+    // A document that the tape declines still matches: deep nesting, a bare -0,
+    // and a long decimal mantissa each fall back on their own.
+    assert_all_parity(r#""n""#, r#"{ "n": -0 }{ "n": 1 }"#);
+    assert_all_parity(
+        r#""n""#,
+        r#"{ "n": 1 }{ "n": 1111110004366660488538014150.111111111111111111 }"#,
+    );
+    // A failing document fails the whole run.
+    assert_all_parity(r#""a""#, r#"{ "a": 1 }{ "b": 2 }"#);
+    assert_all_parity(r#""a""#, r#"{ "a": 1 }[2]"#);
+}
+
+#[test]
+fn multi_document_input_rejects_trailing_junk() {
+    for json in [r#"{ "a": 1 } junk"#, r#"{ "a": 1 }{"#, "", "   "] {
+        assert_eq!(
+            lazy::raw_all(r#""a""#, json.as_bytes()),
+            Err(jql_runner::errors::JqlRunnerError::DeserializationError),
+            "expected a deserialization error for `{json}`"
+        );
+    }
+}
+
+/// Reads every document, growing the stack the way the binary does so that
+/// deeply nested fixtures build an oracle instead of hitting serde_json's
+/// default recursion limit.
+fn deserialize_all(json: &str) -> Vec<Value> {
+    let mut deserializer = serde_json::Deserializer::from_str(json);
+
+    deserializer.disable_recursion_limit();
+
+    let mut documents = Vec::new();
+
+    while let Ok(document) = Value::deserialize(serde_stacker::Deserializer::new(&mut deserializer))
+    {
+        documents.push(document);
+    }
+
+    assert!(!documents.is_empty(), "no document parsed from `{json}`");
+
+    documents
+}
+
+/// Several documents nested past what the tape accepts: the range scan still
+/// finds them, because serde_json skips with an explicit stack rather than by
+/// recursing, and each one then falls back on its own.
+#[test]
+fn deeply_nested_multi_document_input_is_read() {
+    let json = format!("{}{}", nested(1100), nested(1100));
+    let results = lazy::raw_all("[0]", json.as_bytes()).expect("both documents should be read");
+
+    assert_eq!(results.len(), 2);
 }

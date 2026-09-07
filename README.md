@@ -100,6 +100,17 @@ To be fully compliant with the JSON format, `jql` always expect key selectors to
 
 Consequently, to be shell compliant, a query must be either enclosed by single quotation marks or every inner double quotation mark must be escaped.
 
+The input may hold more than one JSON document — concatenated, separated by whitespace or newlines, each pretty-printed or not. The query is applied to every one of them and a result is written per document. Anything trailing that is not itself a document is an error rather than being ignored.
+
+```sh
+printf '{ "a": 1 }{ "a": 2 }' | jql '"a"'
+```
+
+```json
+1
+2
+```
+
 ### Separators
 
 #### Group separator
@@ -477,7 +488,7 @@ The keys of every object in the output are recursively sorted in alphanumerical 
 
 #### Read a stream of JSON data line by line
 
-This flag is only about reading processing any JSON output streamed line by line (e.g. Docker logs with the `--follow` flag). This is not an option to read an incomplete streamed content (e.g. a very large input).
+Without this flag the whole input is read before anything is written, which is fine for a file or a finished pipe. This flag processes each line as it arrives instead, for output that is still being produced (e.g. Docker logs with the `--follow` flag). It expects one document per line; a document spread over several lines needs the default. This is not an option to read an incomplete streamed content (e.g. a very large input).
 
 ```sh
 -s, --stream
@@ -524,6 +535,7 @@ Some commands are available as a `justfile` at the root of the workspace (testin
 
 ### Prerequisites
 
+- [cargo-fuzz](https://rust-fuzz.github.io/book/cargo-fuzz.html) (fuzzing, needs a nightly toolchain)
 - [cargo-nextest](https://nexte.st/)
 - [just](https://just.systems/man/en/)
 
@@ -540,6 +552,10 @@ There's no plan to align `jql` with `jq` or any other similar tool.
 ## ⚡ Performance
 
 Some benchmarks comparing a set of similar functionalities provided by this tool and [jq](https://stedolan.github.io/jq/) are available [here](PERFORMANCE.md).
+
+Selection queries — keys, indexes, ranges, multi keys, `@`, `!`, `|=` and a single `|>` — are evaluated against a [simd-json](https://github.com/simd-lite/simd-json) tape, so only the part of the document a query actually selects is built. Queries using the flatten operator or nested pipes, and input that is deeply nested or holds more than one document, are parsed in full instead.
+
+Two JSON parsers are therefore in play, and they disagree on the last bit of some numbers written in scientific notation (`1.5e12`, `1e200`): such a value can come back differing by one [ULP](https://en.wikipedia.org/wiki/Unit_in_the_last_place). Plain decimals, integers, strings and every other value are unaffected.
 
 ## 📔 Licenses
 
