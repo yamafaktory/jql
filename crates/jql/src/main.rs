@@ -35,11 +35,9 @@ use colored_json::{
     CompactFormatter,
     PrettyFormatter,
 };
-use jql_runner::runner;
+use jql_runner::lazy;
 use panic::use_custom_panic_hook;
-use serde::Deserialize;
 use serde_json::Value;
-use serde_stacker::Deserializer;
 
 /// Reads a file from `path`.
 fn read_file(path: impl AsRef<Path>) -> Result<String> {
@@ -62,9 +60,9 @@ fn render(result: Result<String>) {
 }
 
 /// Processes the JSON content based on the arguments.
-fn process_json(json: &str, args: &Args) -> Result<String> {
+fn process_json(json: &mut [u8], args: &Args) -> Result<String> {
     if args.validate {
-        return serde_json::from_str::<Value>(json).map_or_else(
+        return serde_json::from_slice::<Value>(json).map_or_else(
             |_| Err(anyhow!("Invalid JSON file or content")),
             |_| Ok("Valid JSON file or content".to_string()),
         );
@@ -76,14 +74,7 @@ fn process_json(json: &str, args: &Args) -> Result<String> {
         None => args.query.as_deref().unwrap().to_string(),
     };
 
-    let mut deserializer = serde_json::Deserializer::from_str(json);
-
-    deserializer.disable_recursion_limit();
-
-    let deserializer = Deserializer::new(&mut deserializer);
-    let value: Value = Value::deserialize(deserializer)
-        .with_context(|| "Failed to deserialize the JSON data".to_string())?;
-    let mut result: Value = runner::raw(&query, &value)?;
+    let mut result: Value = lazy::raw(&query, json)?;
 
     if args.sort_keys {
         result.sort_all_objects();
@@ -112,9 +103,9 @@ fn main() -> Result<()> {
     let args = Args::parse();
 
     if let Some(path) = args.json_file.as_deref() {
-        let contents = read_file(path)?;
+        let mut contents = read_file(path)?.into_bytes();
 
-        render(process_json(&contents, &args));
+        render(process_json(&mut contents, &args));
 
         return Ok(());
     }
@@ -123,9 +114,11 @@ fn main() -> Result<()> {
         let mut stdout = stdout().lock();
 
         for line in stdin().lock().lines() {
-            let line = line.with_context(|| "Failed to read stream".to_string())?;
+            let mut line = line
+                .with_context(|| "Failed to read stream".to_string())?
+                .into_bytes();
 
-            render(process_json(&line, &args));
+            render(process_json(&mut line, &args));
 
             stdout
                 .flush()
@@ -143,10 +136,7 @@ fn main() -> Result<()> {
         .read_to_end(&mut buffer)
         .with_context(|| "Failed to read piped content from stdin".to_string())?;
 
-    let lines = String::from_utf8(buffer)
-        .with_context(|| "Failed to convert piped content from stdin".to_string())?;
-
-    render(process_json(&lines, &args));
+    render(process_json(&mut buffer, &args));
 
     Ok(())
 }
@@ -157,20 +147,20 @@ mod tests {
 
     #[test]
     fn sort_keys_flag_sorts_objects_recursively() {
-        let json = r#"{ "root": { "d": 1, "b": { "y": 1, "x": 2 }, "a": 3 } }"#;
+        let mut json = br#"{ "root": { "d": 1, "b": { "y": 1, "x": 2 }, "a": 3 } }"#.to_vec();
         let args = Args::parse_from(["jql", "--sort-keys", "--inline", r#""root""#]);
 
         assert_eq!(
-            process_json(json, &args).unwrap(),
+            process_json(&mut json, &args).unwrap(),
             r#"{"a":3,"b":{"x":2,"y":1},"d":1}"#
         );
     }
 
     #[test]
     fn output_keeps_source_order_without_the_flag() {
-        let json = r#"{ "root": { "d": 1, "a": 3 } }"#;
+        let mut json = br#"{ "root": { "d": 1, "a": 3 } }"#.to_vec();
         let args = Args::parse_from(["jql", "--inline", r#""root""#]);
 
-        assert_eq!(process_json(json, &args).unwrap(), r#"{"d":1,"a":3}"#);
+        assert_eq!(process_json(&mut json, &args).unwrap(), r#"{"d":1,"a":3}"#);
     }
 }

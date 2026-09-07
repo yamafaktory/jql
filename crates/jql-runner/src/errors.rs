@@ -40,6 +40,10 @@ fn get_json_type(json: &Value) -> &str {
 /// Error type returned by the runner.
 #[derive(Debug, Error, PartialEq)]
 pub enum JqlRunnerError {
+    /// Deserialization error.
+    #[error("Failed to deserialize the JSON data")]
+    DeserializationError,
+
     /// Empty query error.
     #[error("Query is empty")]
     EmptyQueryError,

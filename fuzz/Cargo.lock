@@ -55,7 +55,7 @@ dependencies = [
 
 [[package]]
 name = "jql-parser"
-version = "8.1.2"
+version = "8.3.0"
 dependencies = [
  "thiserror",
  "winnow",

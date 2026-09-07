@@ -7,6 +7,8 @@
 mod array;
 /// Parser errors.
 pub mod errors;
+/// Lazy tape-based evaluator.
+pub mod lazy;
 /// Object utilities.
 mod object;
 /// Runner utilities.
