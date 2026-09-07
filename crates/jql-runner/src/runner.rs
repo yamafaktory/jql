@@ -72,20 +72,18 @@ pub fn token(tokens: &[Token], json: &Value) -> Result<Value, JqlRunnerError> {
         return Ok(json!(result));
     }
 
-    let result = groups
+    // Collect every group's outcome in order, then pick the first failure the
+    // way the serial branch above does. Short-circuiting in parallel instead
+    // would surface an arbitrary one of the failing groups' errors, so the same
+    // query could report a different error on each run.
+    let results: Vec<Result<Value, JqlRunnerError>> = groups
         .par_iter()
-        .try_fold_with(vec![], |mut acc: Vec<Value>, group| {
-            acc.push(group_runner(group, json)?);
+        .map(|group| group_runner(group, json))
+        .collect();
 
-            Ok::<Vec<Value>, JqlRunnerError>(acc)
-        })
-        .try_reduce(Vec::new, |mut a, b| {
-            a.extend(b);
+    let result = results.into_iter().collect::<Result<Vec<Value>, _>>()?;
 
-            Ok(a)
-        });
-
-    result.map(|group| json!(group))
+    Ok(json!(result))
 }
 
 /// Takes a slice of references of `Token` and a reference of a JSON `Value`.
@@ -326,5 +324,23 @@ mod tests {
         let value = json!({ "a": { "b": { "c": { "d": 1 }}}});
 
         assert_eq!(raw(r#""a""b""c"@"#, &value), Ok(json!(["d"])));
+    }
+
+    #[test]
+    fn check_runner_reports_the_first_failing_group() {
+        // Past eight groups the groups run in parallel; the reported error must
+        // still be the first one by position, and the same on every run.
+        let parent = json!({ "a": 1 });
+        let expected = Err(JqlRunnerError::KeyNotFoundError {
+            key: "x".to_string(),
+            parent: parent.clone(),
+        });
+
+        for _ in 0..64 {
+            assert_eq!(
+                raw(r#""a","x","a","y","a","z","a","w","a""#, &parent),
+                expected
+            );
+        }
     }
 }
