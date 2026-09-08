@@ -21,7 +21,6 @@ footer = ""
 trim = false
 postprocessors = [
   { pattern = '\n{3,}', replace = "\n\n" },
-  { pattern = '\n+$', replace = "\n" },
 ]
 
 [git]
