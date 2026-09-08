@@ -1,319 +1,380 @@
-[
-  {
-    "section": "keys",
-    "title": "Select a key",
-    "query": "\"name\"",
-    "input": "{ \"name\": \"jql\", \"stars\": 1337 }",
-    "note": "A key selector is always double-quoted, so the query must be wrapped in single quotes in a shell."
+{
+  "fixtures": {
+    "api": "{\n  \"meta\": { \"total\": 3, \"page\": 1 },\n  \"repos\": [\n    { \"name\": \"jql\", \"lang\": \"Rust\", \"stars\": 1337, \"archived\": false,\n      \"owner\": { \"login\": \"yamafaktory\", \"id\": 1 }, \"topics\": [\"cli\", \"json\"] },\n    { \"name\": \"hypergraphz\", \"lang\": \"Zig\", \"stars\": 42, \"archived\": false,\n      \"owner\": { \"login\": \"yamafaktory\", \"id\": 1 }, \"topics\": [\"graph\"] },\n    { \"name\": \"old-thing\", \"lang\": \"Rust\", \"stars\": 3, \"archived\": true,\n      \"owner\": { \"login\": \"someone\", \"id\": 2 }, \"topics\": [] }\n  ]\n}"
   },
-  {
-    "section": "keys",
-    "title": "Walk down nested keys",
-    "query": "\"repo\"\"owner\"\"login\"",
-    "input": "{ \"repo\": { \"owner\": { \"login\": \"yamafaktory\" }, \"private\": false } }",
-    "note": "Selectors sit next to each other with no separator. Each one descends one level."
-  },
-  {
-    "section": "keys",
-    "title": "Keys that need escaping",
-    "query": "\"a\\\"b\"",
-    "input": "{ \"a\\\"b\": 1, \"plain\": 2 }",
-    "note": "A key carrying a quote or a backslash is written the way JSON writes it. The full escape set is supported: \\\" \\\\ \\/ \\b \\f \\n \\r \\t and \\uXXXX."
-  },
-  {
-    "section": "keys",
-    "title": "An empty key",
-    "query": "\"\"",
-    "input": "{ \"\": \"empty keys are valid JSON\" }",
-    "note": "The empty string is a valid JSON key, so it is a valid selector."
-  },
-  {
-    "section": "keys",
-    "title": "A key that does not exist",
-    "query": "\"missing\"",
-    "input": "{ \"name\": \"jql\" }",
-    "note": "The error names the key and shows the object it was looked for in.",
-    "expect": "error"
-  },
-  {
-    "section": "arrays",
-    "title": "Select one index",
-    "query": "[1]",
-    "input": "[\"a\", \"b\", \"c\", \"d\"]",
-    "note": "Indexes are zero-based."
-  },
-  {
-    "section": "arrays",
-    "title": "Select several indexes",
-    "query": "[2,0]",
-    "input": "[\"a\", \"b\", \"c\", \"d\"]",
-    "note": "Indexes are returned in the order you ask for them, not in the order they appear."
-  },
-  {
-    "section": "arrays",
-    "title": "A range",
-    "query": "[1:2]",
-    "input": "[\"a\", \"b\", \"c\", \"d\"]",
-    "note": "Ranges are inclusive at both ends."
-  },
-  {
-    "section": "arrays",
-    "title": "A reversed range",
-    "query": "[2:0]",
-    "input": "[\"a\", \"b\", \"c\", \"d\"]",
-    "note": "Writing the bounds backwards reverses the result. There is no separate reverse operator."
-  },
-  {
-    "section": "arrays",
-    "title": "An open range",
-    "query": "[2:]",
-    "input": "[\"a\", \"b\", \"c\", \"d\"]",
-    "note": "Leave a bound out and it runs to the end. [:1] does the same from the start."
-  },
-  {
-    "section": "arrays",
-    "title": "The whole array",
-    "query": "[:]",
-    "input": "[\"a\", \"b\", \"c\"]",
-    "note": "Both bounds omitted selects everything, which is useful as the last step of a pipe."
-  },
-  {
-    "section": "arrays",
-    "title": "An index out of bounds",
-    "query": "[9]",
-    "input": "[\"a\", \"b\"]",
-    "note": "The error reports the index and the array it was applied to.",
-    "expect": "error"
-  },
-  {
-    "section": "objects",
-    "title": "Several keys at once",
-    "query": "{\"stars\",\"name\"}",
-    "input": "{ \"name\": \"jql\", \"stars\": 1337, \"forks\": 42 }",
-    "note": "A multi key selector keeps the order you wrote, so it doubles as a way to reorder an object."
-  },
-  {
-    "section": "objects",
-    "title": "Select keys by position",
-    "query": "{1,0}",
-    "input": "{ \"name\": \"jql\", \"stars\": 1337, \"forks\": 42 }",
-    "note": "An object index selector picks entries by position rather than by name."
-  },
-  {
-    "section": "objects",
-    "title": "A range over positions",
-    "query": "{0:1}",
-    "input": "{ \"name\": \"jql\", \"stars\": 1337, \"forks\": 42 }",
-    "note": "Object ranges behave like array ranges, including the reversed and open forms."
-  },
-  {
-    "section": "objects",
-    "title": "A reversed object range",
-    "query": "{2:1}",
-    "input": "{ \"name\": \"jql\", \"stars\": 1337, \"forks\": 42 }",
-    "note": "Same rule as arrays: bounds written backwards give a reversed result."
-  },
-  {
-    "section": "operators",
-    "title": "Flatten nested arrays",
-    "query": "..",
-    "input": "[[[[\"a\"]], \"b\"], [[\"c\"]]]",
-    "note": "The flatten operator collapses every level of nesting into a single array."
-  },
-  {
-    "section": "operators",
-    "title": "Flatten an object",
-    "query": "..",
-    "input": "{ \"a\": { \"b\": { \"c\": 1 } }, \"d\": 2 }",
-    "note": "On an object, flatten joins the path with dots and keeps the leaf value."
-  },
-  {
-    "section": "operators",
-    "title": "List the keys of an object",
-    "query": "@",
-    "input": "{ \"name\": \"jql\", \"stars\": 1337 }",
-    "note": "The keys operator answers what is in here, which is the usual first move on an unfamiliar document."
-  },
-  {
-    "section": "operators",
-    "title": "List the indexes of an array",
-    "query": "@",
-    "input": "[\"a\", \"b\", \"c\"]",
-    "note": "On an array the same operator returns indexes rather than keys."
-  },
-  {
-    "section": "operators",
-    "title": "Truncate to a primitive",
-    "query": "\"repos\"!",
-    "input": "{ \"repos\": [\n    { \"name\": \"jql\", \"lang\": \"Rust\", \"stars\": 1337, \"archived\": false },\n    { \"name\": \"hypergraphz\", \"lang\": \"Zig\", \"stars\": 42, \"archived\": false },\n    { \"name\": \"old-thing\", \"lang\": \"Rust\", \"stars\": 3, \"archived\": true }\n  ] }",
-    "note": "Truncate maps the output to a bare primitive, turning a big array into [] and an object into {}. Useful to check a shape without printing it."
-  },
-  {
-    "section": "operators",
-    "title": "Truncate must come last",
-    "query": "\"repos\"!\"name\"",
-    "input": "{ \"repos\": [\n    { \"name\": \"jql\", \"lang\": \"Rust\", \"stars\": 1337, \"archived\": false },\n    { \"name\": \"hypergraphz\", \"lang\": \"Zig\", \"stars\": 42, \"archived\": false },\n    { \"name\": \"old-thing\", \"lang\": \"Rust\", \"stars\": 3, \"archived\": true }\n  ] }",
-    "note": "Only one truncate operator is allowed and it has to be the final token.",
-    "expect": "error"
-  },
-  {
-    "section": "pipes",
-    "title": "Apply a selector to every element",
-    "query": "\"repos\"|>\"name\"",
-    "input": "{ \"repos\": [\n    { \"name\": \"jql\", \"lang\": \"Rust\", \"stars\": 1337, \"archived\": false },\n    { \"name\": \"hypergraphz\", \"lang\": \"Zig\", \"stars\": 42, \"archived\": false },\n    { \"name\": \"old-thing\", \"lang\": \"Rust\", \"stars\": 3, \"archived\": true }\n  ] }",
-    "note": "The pipe in operator applies everything that follows to each element of an array, collecting the results."
-  },
-  {
-    "section": "pipes",
-    "title": "Pick several fields from every element",
-    "query": "\"repos\"|>{\"name\",\"stars\"}",
-    "input": "{ \"repos\": [\n    { \"name\": \"jql\", \"lang\": \"Rust\", \"stars\": 1337, \"archived\": false },\n    { \"name\": \"hypergraphz\", \"lang\": \"Zig\", \"stars\": 42, \"archived\": false },\n    { \"name\": \"old-thing\", \"lang\": \"Rust\", \"stars\": 3, \"archived\": true }\n  ] }",
-    "note": "Anything that works on one element works inside a pipe, including multi key selectors."
-  },
-  {
-    "section": "pipes",
-    "title": "Stop piping and select from the result",
-    "query": "\"repos\"|>\"name\"<|[0]",
-    "input": "{ \"repos\": [\n    { \"name\": \"jql\", \"lang\": \"Rust\", \"stars\": 1337, \"archived\": false },\n    { \"name\": \"hypergraphz\", \"lang\": \"Zig\", \"stars\": 42, \"archived\": false },\n    { \"name\": \"old-thing\", \"lang\": \"Rust\", \"stars\": 3, \"archived\": true }\n  ] }",
-    "note": "The pipe out operator ends the iteration, so the tokens after it apply to the collected array as a whole."
-  },
-  {
-    "section": "pipes",
-    "title": "Reach into nested elements",
-    "query": "\"repos\"|>\"name\"<|[2:1]",
-    "input": "{ \"repos\": [\n    { \"name\": \"jql\", \"lang\": \"Rust\", \"stars\": 1337, \"archived\": false },\n    { \"name\": \"hypergraphz\", \"lang\": \"Zig\", \"stars\": 42, \"archived\": false },\n    { \"name\": \"old-thing\", \"lang\": \"Rust\", \"stars\": 3, \"archived\": true }\n  ] }",
-    "note": "After a pipe out you can range, index or slice the collected array like any other array."
-  },
-  {
-    "section": "lenses",
-    "title": "Keep elements that have a key",
-    "query": "|={\"archived\"}",
-    "input": "[{ \"name\": \"jql\", \"archived\": false }, { \"name\": \"note\" }]",
-    "note": "A lens with no value keeps every element where the selector resolves, regardless of what it holds."
-  },
-  {
-    "section": "lenses",
-    "title": "Filter on a value",
-    "query": "|={\"lang\"=\"Rust\"}",
-    "input": "[{ \"name\": \"jql\", \"lang\": \"Rust\" }, { \"name\": \"hypergraphz\", \"lang\": \"Zig\" }]",
-    "note": "Give the lens a value and it keeps only the elements matching it. Values can be a boolean, null, a number or a string."
-  },
-  {
-    "section": "lenses",
-    "title": "Filter on a nested value",
-    "query": "|={\"owner\"\"login\"=\"yamafaktory\"}",
-    "input": "[{ \"owner\": { \"login\": \"yamafaktory\" } }, { \"owner\": { \"login\": \"someone\" } }]",
-    "note": "A lens takes a whole path, not just one key."
-  },
-  {
-    "section": "lenses",
-    "title": "Several conditions",
-    "query": "|={\"lang\"=\"Rust\",\"archived\"=true}",
-    "input": "[{ \"lang\": \"Rust\", \"archived\": false }, { \"lang\": \"Zig\", \"archived\": true }, { \"lang\": \"Rust\", \"archived\": true }]",
-    "note": "Conditions separated by commas act as OR: an element is kept when any of them matches."
-  },
-  {
-    "section": "lenses",
-    "title": "Filter on a boolean",
-    "query": "|={\"archived\"=false}",
-    "input": "[{ \"name\": \"jql\", \"archived\": false }, { \"name\": \"old\", \"archived\": true }]",
-    "note": "Booleans and null are written bare, without quotes."
-  },
-  {
-    "section": "groups",
-    "title": "Build an array from sub-queries",
-    "query": "\"name\",\"stars\"",
-    "input": "{ \"name\": \"jql\", \"stars\": 1337, \"forks\": 42 }",
-    "note": "A group separator runs each sub-query against the same input and collects the results into an array. Unlike a multi key selector it keeps no keys."
-  },
-  {
-    "section": "groups",
-    "title": "Combine unrelated paths",
-    "query": "\"repos\"[0]\"name\",\"repos\"[1]\"lang\"",
-    "input": "{ \"repos\": [\n    { \"name\": \"jql\", \"lang\": \"Rust\", \"stars\": 1337, \"archived\": false },\n    { \"name\": \"hypergraphz\", \"lang\": \"Zig\", \"stars\": 42, \"archived\": false },\n    { \"name\": \"old-thing\", \"lang\": \"Rust\", \"stars\": 3, \"archived\": true }\n  ] }",
-    "note": "Each side of the comma is a full query, so groups reach into completely different parts of a document."
-  },
-  {
-    "section": "groups",
-    "title": "Group whole pipelines",
-    "query": "\"repos\"|>\"name\"<|[0],\"repos\"|>\"stars\"",
-    "input": "{ \"repos\": [\n    { \"name\": \"jql\", \"lang\": \"Rust\", \"stars\": 1337, \"archived\": false },\n    { \"name\": \"hypergraphz\", \"lang\": \"Zig\", \"stars\": 42, \"archived\": false },\n    { \"name\": \"old-thing\", \"lang\": \"Rust\", \"stars\": 3, \"archived\": true }\n  ] }",
-    "note": "Sub-queries may contain pipes, ranges, anything. The group is the outermost structure."
-  },
-  {
-    "section": "combining",
-    "title": "Filter, then project",
-    "query": "\"repos\"|={\"lang\"=\"Rust\"}|>\"name\"",
-    "input": "{ \"repos\": [\n    { \"name\": \"jql\", \"lang\": \"Rust\", \"stars\": 1337, \"archived\": false },\n    { \"name\": \"hypergraphz\", \"lang\": \"Zig\", \"stars\": 42, \"archived\": false },\n    { \"name\": \"old-thing\", \"lang\": \"Rust\", \"stars\": 3, \"archived\": true }\n  ] }",
-    "note": "A lens narrows the array, then a pipe projects each survivor. This is the shape most real queries take."
-  },
-  {
-    "section": "combining",
-    "title": "Filter, project, take one",
-    "query": "\"repos\"|={\"archived\"=false}|>\"name\"<|[0]",
-    "input": "{ \"repos\": [\n    { \"name\": \"jql\", \"lang\": \"Rust\", \"stars\": 1337, \"archived\": false },\n    { \"name\": \"hypergraphz\", \"lang\": \"Zig\", \"stars\": 42, \"archived\": false },\n    { \"name\": \"old-thing\", \"lang\": \"Rust\", \"stars\": 3, \"archived\": true }\n  ] }",
-    "note": "Filter, project, then collapse. Reading a query left to right tells you the whole pipeline."
-  },
-  {
-    "section": "combining",
-    "title": "Inspect an unfamiliar document",
-    "query": "\"repos\"[0]@",
-    "input": "{ \"repos\": [\n    { \"name\": \"jql\", \"lang\": \"Rust\", \"stars\": 1337, \"archived\": false },\n    { \"name\": \"hypergraphz\", \"lang\": \"Zig\", \"stars\": 42, \"archived\": false },\n    { \"name\": \"old-thing\", \"lang\": \"Rust\", \"stars\": 3, \"archived\": true }\n  ] }",
-    "note": "The keys operator at the end of a path is the quickest way to see what a nested object holds."
-  },
-  {
-    "section": "multidoc",
-    "title": "Several documents at once",
-    "query": "\"a\"",
-    "input": "{ \"a\": 1 }{ \"a\": 2 }{ \"a\": 3 }",
-    "note": "Concatenated documents, with or without whitespace between them, are each evaluated and produce one result apiece."
-  },
-  {
-    "section": "multidoc",
-    "title": "Documents separated by newlines",
-    "query": "\"name\"",
-    "input": "{ \"name\": \"first\" }\n{ \"name\": \"second\" }",
-    "note": "Newline-delimited JSON works the same way, which is what most log pipelines produce."
-  },
-  {
-    "section": "flags",
-    "title": "Inline the output",
-    "query": "\"repos\"[0]",
-    "input": "{ \"repos\": [\n    { \"name\": \"jql\", \"lang\": \"Rust\", \"stars\": 1337, \"archived\": false },\n    { \"name\": \"hypergraphz\", \"lang\": \"Zig\", \"stars\": 42, \"archived\": false },\n    { \"name\": \"old-thing\", \"lang\": \"Rust\", \"stars\": 3, \"archived\": true }\n  ] }",
-    "note": "Output is pretty-printed by default. Use -i or --inline for a single line, which is what you want when piping into another tool.",
-    "flags": [
-      "--inline"
-    ]
-  },
-  {
-    "section": "flags",
-    "title": "Drop the quotes around a string",
-    "query": "\"repos\"[0]\"name\"",
-    "input": "{ \"repos\": [\n    { \"name\": \"jql\", \"lang\": \"Rust\", \"stars\": 1337, \"archived\": false },\n    { \"name\": \"hypergraphz\", \"lang\": \"Zig\", \"stars\": 42, \"archived\": false },\n    { \"name\": \"old-thing\", \"lang\": \"Rust\", \"stars\": 3, \"archived\": true }\n  ] }",
-    "note": "With -r or --raw-string a string result is printed bare, so it can be assigned to a shell variable.",
-    "flags": [
-      "--raw-string"
-    ]
-  },
-  {
-    "section": "flags",
-    "title": "Sort every object key",
-    "query": "\"repo\"",
-    "input": "{ \"repo\": { \"name\": \"jql\", \"archived\": false, \"lang\": \"Rust\" } }",
-    "note": "-S or --sort-keys sorts keys recursively, matching jq's -S. Handy for diffing two documents.",
-    "flags": [
-      "--sort-keys",
-      "--inline"
-    ]
-  },
-  {
-    "section": "flags",
-    "title": "Check that input is valid JSON",
-    "query": "",
-    "input": "{ \"name\": \"jql\" }",
-    "note": "-v or --validate ignores the query and reports whether the input parses, setting the exit code accordingly.",
-    "flags": [
-      "--validate"
-    ]
-  }
-]
+  "examples": [
+    {
+      "section": "keys",
+      "title": "Select a key",
+      "query": "\"name\"",
+      "input": "{ \"name\": \"jql\", \"stars\": 1337 }",
+      "note": "A key selector is always double-quoted, so the query must be wrapped in single quotes in a shell."
+    },
+    {
+      "section": "keys",
+      "title": "Walk down nested keys",
+      "query": "\"repo\"\"owner\"\"login\"",
+      "input": "{ \"repo\": { \"owner\": { \"login\": \"yamafaktory\" }, \"private\": false } }",
+      "note": "Selectors sit next to each other with no separator. Each one descends one level."
+    },
+    {
+      "section": "keys",
+      "title": "Keys that need escaping",
+      "query": "\"a\\\"b\"",
+      "input": "{ \"a\\\"b\": 1, \"plain\": 2 }",
+      "note": "A key carrying a quote or a backslash is written the way JSON writes it. The full escape set is supported: \\\" \\\\ \\/ \\b \\f \\n \\r \\t and \\uXXXX."
+    },
+    {
+      "section": "keys",
+      "title": "An empty key",
+      "query": "\"\"",
+      "input": "{ \"\": \"empty keys are valid JSON\" }",
+      "note": "The empty string is a valid JSON key, so it is a valid selector."
+    },
+    {
+      "section": "keys",
+      "title": "A key that does not exist",
+      "query": "\"missing\"",
+      "input": "{ \"name\": \"jql\" }",
+      "note": "The error names the key and shows the object it was looked for in.",
+      "expect": "error"
+    },
+    {
+      "section": "arrays",
+      "title": "Select one index",
+      "query": "[1]",
+      "input": "[\"a\", \"b\", \"c\", \"d\"]",
+      "note": "Indexes are zero-based."
+    },
+    {
+      "section": "arrays",
+      "title": "Select several indexes",
+      "query": "[2,0]",
+      "input": "[\"a\", \"b\", \"c\", \"d\"]",
+      "note": "Indexes are returned in the order you ask for them, not in the order they appear."
+    },
+    {
+      "section": "arrays",
+      "title": "A range",
+      "query": "[1:2]",
+      "input": "[\"a\", \"b\", \"c\", \"d\"]",
+      "note": "Ranges are inclusive at both ends."
+    },
+    {
+      "section": "arrays",
+      "title": "A reversed range",
+      "query": "[2:0]",
+      "input": "[\"a\", \"b\", \"c\", \"d\"]",
+      "note": "Writing the bounds backwards reverses the result. There is no separate reverse operator."
+    },
+    {
+      "section": "arrays",
+      "title": "An open range",
+      "query": "[2:]",
+      "input": "[\"a\", \"b\", \"c\", \"d\"]",
+      "note": "Leave a bound out and it runs to the end. [:1] does the same from the start."
+    },
+    {
+      "section": "arrays",
+      "title": "The whole array",
+      "query": "[:]",
+      "input": "[\"a\", \"b\", \"c\"]",
+      "note": "Both bounds omitted selects everything, which is useful as the last step of a pipe."
+    },
+    {
+      "section": "arrays",
+      "title": "An index out of bounds",
+      "query": "[9]",
+      "input": "[\"a\", \"b\"]",
+      "note": "The error reports the index and the array it was applied to.",
+      "expect": "error"
+    },
+    {
+      "section": "objects",
+      "title": "Several keys at once",
+      "query": "{\"stars\",\"name\"}",
+      "input": "{ \"name\": \"jql\", \"stars\": 1337, \"forks\": 42 }",
+      "note": "A multi key selector keeps the order you wrote, so it doubles as a way to reorder an object."
+    },
+    {
+      "section": "objects",
+      "title": "Select keys by position",
+      "query": "{1,0}",
+      "input": "{ \"name\": \"jql\", \"stars\": 1337, \"forks\": 42 }",
+      "note": "An object index selector picks entries by position rather than by name."
+    },
+    {
+      "section": "objects",
+      "title": "A range over positions",
+      "query": "{0:1}",
+      "input": "{ \"name\": \"jql\", \"stars\": 1337, \"forks\": 42 }",
+      "note": "Object ranges behave like array ranges, including the reversed and open forms."
+    },
+    {
+      "section": "objects",
+      "title": "A reversed object range",
+      "query": "{2:1}",
+      "input": "{ \"name\": \"jql\", \"stars\": 1337, \"forks\": 42 }",
+      "note": "Same rule as arrays: bounds written backwards give a reversed result."
+    },
+    {
+      "section": "operators",
+      "title": "Flatten nested arrays",
+      "query": "..",
+      "input": "[[[[\"a\"]], \"b\"], [[\"c\"]]]",
+      "note": "The flatten operator collapses every level of nesting into a single array."
+    },
+    {
+      "section": "operators",
+      "title": "Flatten an object",
+      "query": "..",
+      "input": "{ \"a\": { \"b\": { \"c\": 1 } }, \"d\": 2 }",
+      "note": "On an object, flatten joins the path with dots and keeps the leaf value."
+    },
+    {
+      "section": "operators",
+      "title": "List the keys of an object",
+      "query": "@",
+      "input": "{ \"zebra\": 1, \"apple\": 2, \"mango\": 3 }",
+      "note": "The keys operator answers what is in here, which is the usual first move on an unfamiliar document. Keys come back sorted alphabetically, not in document order."
+    },
+    {
+      "section": "operators",
+      "title": "List the indexes of an array",
+      "query": "@",
+      "input": "[\"a\", \"b\", \"c\"]",
+      "note": "On an array the same operator returns indexes rather than keys."
+    },
+    {
+      "section": "operators",
+      "title": "Truncate to a primitive",
+      "query": "\"repos\"!",
+      "input": "{ \"repos\": [\n    { \"name\": \"jql\", \"lang\": \"Rust\", \"stars\": 1337, \"archived\": false },\n    { \"name\": \"hypergraphz\", \"lang\": \"Zig\", \"stars\": 42, \"archived\": false },\n    { \"name\": \"old-thing\", \"lang\": \"Rust\", \"stars\": 3, \"archived\": true }\n  ] }",
+      "note": "Truncate maps the output to a bare primitive, turning a big array into [] and an object into {}. Useful to check a shape without printing it."
+    },
+    {
+      "section": "operators",
+      "title": "Truncate must come last",
+      "query": "\"repos\"!\"name\"",
+      "input": "{ \"repos\": [\n    { \"name\": \"jql\", \"lang\": \"Rust\", \"stars\": 1337, \"archived\": false },\n    { \"name\": \"hypergraphz\", \"lang\": \"Zig\", \"stars\": 42, \"archived\": false },\n    { \"name\": \"old-thing\", \"lang\": \"Rust\", \"stars\": 3, \"archived\": true }\n  ] }",
+      "note": "Only one truncate operator is allowed and it has to be the final token.",
+      "expect": "error"
+    },
+    {
+      "section": "pipes",
+      "title": "Apply a selector to every element",
+      "query": "\"repos\"|>\"name\"",
+      "input": "{ \"repos\": [\n    { \"name\": \"jql\", \"lang\": \"Rust\", \"stars\": 1337, \"archived\": false },\n    { \"name\": \"hypergraphz\", \"lang\": \"Zig\", \"stars\": 42, \"archived\": false },\n    { \"name\": \"old-thing\", \"lang\": \"Rust\", \"stars\": 3, \"archived\": true }\n  ] }",
+      "note": "The pipe in operator applies everything that follows to each element of an array, collecting the results."
+    },
+    {
+      "section": "pipes",
+      "title": "Pick several fields from every element",
+      "query": "\"repos\"|>{\"name\",\"stars\"}",
+      "input": "{ \"repos\": [\n    { \"name\": \"jql\", \"lang\": \"Rust\", \"stars\": 1337, \"archived\": false },\n    { \"name\": \"hypergraphz\", \"lang\": \"Zig\", \"stars\": 42, \"archived\": false },\n    { \"name\": \"old-thing\", \"lang\": \"Rust\", \"stars\": 3, \"archived\": true }\n  ] }",
+      "note": "Anything that works on one element works inside a pipe, including multi key selectors."
+    },
+    {
+      "section": "pipes",
+      "title": "Stop piping and select from the result",
+      "query": "\"repos\"|>\"name\"<|[0]",
+      "input": "{ \"repos\": [\n    { \"name\": \"jql\", \"lang\": \"Rust\", \"stars\": 1337, \"archived\": false },\n    { \"name\": \"hypergraphz\", \"lang\": \"Zig\", \"stars\": 42, \"archived\": false },\n    { \"name\": \"old-thing\", \"lang\": \"Rust\", \"stars\": 3, \"archived\": true }\n  ] }",
+      "note": "The pipe out operator ends the iteration, so the tokens after it apply to the collected array as a whole."
+    },
+    {
+      "section": "pipes",
+      "title": "Reach into nested elements",
+      "query": "\"repos\"|>\"name\"<|[2:1]",
+      "input": "{ \"repos\": [\n    { \"name\": \"jql\", \"lang\": \"Rust\", \"stars\": 1337, \"archived\": false },\n    { \"name\": \"hypergraphz\", \"lang\": \"Zig\", \"stars\": 42, \"archived\": false },\n    { \"name\": \"old-thing\", \"lang\": \"Rust\", \"stars\": 3, \"archived\": true }\n  ] }",
+      "note": "After a pipe out you can range, index or slice the collected array like any other array."
+    },
+    {
+      "section": "lenses",
+      "title": "Keep elements that have a key",
+      "query": "|={\"archived\"}",
+      "input": "[{ \"name\": \"jql\", \"archived\": false }, { \"name\": \"note\" }]",
+      "note": "A lens with no value keeps every element where the selector resolves, regardless of what it holds."
+    },
+    {
+      "section": "lenses",
+      "title": "Filter on a value",
+      "query": "|={\"lang\"=\"Rust\"}",
+      "input": "[{ \"name\": \"jql\", \"lang\": \"Rust\" }, { \"name\": \"hypergraphz\", \"lang\": \"Zig\" }]",
+      "note": "Give the lens a value and it keeps only the elements matching it. Values can be a boolean, null, a number or a string."
+    },
+    {
+      "section": "lenses",
+      "title": "Filter on a nested value",
+      "query": "|={\"owner\"\"login\"=\"yamafaktory\"}",
+      "input": "[{ \"owner\": { \"login\": \"yamafaktory\" } }, { \"owner\": { \"login\": \"someone\" } }]",
+      "note": "A lens takes a whole path, not just one key."
+    },
+    {
+      "section": "lenses",
+      "title": "Several conditions",
+      "query": "|={\"lang\"=\"Rust\",\"archived\"=true}",
+      "input": "[{ \"lang\": \"Rust\", \"archived\": false }, { \"lang\": \"Zig\", \"archived\": true }, { \"lang\": \"Rust\", \"archived\": true }]",
+      "note": "Conditions separated by commas act as OR: an element is kept when any of them matches."
+    },
+    {
+      "section": "lenses",
+      "title": "Filter on a boolean",
+      "query": "|={\"archived\"=false}",
+      "input": "[{ \"name\": \"jql\", \"archived\": false }, { \"name\": \"old\", \"archived\": true }]",
+      "note": "Booleans and null are written bare, without quotes."
+    },
+    {
+      "section": "groups",
+      "title": "Build an array from sub-queries",
+      "query": "\"name\",\"stars\"",
+      "input": "{ \"name\": \"jql\", \"stars\": 1337, \"forks\": 42 }",
+      "note": "A group separator runs each sub-query against the same input and collects the results into an array. Unlike a multi key selector it keeps no keys."
+    },
+    {
+      "section": "groups",
+      "title": "Combine unrelated paths",
+      "query": "\"repos\"[0]\"name\",\"repos\"[1]\"lang\"",
+      "input": "{ \"repos\": [\n    { \"name\": \"jql\", \"lang\": \"Rust\", \"stars\": 1337, \"archived\": false },\n    { \"name\": \"hypergraphz\", \"lang\": \"Zig\", \"stars\": 42, \"archived\": false },\n    { \"name\": \"old-thing\", \"lang\": \"Rust\", \"stars\": 3, \"archived\": true }\n  ] }",
+      "note": "Each side of the comma is a full query, so groups reach into completely different parts of a document."
+    },
+    {
+      "section": "groups",
+      "title": "Group whole pipelines",
+      "query": "\"repos\"|>\"name\"<|[0],\"repos\"|>\"stars\"",
+      "input": "{ \"repos\": [\n    { \"name\": \"jql\", \"lang\": \"Rust\", \"stars\": 1337, \"archived\": false },\n    { \"name\": \"hypergraphz\", \"lang\": \"Zig\", \"stars\": 42, \"archived\": false },\n    { \"name\": \"old-thing\", \"lang\": \"Rust\", \"stars\": 3, \"archived\": true }\n  ] }",
+      "note": "Sub-queries may contain pipes, ranges, anything. The group is the outermost structure."
+    },
+    {
+      "section": "multidoc",
+      "title": "Several documents at once",
+      "query": "\"a\"",
+      "input": "{ \"a\": 1 }{ \"a\": 2 }{ \"a\": 3 }",
+      "note": "Concatenated documents, with or without whitespace between them, are each evaluated and produce one result apiece."
+    },
+    {
+      "section": "multidoc",
+      "title": "Documents separated by newlines",
+      "query": "\"name\"",
+      "input": "{ \"name\": \"first\" }\n{ \"name\": \"second\" }",
+      "note": "Newline-delimited JSON works the same way, which is what most log pipelines produce."
+    },
+    {
+      "section": "flags",
+      "title": "Inline the output",
+      "query": "\"repos\"[0]",
+      "input": "{ \"repos\": [\n    { \"name\": \"jql\", \"lang\": \"Rust\", \"stars\": 1337, \"archived\": false },\n    { \"name\": \"hypergraphz\", \"lang\": \"Zig\", \"stars\": 42, \"archived\": false },\n    { \"name\": \"old-thing\", \"lang\": \"Rust\", \"stars\": 3, \"archived\": true }\n  ] }",
+      "note": "Output is pretty-printed by default. Use -i or --inline for a single line, which is what you want when piping into another tool.",
+      "flags": [
+        "--inline"
+      ]
+    },
+    {
+      "section": "flags",
+      "title": "Drop the quotes around a string",
+      "query": "\"repos\"[0]\"name\"",
+      "input": "{ \"repos\": [\n    { \"name\": \"jql\", \"lang\": \"Rust\", \"stars\": 1337, \"archived\": false },\n    { \"name\": \"hypergraphz\", \"lang\": \"Zig\", \"stars\": 42, \"archived\": false },\n    { \"name\": \"old-thing\", \"lang\": \"Rust\", \"stars\": 3, \"archived\": true }\n  ] }",
+      "note": "With -r or --raw-string a string result is printed bare, so it can be assigned to a shell variable.",
+      "flags": [
+        "--raw-string"
+      ]
+    },
+    {
+      "section": "flags",
+      "title": "Sort every object key",
+      "query": "\"repo\"",
+      "input": "{ \"repo\": { \"name\": \"jql\", \"archived\": false, \"lang\": \"Rust\" } }",
+      "note": "-S or --sort-keys sorts keys recursively, matching jq's -S. Handy for diffing two documents.",
+      "flags": [
+        "--sort-keys",
+        "--inline"
+      ]
+    },
+    {
+      "section": "flags",
+      "title": "Check that input is valid JSON",
+      "query": "",
+      "input": "{ \"name\": \"jql\" }",
+      "note": "-v or --validate ignores the query and reports whether the input parses, setting the exit code accordingly.",
+      "flags": [
+        "--validate"
+      ]
+    },
+    {
+      "section": "combining",
+      "title": "Filter, then project",
+      "query": "\"repos\"|={\"lang\"=\"Rust\"}|>\"name\"",
+      "fixture": "api",
+      "note": "A lens narrows the array, then a pipe projects each survivor. This is the shape most real queries take."
+    },
+    {
+      "section": "combining",
+      "title": "Filter on a nested value",
+      "query": "\"repos\"|={\"owner\"\"login\"=\"yamafaktory\"}|>\"name\"",
+      "fixture": "api",
+      "note": "The lens path reaches into each element, so you can filter on something nested and still project from the top."
+    },
+    {
+      "section": "combining",
+      "title": "Project several fields at once",
+      "query": "\"repos\"|={\"archived\"=false}|>{\"name\",\"stars\"}",
+      "fixture": "api",
+      "note": "A multi key selector inside a pipe reshapes every element, which is how you trim a wide API response down to what you need."
+    },
+    {
+      "section": "combining",
+      "title": "Filter, project, take the first",
+      "query": "\"repos\"|={\"archived\"=false}|>\"owner\"\"login\"<|[0]",
+      "fixture": "api",
+      "note": "Pipe out ends the iteration, so the index applies to the collected array rather than to each element."
+    },
+    {
+      "section": "combining",
+      "title": "Slice the piped result",
+      "query": "\"repos\"|>\"name\"<|[2:1]",
+      "fixture": "api",
+      "note": "Anything that works on an array works after a pipe out, including reversed ranges."
+    },
+    {
+      "section": "combining",
+      "title": "Combine two unrelated pipelines",
+      "query": "\"meta\"\"total\",\"repos\"|={\"lang\"=\"Rust\"}|>\"name\"",
+      "fixture": "api",
+      "note": "A group separator runs each side against the same document, so a summary field and a filtered list arrive together in one array."
+    },
+    {
+      "section": "combining",
+      "title": "Reach through a range into a pipe",
+      "query": "\"repos\"[0:1]|>\"owner\"\"login\"",
+      "fixture": "api",
+      "note": "Select a slice first and the pipe applies only to it, which is cheaper than piping the whole array and slicing after."
+    },
+    {
+      "section": "combining",
+      "title": "Keys of every element",
+      "query": "\"repos\"|>@<|[0]",
+      "fixture": "api",
+      "note": "The keys operator inside a pipe reports the shape of each element. Useful when elements are not uniform."
+    },
+    {
+      "section": "combining",
+      "title": "Flatten a nested selection",
+      "query": "\"repos\"|>\"topics\"<|..",
+      "fixture": "api",
+      "note": "Piping collects an array of arrays; flatten then collapses it into one flat list. Flatten only unnests arrays — objects inside an array are left whole."
+    },
+    {
+      "section": "combining",
+      "title": "Filter on a number",
+      "query": "\"repos\"|={\"stars\"=1337}|>{\"name\",\"owner\"}",
+      "fixture": "api",
+      "note": "Lens values are not limited to strings. Here a number picks one element, and the projection keeps a nested object whole."
+    },
+    {
+      "section": "combining",
+      "title": "Mix array and object addressing",
+      "query": "\"repos\"[0]{0:1}",
+      "fixture": "api",
+      "note": "An array index picks the element, then an object range takes its first two entries by position. Selectors compose regardless of which kind of container they address."
+    }
+  ]
+}
