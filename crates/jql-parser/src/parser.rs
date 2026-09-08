@@ -13,25 +13,19 @@ use winnow::{
 
 use crate::{
     combinators::{
-        parse_array_index,
-        parse_array_range,
         parse_flatten_operator,
         parse_group_separator,
-        parse_key,
         parse_keys_operator,
         parse_lenses,
-        parse_multi_key,
-        parse_object_index,
-        parse_object_range,
         parse_pipe_in_operator,
         parse_pipe_out_operator,
+        parse_selector,
         parse_truncate_operator,
         trim,
     },
     errors::JqlParserError,
     tokens::{
         Lens,
-        Range,
         Token,
         View,
     },
@@ -39,43 +33,28 @@ use crate::{
 
 /// Parses the provided input and map it to the first matching token.
 fn parse_fragment<'a>(input: &mut &'a str) -> Result<Token<'a>> {
-    trim(
-        dispatch! {peek(any);
-            '[' => {
-                alt((
-                    parse_array_index.map(Token::ArrayIndexSelector),
-                    parse_array_range.map(|(start, end)| Token::ArrayRangeSelector(Range(start, end))),
-                ))
-            },
-            '"' => parse_key.map(Token::KeySelector),
-            '{' => {
-                alt((
-                    parse_multi_key.map(Token::MultiKeySelector),
-                    parse_object_index.map(Token::ObjectIndexSelector),
-                    parse_object_range.map(|(start, end)| Token::ObjectRangeSelector(Range(start, end))),
-                ))
-            },
-            '|' => {
-                alt((
-                    parse_lenses.map(|lenses| {
-                        Token::LensSelector(
-                            lenses
-                                .into_iter()
-                                .map(|(tokens, value)| Lens(tokens, value))
-                                .collect(),
-                        )
-                    }),
-                    parse_pipe_in_operator.value(Token::PipeInOperator),
-                ))
-            },
-            '@' => parse_keys_operator.value(Token::KeyOperator),
-            '.' => parse_flatten_operator.value(Token::FlattenOperator),
-            '<' => parse_pipe_out_operator.value(Token::PipeOutOperator),
-            ',' => parse_group_separator.value(Token::GroupSeparator),
-            '!' => parse_truncate_operator.value(Token::TruncateOperator),
-            _ => fail
-        }
-    )
+    trim(dispatch! {peek(any);
+        '[' | '"' | '{' => parse_selector,
+        '|' => {
+            alt((
+                parse_lenses.map(|lenses| {
+                    Token::LensSelector(
+                        lenses
+                            .into_iter()
+                            .map(|(tokens, value)| Lens(tokens, value))
+                            .collect(),
+                    )
+                }),
+                parse_pipe_in_operator.value(Token::PipeInOperator),
+            ))
+        },
+        '@' => parse_keys_operator.value(Token::KeyOperator),
+        '.' => parse_flatten_operator.value(Token::FlattenOperator),
+        '<' => parse_pipe_out_operator.value(Token::PipeOutOperator),
+        ',' => parse_group_separator.value(Token::GroupSeparator),
+        '!' => parse_truncate_operator.value(Token::TruncateOperator),
+        _ => fail
+    })
     .parse_next(input)
 }
 

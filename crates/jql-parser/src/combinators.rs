@@ -60,6 +60,8 @@ static SQUARE_BRACKET_CLOSE: char = ']';
 
 /// False.
 static FALSE: &str = "false";
+/// Null.
+static NULL: &str = "null";
 /// True.
 static TRUE: &str = "true";
 
@@ -250,35 +252,48 @@ pub(crate) fn parse_lens_value<'a>(input: &mut &'a str) -> Result<LensValue<'a>>
     dispatch! {peek(any);
         'f' => FALSE.value(LensValue::Bool(false)),
         't' => TRUE.value(LensValue::Bool(true)),
-        'n' => "null".value(LensValue::Null),
+        'n' => NULL.value(LensValue::Null),
         '0'..='9' => digit1.try_map(|s: &str| s.parse::<usize>().map(LensValue::Number)),
         _ => parse_key.map(LensValue::String),
     }
     .parse_next(input)
 }
-//
+
+/// A combinator which parses a selector applied to an object, the multi key
+/// form being the one that starts with a key rather than with a number.
+fn parse_object_selector<'a>(input: &mut &'a str) -> Result<Token<'a>> {
+    dispatch! {peek((CURLY_BRACKET_OPEN, multispace0, any).map(|(_, _, next)| next));
+        '"' => parse_multi_key.map(Token::MultiKeySelector),
+        _ => {
+            alt((
+                parse_object_index.map(Token::ObjectIndexSelector),
+                parse_object_range.map(|(start, end)| Token::ObjectRangeSelector(Range(start, end))),
+            ))
+        },
+    }
+    .parse_next(input)
+}
+
+/// A combinator which parses a selector, the part of the grammar a query
+/// fragment and a lens key have in common.
+pub(crate) fn parse_selector<'a>(input: &mut &'a str) -> Result<Token<'a>> {
+    dispatch! {peek(any);
+        '[' => {
+            alt((
+                parse_array_index.map(Token::ArrayIndexSelector),
+                parse_array_range.map(|(start, end)| Token::ArrayRangeSelector(Range(start, end))),
+            ))
+        },
+        '"' => parse_key.map(Token::KeySelector),
+        '{' => parse_object_selector,
+        _ => fail,
+    }
+    .parse_next(input)
+}
+
 /// A combinator which parses a lens key.
 fn parse_lens_key<'a>(input: &mut &'a str) -> Result<Token<'a>> {
-    trim(
-        dispatch! {peek(any);
-            '[' => {
-                alt((
-                    parse_array_index.map(Token::ArrayIndexSelector),
-                    parse_array_range.map(|(start, end)| Token::ArrayRangeSelector(Range(start, end))),
-                ))
-            },
-            '"' => parse_key.map(Token::KeySelector),
-            '{' => {
-                alt((
-                    parse_multi_key.map(Token::MultiKeySelector),
-                    parse_object_index.map(Token::ObjectIndexSelector),
-                    parse_object_range.map(|(start, end)| Token::ObjectRangeSelector(Range(start, end))),
-                ))
-            },
-            _ => fail
-        }
-    )
-    .parse_next(input)
+    trim(parse_selector).parse_next(input)
 }
 
 /// A combinator which parses multiple lens keys.
