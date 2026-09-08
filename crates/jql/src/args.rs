@@ -70,11 +70,11 @@ Keys operator @
 
 Pipe in operator |> 
     ┬
-    ╰→ applies the next tokens in parallel on each element of an array
+    ╰→ applies the next tokens on each element of an array
 
 Pipe out operator <|
     ┬
-    ╰→ stops the parallelization initiated by the pipe in operator
+    ╰→ stops the iteration initiated by the pipe in operator
 
 Truncate operator !
     ┬
