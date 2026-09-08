@@ -123,11 +123,11 @@ pub(crate) fn parse_array_index(input: &mut &str) -> Result<Vec<Index>> {
 
 /// A combinator which parses an array range.
 pub(crate) fn parse_array_range(input: &mut &str) -> Result<(Option<Index>, Option<Index>)> {
-    trim(delimited(
-        SQUARE_BRACKET_OPEN,
+    delimited(
+        trim(SQUARE_BRACKET_OPEN),
         separated_pair(opt(parse_number), trim(COLON), opt(parse_number)),
-        SQUARE_BRACKET_CLOSE,
-    ))
+        trim(SQUARE_BRACKET_CLOSE),
+    )
     .parse_next(input)
 }
 
@@ -332,6 +332,28 @@ mod tests {
             Ok((Some(Index(1)), Some(Index(3))))
         );
         assert!(parse_array_range(&mut "[]").is_err());
+    }
+
+    #[test]
+    fn check_bracketed_selectors_accept_the_same_whitespace() {
+        assert_eq!(
+            parse_array_index(&mut "[ 0 , 1 ]"),
+            Ok(vec![Index(0), Index(1)])
+        );
+        assert_eq!(
+            parse_array_range(&mut "[ 0 : 1 ]"),
+            Ok((Some(Index(0)), Some(Index(1))))
+        );
+        assert_eq!(
+            parse_object_index(&mut "{ 0 , 1 }"),
+            Ok(vec![Index(0), Index(1)])
+        );
+        assert_eq!(
+            parse_object_range(&mut "{ 0 : 1 }"),
+            Ok((Some(Index(0)), Some(Index(1))))
+        );
+        assert_eq!(parse_array_range(&mut "[ : ]"), Ok((None, None)));
+        assert_eq!(parse_object_range(&mut "{ : }"), Ok((None, None)));
     }
 
     #[test]
