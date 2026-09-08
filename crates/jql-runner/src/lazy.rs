@@ -682,7 +682,7 @@ fn lenses_match(lenses: &[Lens], element: &Cursor) -> bool {
             Some(LensValue::Bool(expected)) => value.as_bool() == Some(*expected),
             Some(LensValue::Null) => value.is_null(),
             Some(LensValue::Number(expected)) => value.as_u64() == Some(*expected as u64),
-            Some(LensValue::String(expected)) => value == *expected,
+            Some(LensValue::String(expected)) => value == expected.as_ref(),
             None => true,
         })
     })
@@ -866,7 +866,7 @@ fn step<'tape, 'input>(
 
             let mut missing: Vec<String> = keys
                 .iter()
-                .filter(|key| object.get(**key).is_none())
+                .filter(|key| object.get(key.as_ref()).is_none())
                 .map(|key| (*key).to_string())
                 .collect();
 
@@ -884,8 +884,8 @@ fn step<'tape, 'input>(
                 keys.iter()
                     .filter_map(|key| {
                         object
-                            .get(*key)
-                            .map(|child| ((*key).to_string(), materialize(child)))
+                            .get(key.as_ref())
+                            .map(|child| (key.to_string(), materialize(child)))
                     })
                     .collect(),
             ))

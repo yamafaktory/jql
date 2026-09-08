@@ -20,9 +20,9 @@ fn check_token_integration() {
     assert_eq!(
         token(
             &[
-                Token::KeySelector("a"),
+                Token::KeySelector("a".into()),
                 Token::GroupSeparator,
-                Token::KeySelector("b")
+                Token::KeySelector("b".into())
             ],
             &json!({ "a": 1, "b": 2 })
         ),

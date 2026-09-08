@@ -181,11 +181,11 @@ mod tests {
     fn check_key_selector() {
         assert_eq!(
             parse_fragment(&mut r#""one""#),
-            Ok(Token::KeySelector("one"))
+            Ok(Token::KeySelector("one".into()))
         );
         assert_eq!(
             parse_fragment(&mut r#" "one" "#),
-            Ok(Token::KeySelector("one"))
+            Ok(Token::KeySelector("one".into()))
         );
     }
 
@@ -193,11 +193,19 @@ mod tests {
     fn check_multi_key_selector() {
         assert_eq!(
             parse_fragment(&mut r#"{"one","two","three"}"#),
-            Ok(Token::MultiKeySelector(vec!["one", "two", "three"]))
+            Ok(Token::MultiKeySelector(vec![
+                "one".into(),
+                "two".into(),
+                "three".into()
+            ]))
         );
         assert_eq!(
             parse_fragment(&mut r#" { "one", "two" , "three" } "#),
-            Ok(Token::MultiKeySelector(vec!["one", "two", "three"]))
+            Ok(Token::MultiKeySelector(vec![
+                "one".into(),
+                "two".into(),
+                "three".into()
+            ]))
         );
     }
 
@@ -250,17 +258,26 @@ mod tests {
             parse_fragment(&mut r#"|={"abc""c","bcd""d"=123,"efg"=null,"hij"="test"}"#),
             Ok(Token::LensSelector(vec![
                 Lens(
-                    vec![Token::KeySelector("abc"), Token::KeySelector("c")],
+                    vec![
+                        Token::KeySelector("abc".into()),
+                        Token::KeySelector("c".into())
+                    ],
                     None
                 ),
                 Lens(
-                    vec![Token::KeySelector("bcd"), Token::KeySelector("d")],
+                    vec![
+                        Token::KeySelector("bcd".into()),
+                        Token::KeySelector("d".into())
+                    ],
                     Some(LensValue::Number(123))
                 ),
-                Lens(vec![Token::KeySelector("efg")], Some(LensValue::Null)),
                 Lens(
-                    vec![Token::KeySelector("hij")],
-                    Some(LensValue::String("test"))
+                    vec![Token::KeySelector("efg".into())],
+                    Some(LensValue::Null)
+                ),
+                Lens(
+                    vec![Token::KeySelector("hij".into())],
+                    Some(LensValue::String("test".into()))
                 ),
             ]))
         );
@@ -301,7 +318,7 @@ mod tests {
         assert_eq!(
             parse(r#""this"[9,0]"#),
             Ok(vec![
-                Token::KeySelector("this"),
+                Token::KeySelector("this".into()),
                 Token::ArrayIndexSelector(vec![Index(9), Index(0)])
             ]),
         );
@@ -315,12 +332,12 @@ mod tests {
         assert_eq!(
             parse(r#""this"[9,0]|>"some"<|"ok"..!"#),
             Ok(vec![
-                Token::KeySelector("this"),
+                Token::KeySelector("this".into()),
                 Token::ArrayIndexSelector(vec![Index(9), Index(0)]),
                 Token::PipeInOperator,
-                Token::KeySelector("some"),
+                Token::KeySelector("some".into()),
                 Token::PipeOutOperator,
-                Token::KeySelector("ok"),
+                Token::KeySelector("ok".into()),
                 Token::FlattenOperator,
                 Token::TruncateOperator
             ]),
@@ -329,9 +346,9 @@ mod tests {
             parse(r#""a"!"b""#),
             Err(JqlParserError::TruncateError(
                 [
-                    Token::KeySelector("a"),
+                    Token::KeySelector("a".into()),
                     Token::TruncateOperator,
-                    Token::KeySelector("b")
+                    Token::KeySelector("b".into())
                 ]
                 .stringify()
             ))

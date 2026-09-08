@@ -222,6 +222,19 @@ fn hazardous_numbers_outside_the_selection() {
     );
 }
 
+/// Keys carrying JSON escape sequences must resolve the same way on the tape
+/// as they do on the `Value` oracle.
+#[test]
+fn escaped_keys() {
+    assert_parity(r#""a\"b""#, r#"{ "a\"b": 1, "c": 2 }"#);
+    assert_parity(r#""a\\b""#, r#"{ "a\\b": 1 }"#);
+    assert_parity(r#""a\nb""#, r#"{ "a\nb": 1 }"#);
+    assert_parity(r#""\u0041""#, r#"{ "A": 1 }"#);
+    assert_parity(r#""\uD83D\uDE00""#, r#"{ "\uD83D\uDE00": 1 }"#);
+    assert_parity(r#"{"a\"b","c"}"#, r#"{ "a\"b": 1, "c": 2 }"#);
+    assert_parity(r#""missing\"key""#, r#"{ "a": 1 }"#);
+}
+
 /// Hazardous numbers reached through an error must fall back too: the error
 /// embeds the value it was raised on and is compared whole.
 #[test]

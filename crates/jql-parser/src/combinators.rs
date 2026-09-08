@@ -1,14 +1,21 @@
+use std::{
+    borrow::Cow,
+    str::Chars,
+};
+
 use winnow::{
     Parser,
     Result,
     ascii::{
         digit1,
         multispace0,
+        take_escaped,
     },
     combinator::{
         alt,
         delimited,
         dispatch,
+        empty,
         fail,
         opt,
         peek,
@@ -18,10 +25,12 @@ use winnow::{
         separated_pair,
     },
     error::ParserError,
+    stream::AsChar,
     token::{
         any,
         literal,
-        take_until,
+        take_till,
+        take_while,
     },
 };
 
@@ -86,11 +95,96 @@ pub(crate) fn parse_number(input: &mut &str) -> Result<Index> {
     digit1.parse_to().parse_next(input)
 }
 
-/// A combinator which parses a key surrounded by double quotes.
-pub(crate) fn parse_key<'a>(input: &mut &'a str) -> Result<&'a str> {
+/// A combinator which accepts the character following a backslash, limited to
+/// the escapes JSON itself defines.
+fn parse_escapable(input: &mut &str) -> Result<()> {
+    dispatch! {any;
+        '"' | '\\' | '/' | 'b' | 'f' | 'n' | 'r' | 't' => empty,
+        'u' => take_while(4, AsChar::is_hex_digit).void(),
+        _ => fail,
+    }
+    .parse_next(input)
+}
+
+/// Reads the four hexadecimal digits of a `\u` escape as a UTF-16 code unit.
+fn parse_code_unit(chars: &mut Chars<'_>) -> Option<u16> {
+    let mut unit: u32 = 0;
+
+    for _ in 0..4 {
+        unit = unit * 16 + chars.next()?.to_digit(16)?;
+    }
+
+    u16::try_from(unit).ok()
+}
+
+/// Appends the character a `\u` escape stands for, pairing a leading surrogate
+/// with the trailing one that must follow it.
+fn push_code_point(chars: &mut Chars<'_>, unescaped: &mut String) {
+    let Some(leading) = parse_code_unit(chars) else {
+        return;
+    };
+
+    if (0xD800..0xDC00).contains(&leading) {
+        let mut lookahead = chars.clone();
+
+        if lookahead.next() == Some('\\')
+            && lookahead.next() == Some('u')
+            && let Some(trailing) = parse_code_unit(&mut lookahead)
+            && (0xDC00..0xE000).contains(&trailing)
+            && let Some(paired) = char::from_u32(
+                0x10000 + ((u32::from(leading) - 0xD800) << 10) + (u32::from(trailing) - 0xDC00),
+            )
+        {
+            unescaped.push(paired);
+            *chars = lookahead;
+
+            return;
+        }
+    }
+
+    if let Some(character) = char::from_u32(u32::from(leading)) {
+        unescaped.push(character);
+    }
+}
+
+/// Resolves the escape sequences of a key, borrowing the input untouched when
+/// it carries none.
+fn unescape(raw: &str) -> Cow<'_, str> {
+    if !raw.contains('\\') {
+        return Cow::Borrowed(raw);
+    }
+
+    let mut unescaped = String::with_capacity(raw.len());
+    let mut chars = raw.chars();
+
+    while let Some(character) = chars.next() {
+        if character != '\\' {
+            unescaped.push(character);
+
+            continue;
+        }
+
+        match chars.next() {
+            Some('b') => unescaped.push('\u{0008}'),
+            Some('f') => unescaped.push('\u{000C}'),
+            Some('n') => unescaped.push('\n'),
+            Some('r') => unescaped.push('\r'),
+            Some('t') => unescaped.push('\t'),
+            Some('u') => push_code_point(&mut chars, &mut unescaped),
+            Some(other) => unescaped.push(other),
+            None => break,
+        }
+    }
+
+    Cow::Owned(unescaped)
+}
+
+/// A combinator which parses a key surrounded by double quotes, resolving the
+/// JSON escape sequences it may contain.
+pub(crate) fn parse_key<'a>(input: &mut &'a str) -> Result<Cow<'a, str>> {
     trim(delimited(
         DOUBLE_QUOTE,
-        take_until(0.., r#"""#),
+        take_escaped(take_till(1.., ['"', '\\']), '\\', parse_escapable).map(unescape),
         DOUBLE_QUOTE,
     ))
     .parse_next(input)
@@ -102,12 +196,12 @@ pub(crate) fn parse_indexes(input: &mut &str) -> Result<Vec<Index>> {
 }
 
 /// A combinator which parses a list of keys.
-fn parse_keys<'a>(input: &mut &'a str) -> Result<Vec<&'a str>> {
+fn parse_keys<'a>(input: &mut &'a str) -> Result<Vec<Cow<'a, str>>> {
     trim(separated(1.., parse_key, trim(COMMA))).parse_next(input)
 }
 
 /// A combinator which parses a list of keys surrounded by curly braces.
-pub(crate) fn parse_multi_key<'a>(input: &mut &'a str) -> Result<Vec<&'a str>> {
+pub(crate) fn parse_multi_key<'a>(input: &mut &'a str) -> Result<Vec<Cow<'a, str>>> {
     delimited(CURLY_BRACKET_OPEN, parse_keys, CURLY_BRACKET_CLOSE).parse_next(input)
 }
 
@@ -247,6 +341,8 @@ pub(crate) fn parse_group_separator<'a>(input: &mut &'a str) -> Result<&'a str> 
 
 #[cfg(test)]
 mod tests {
+    use std::borrow::Cow;
+
     use super::{
         FLATTEN,
         GROUP_SEP,
@@ -286,8 +382,61 @@ mod tests {
 
     #[test]
     fn check_parse_key() {
-        assert_eq!(parse_key(&mut r#""abc""#), Ok("abc"));
+        assert_eq!(parse_key(&mut r#""abc""#), Ok(Cow::Borrowed("abc")));
         assert!(parse_key(&mut "abc").is_err());
+    }
+    #[test]
+    fn check_parse_key_resolves_escapes() {
+        assert_eq!(
+            parse_key(&mut r#""a\"b""#),
+            Ok(Cow::Owned("a\"b".to_string()))
+        );
+        assert_eq!(
+            parse_key(&mut r#""a\\b""#),
+            Ok(Cow::Owned("a\\b".to_string()))
+        );
+        assert_eq!(
+            parse_key(&mut r#""a\/b""#),
+            Ok(Cow::Owned("a/b".to_string()))
+        );
+        assert_eq!(
+            parse_key(&mut r#""a\nb""#),
+            Ok(Cow::Owned("a\nb".to_string()))
+        );
+        assert_eq!(
+            parse_key(&mut r#""a\tb""#),
+            Ok(Cow::Owned("a\tb".to_string()))
+        );
+        assert_eq!(
+            parse_key(&mut r#""\u0041\u0042""#),
+            Ok(Cow::Owned("AB".to_string()))
+        );
+        assert_eq!(
+            parse_key(&mut r#""\uD83D\uDE00""#),
+            Ok(Cow::Owned("\u{1F600}".to_string()))
+        );
+    }
+
+    #[test]
+    fn check_parse_key_owns_only_what_it_had_to_unescape() {
+        assert!(matches!(parse_key(&mut r#""a\"b""#), Ok(Cow::Owned(_))));
+    }
+
+    #[test]
+    fn check_parse_key_borrows_when_there_is_nothing_to_unescape() {
+        assert!(matches!(
+            parse_key(&mut r#""abc""#),
+            Ok(Cow::Borrowed("abc"))
+        ));
+        assert!(matches!(parse_key(&mut r#""""#), Ok(Cow::Borrowed(""))));
+    }
+
+    #[test]
+    fn check_parse_key_rejects_invalid_escapes() {
+        assert!(parse_key(&mut r#""\q""#).is_err());
+        assert!(parse_key(&mut r#""\u12""#).is_err());
+        assert!(parse_key(&mut r#""\u12zz""#).is_err());
+        assert!(parse_key(&mut r#""a\""#).is_err());
     }
 
     #[test]
@@ -302,10 +451,13 @@ mod tests {
 
     #[test]
     fn check_parse_multi_key() {
-        assert_eq!(parse_multi_key(&mut r#"{"abc"}"#), Ok(vec!["abc"]));
+        assert_eq!(
+            parse_multi_key(&mut r#"{"abc"}"#),
+            Ok(vec![Cow::Borrowed("abc")])
+        );
         assert_eq!(
             parse_multi_key(&mut r#"{"abc","def"}"#),
-            Ok(vec!["abc", "def"])
+            Ok(vec![Cow::Borrowed("abc"), Cow::Borrowed("def")])
         );
         assert!(parse_multi_key(&mut "{}").is_err());
         assert!(parse_multi_key(&mut "{123}").is_err());
@@ -418,23 +570,26 @@ mod tests {
     fn check_parse_lens() {
         assert_eq!(
             parse_lens(&mut r#""abc""#),
-            Ok((vec![Token::KeySelector("abc")], None))
+            Ok((vec![Token::KeySelector("abc".into())], None))
         );
         assert_eq!(
             parse_lens(&mut r#""abc"=null"#),
-            Ok((vec![Token::KeySelector("abc")], Some(LensValue::Null)))
+            Ok((
+                vec![Token::KeySelector("abc".into())],
+                Some(LensValue::Null)
+            ))
         );
         assert_eq!(
             parse_lens(&mut r#""abc"="def""#),
             Ok((
-                vec![Token::KeySelector("abc")],
-                Some(LensValue::String("def"))
+                vec![Token::KeySelector("abc".into())],
+                Some(LensValue::String("def".into()))
             ))
         );
         assert_eq!(
             parse_lens(&mut r#""abc"=123"#),
             Ok((
-                vec![Token::KeySelector("abc")],
+                vec![Token::KeySelector("abc".into())],
                 Some(LensValue::Number(123))
             ))
         );
@@ -442,8 +597,8 @@ mod tests {
             parse_lens(&mut r#""abc""bcd"[0]=123"#),
             Ok((
                 vec![
-                    Token::KeySelector("abc"),
-                    Token::KeySelector("bcd"),
+                    Token::KeySelector("abc".into()),
+                    Token::KeySelector("bcd".into()),
                     Token::ArrayIndexSelector(vec![Index(0)])
                 ],
                 Some(LensValue::Number(123))
@@ -457,15 +612,18 @@ mod tests {
         assert_eq!(
             parse_lenses(&mut r#"|={"abc","bcd"=123,"efg"=null,"hij"="test"}"#),
             Ok(vec![
-                (vec![Token::KeySelector("abc")], None),
+                (vec![Token::KeySelector("abc".into())], None),
                 (
-                    vec![Token::KeySelector("bcd")],
+                    vec![Token::KeySelector("bcd".into())],
                     Some(LensValue::Number(123))
                 ),
-                (vec![Token::KeySelector("efg")], Some(LensValue::Null)),
                 (
-                    vec![Token::KeySelector("hij")],
-                    Some(LensValue::String("test"))
+                    vec![Token::KeySelector("efg".into())],
+                    Some(LensValue::Null)
+                ),
+                (
+                    vec![Token::KeySelector("hij".into())],
+                    Some(LensValue::String("test".into()))
                 ),
             ])
         );
