@@ -1,4 +1,5 @@
 use std::{
+    borrow::Cow,
     fmt,
     num::{
         NonZeroUsize,
@@ -133,7 +134,7 @@ pub enum LensValue<'a> {
     /// Variant for a JSON number.
     Number(usize),
     /// Variant for a JSON string.
-    String(&'a str),
+    String(Cow<'a, str>),
 }
 
 impl fmt::Display for LensValue<'_> {
@@ -167,11 +168,11 @@ pub enum Token<'a> {
     /// Group separator.
     GroupSeparator,
     /// Key selector.
-    KeySelector(&'a str),
+    KeySelector(Cow<'a, str>),
     /// Lens selector.
     LensSelector(Vec<Lens<'a>>),
     /// Multi key selector.
-    MultiKeySelector(Vec<&'a str>),
+    MultiKeySelector(Vec<Cow<'a, str>>),
     /// Object index selector.
     ObjectIndexSelector(Vec<Index>),
     /// Object range selector.
@@ -232,7 +233,11 @@ impl fmt::Display for Token<'_> {
                 write!(f, "{} [{formatted_indexes}]", self.get_name())
             }
             Token::MultiKeySelector(multi_key) => {
-                let formatted_keys = multi_key.join(", ");
+                let formatted_keys = multi_key
+                    .iter()
+                    .map(AsRef::as_ref)
+                    .collect::<Vec<&str>>()
+                    .join(", ");
 
                 write!(f, "{} {formatted_keys}", self.get_name())
             }

@@ -198,7 +198,7 @@ mod tests {
         assert_eq!(
             raw(r#""a"b"#, &json!({ "a": 1 })),
             Err(JqlRunnerError::ParsingError(JqlParserError::ParsingError {
-                tokens: [Token::KeySelector("a")].stringify(),
+                tokens: [Token::KeySelector("a".into())].stringify(),
                 unparsed: "b".to_string(),
             }))
         );
@@ -260,9 +260,9 @@ mod tests {
             raw(r#""a"!"b""#, &json!({ "a": [1, 2, 3] })),
             Err(JqlRunnerError::ParsingError(JqlParserError::TruncateError(
                 [
-                    Token::KeySelector("a"),
+                    Token::KeySelector("a".into()),
                     Token::TruncateOperator,
-                    Token::KeySelector("b")
+                    Token::KeySelector("b".into())
                 ]
                 .stringify(),
             )))

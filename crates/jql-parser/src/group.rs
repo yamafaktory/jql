@@ -38,26 +38,26 @@ mod tests {
     fn check_split() {
         assert!(split(&[Token::GroupSeparator,]).is_empty());
         assert_eq!(
-            split(&[Token::KeySelector("abc")]),
-            vec![vec![&Token::KeySelector("abc")]]
+            split(&[Token::KeySelector("abc".into())]),
+            vec![vec![&Token::KeySelector("abc".into())]]
         );
         assert_eq!(
             split(&[
                 Token::GroupSeparator,
                 Token::GroupSeparator,
-                Token::KeySelector("abc")
+                Token::KeySelector("abc".into())
             ]),
-            vec![vec![&Token::KeySelector("abc")]]
+            vec![vec![&Token::KeySelector("abc".into())]]
         );
         assert_eq!(
             split(&[
-                Token::KeySelector("abc"),
+                Token::KeySelector("abc".into()),
                 Token::GroupSeparator,
-                Token::KeySelector("abc")
+                Token::KeySelector("abc".into())
             ]),
             vec![
-                vec![&Token::KeySelector("abc")],
-                vec![&Token::KeySelector("abc")],
+                vec![&Token::KeySelector("abc".into())],
+                vec![&Token::KeySelector("abc".into())],
             ]
         );
     }

@@ -147,7 +147,7 @@ pub(crate) fn get_array_lenses(lenses: &[Lens], json: &mut Value) -> Result<Valu
                             current_value.is_u64()
                                 && current_value.as_u64().unwrap() == *value as u64
                         }
-                        Some(LensValue::String(value)) => current_value == *value,
+                        Some(LensValue::String(value)) => current_value == value.as_ref(),
                         None => true,
                     }
                 } else {
@@ -316,14 +316,14 @@ mod tests {
 
         assert_eq!(
             get_array_lenses(
-                &[Lens::new(&[Token::KeySelector("a")], None)],
+                &[Lens::new(&[Token::KeySelector("a".into())], None)],
                 &mut json!([])
             ),
             Ok(json!([]))
         );
         assert_eq!(
             get_array_lenses(
-                &[Lens::new(&[Token::KeySelector("a")], None)],
+                &[Lens::new(&[Token::KeySelector("a".into())], None)],
                 &mut value.clone()
             ),
             Ok(json!([
@@ -336,7 +336,7 @@ mod tests {
         assert_eq!(
             get_array_lenses(
                 &[Lens::new(
-                    &[Token::KeySelector("a")],
+                    &[Token::KeySelector("a".into())],
                     Some(LensValue::Number(1))
                 )],
                 &mut value.clone()
@@ -346,8 +346,14 @@ mod tests {
         assert_eq!(
             get_array_lenses(
                 &[
-                    Lens::new(&[Token::KeySelector("a")], Some(LensValue::Number(1))),
-                    Lens::new(&[Token::KeySelector("a")], Some(LensValue::Number(2))),
+                    Lens::new(
+                        &[Token::KeySelector("a".into())],
+                        Some(LensValue::Number(1))
+                    ),
+                    Lens::new(
+                        &[Token::KeySelector("a".into())],
+                        Some(LensValue::Number(2))
+                    ),
                 ],
                 &mut value.clone()
             ),
@@ -361,8 +367,14 @@ mod tests {
         assert_eq!(
             get_array_lenses(
                 &[
-                    Lens::new(&[Token::KeySelector("a")], Some(LensValue::Number(1))),
-                    Lens::new(&[Token::KeySelector("b")], Some(LensValue::Number(2))),
+                    Lens::new(
+                        &[Token::KeySelector("a".into())],
+                        Some(LensValue::Number(1))
+                    ),
+                    Lens::new(
+                        &[Token::KeySelector("b".into())],
+                        Some(LensValue::Number(2))
+                    ),
                 ],
                 &mut value.clone()
             ),
@@ -373,8 +385,14 @@ mod tests {
         assert_eq!(
             get_array_lenses(
                 &[
-                    Lens::new(&[Token::KeySelector("a")], Some(LensValue::Number(1))),
-                    Lens::new(&[Token::KeySelector("b")], Some(LensValue::String("some"))),
+                    Lens::new(
+                        &[Token::KeySelector("a".into())],
+                        Some(LensValue::Number(1))
+                    ),
+                    Lens::new(
+                        &[Token::KeySelector("b".into())],
+                        Some(LensValue::String("some".into()))
+                    ),
                 ],
                 &mut value.clone()
             ),
@@ -386,8 +404,14 @@ mod tests {
         assert_eq!(
             get_array_lenses(
                 &[
-                    Lens::new(&[Token::KeySelector("a")], Some(LensValue::Number(1))),
-                    Lens::new(&[Token::KeySelector("b")], Some(LensValue::Bool(true))),
+                    Lens::new(
+                        &[Token::KeySelector("a".into())],
+                        Some(LensValue::Number(1))
+                    ),
+                    Lens::new(
+                        &[Token::KeySelector("b".into())],
+                        Some(LensValue::Bool(true))
+                    ),
                 ],
                 &mut value.clone()
             ),
@@ -399,8 +423,11 @@ mod tests {
         assert_eq!(
             get_array_lenses(
                 &[
-                    Lens::new(&[Token::KeySelector("a")], Some(LensValue::Number(1))),
-                    Lens::new(&[Token::KeySelector("b")], Some(LensValue::Null)),
+                    Lens::new(
+                        &[Token::KeySelector("a".into())],
+                        Some(LensValue::Number(1))
+                    ),
+                    Lens::new(&[Token::KeySelector("b".into())], Some(LensValue::Null)),
                 ],
                 &mut value
             ),

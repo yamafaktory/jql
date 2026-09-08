@@ -218,7 +218,9 @@ Lens can be a combination of one or more selectors with or an optional value, a 
 
 ##### Key selector
 
-Any valid JSON key can be used.
+Any valid JSON key can be used. A key carrying an escape sequence is written the
+way JSON writes it — `\"`, `\\`, `\/`, `\b`, `\f`, `\n`, `\r`, `\t` and `\uXXXX`
+— so a key that contains a double quote or a backslash is reachable.
 
 **JSON input**
 
@@ -236,6 +238,24 @@ Any valid JSON key can be used.
 
 ```json
 3
+```
+
+**JSON input**
+
+```json
+{ "a\"b": 1 }
+```
+
+**Query**
+
+```sh
+'"a\"b"'
+```
+
+**JSON output**
+
+```json
+1
 ```
 
 ##### Multi key selector
@@ -374,7 +394,7 @@ Returns the keys of an object or the indices of an array. Other primitives are r
 
 ##### Pipe in operator
 
-Applies the next tokens in parallel on each element of an array.
+Applies the next tokens on each element of an array.
 
 **JSON input**
 
@@ -396,7 +416,7 @@ Applies the next tokens in parallel on each element of an array.
 
 ##### Pipe out operator
 
-Stops the parallelization initiated by the pipe in operator.
+Stops the iteration initiated by the pipe in operator.
 
 **JSON input**
 
@@ -531,12 +551,13 @@ This project is composed of following crates:
 
 ## Development
 
-Some commands are available as a `justfile` at the root of the workspace (testing / fuzzing).
+Some commands are available as a `justfile` at the root of the workspace (testing / fuzzing / changelog).
 
 ### Prerequisites
 
 - [cargo-fuzz](https://rust-fuzz.github.io/book/cargo-fuzz.html) (fuzzing, needs a nightly toolchain)
 - [cargo-nextest](https://nexte.st/)
+- [git-cliff](https://git-cliff.org/) (changelog)
 - [just](https://just.systems/man/en/)
 
 ### Commands
@@ -555,7 +576,7 @@ Some benchmarks comparing a set of similar functionalities provided by this tool
 
 Selection queries — keys, indexes, ranges, multi keys, `@`, `!`, `|=` and a single `|>` — are evaluated against a [simd-json](https://github.com/simd-lite/simd-json) tape, so only the part of the document a query actually selects is built. Input holding more than one document is evaluated a document at a time, on the tape as well. Queries using the flatten operator or nested pipes, and input that is deeply nested, are parsed in full instead.
 
-Two JSON parsers are therefore in play, and they disagree on the last bit of some numbers written in scientific notation (`1.5e12`, `1e200`): such a value can come back differing by one [ULP](https://en.wikipedia.org/wiki/Unit_in_the_last_place). Plain decimals, integers, strings and every other value are unaffected.
+Two JSON parsers are therefore in play, and they round the last bit of some numbers written in scientific notation differently, by up to two [ULP](https://en.wikipedia.org/wiki/Unit_in_the_last_place). The tape returns the correctly rounded value; it is the fallback that is off, so a query answered on the tape is the more accurate of the two. A short mantissa is no protection — `9e75` reads as `9e75` on the tape and as `8.999999999999999e75` through the fallback. Plain decimals, integers, strings and every other value are unaffected.
 
 ## 📔 Licenses
 

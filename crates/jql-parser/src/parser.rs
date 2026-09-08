@@ -13,25 +13,19 @@ use winnow::{
 
 use crate::{
     combinators::{
-        parse_array_index,
-        parse_array_range,
         parse_flatten_operator,
         parse_group_separator,
-        parse_key,
         parse_keys_operator,
         parse_lenses,
-        parse_multi_key,
-        parse_object_index,
-        parse_object_range,
         parse_pipe_in_operator,
         parse_pipe_out_operator,
+        parse_selector,
         parse_truncate_operator,
         trim,
     },
     errors::JqlParserError,
     tokens::{
         Lens,
-        Range,
         Token,
         View,
     },
@@ -39,43 +33,28 @@ use crate::{
 
 /// Parses the provided input and map it to the first matching token.
 fn parse_fragment<'a>(input: &mut &'a str) -> Result<Token<'a>> {
-    trim(
-        dispatch! {peek(any);
-            '[' => {
-                alt((
-                    parse_array_index.map(Token::ArrayIndexSelector),
-                    parse_array_range.map(|(start, end)| Token::ArrayRangeSelector(Range(start, end))),
-                ))
-            },
-            '"' => parse_key.map(Token::KeySelector),
-            '{' => {
-                alt((
-                    parse_multi_key.map(Token::MultiKeySelector),
-                    parse_object_index.map(Token::ObjectIndexSelector),
-                    parse_object_range.map(|(start, end)| Token::ObjectRangeSelector(Range(start, end))),
-                ))
-            },
-            '|' => {
-                alt((
-                    parse_lenses.map(|lenses| {
-                        Token::LensSelector(
-                            lenses
-                                .into_iter()
-                                .map(|(tokens, value)| Lens(tokens, value))
-                                .collect(),
-                        )
-                    }),
-                    parse_pipe_in_operator.value(Token::PipeInOperator),
-                ))
-            },
-            '@' => parse_keys_operator.value(Token::KeyOperator),
-            '.' => parse_flatten_operator.value(Token::FlattenOperator),
-            '<' => parse_pipe_out_operator.value(Token::PipeOutOperator),
-            ',' => parse_group_separator.value(Token::GroupSeparator),
-            '!' => parse_truncate_operator.value(Token::TruncateOperator),
-            _ => fail
-        }
-    )
+    trim(dispatch! {peek(any);
+        '[' | '"' | '{' => parse_selector,
+        '|' => {
+            alt((
+                parse_lenses.map(|lenses| {
+                    Token::LensSelector(
+                        lenses
+                            .into_iter()
+                            .map(|(tokens, value)| Lens(tokens, value))
+                            .collect(),
+                    )
+                }),
+                parse_pipe_in_operator.value(Token::PipeInOperator),
+            ))
+        },
+        '@' => parse_keys_operator.value(Token::KeyOperator),
+        '.' => parse_flatten_operator.value(Token::FlattenOperator),
+        '<' => parse_pipe_out_operator.value(Token::PipeOutOperator),
+        ',' => parse_group_separator.value(Token::GroupSeparator),
+        '!' => parse_truncate_operator.value(Token::TruncateOperator),
+        _ => fail
+    })
     .parse_next(input)
 }
 
@@ -181,11 +160,11 @@ mod tests {
     fn check_key_selector() {
         assert_eq!(
             parse_fragment(&mut r#""one""#),
-            Ok(Token::KeySelector("one"))
+            Ok(Token::KeySelector("one".into()))
         );
         assert_eq!(
             parse_fragment(&mut r#" "one" "#),
-            Ok(Token::KeySelector("one"))
+            Ok(Token::KeySelector("one".into()))
         );
     }
 
@@ -193,11 +172,19 @@ mod tests {
     fn check_multi_key_selector() {
         assert_eq!(
             parse_fragment(&mut r#"{"one","two","three"}"#),
-            Ok(Token::MultiKeySelector(vec!["one", "two", "three"]))
+            Ok(Token::MultiKeySelector(vec![
+                "one".into(),
+                "two".into(),
+                "three".into()
+            ]))
         );
         assert_eq!(
             parse_fragment(&mut r#" { "one", "two" , "three" } "#),
-            Ok(Token::MultiKeySelector(vec!["one", "two", "three"]))
+            Ok(Token::MultiKeySelector(vec![
+                "one".into(),
+                "two".into(),
+                "three".into()
+            ]))
         );
     }
 
@@ -250,17 +237,26 @@ mod tests {
             parse_fragment(&mut r#"|={"abc""c","bcd""d"=123,"efg"=null,"hij"="test"}"#),
             Ok(Token::LensSelector(vec![
                 Lens(
-                    vec![Token::KeySelector("abc"), Token::KeySelector("c")],
+                    vec![
+                        Token::KeySelector("abc".into()),
+                        Token::KeySelector("c".into())
+                    ],
                     None
                 ),
                 Lens(
-                    vec![Token::KeySelector("bcd"), Token::KeySelector("d")],
+                    vec![
+                        Token::KeySelector("bcd".into()),
+                        Token::KeySelector("d".into())
+                    ],
                     Some(LensValue::Number(123))
                 ),
-                Lens(vec![Token::KeySelector("efg")], Some(LensValue::Null)),
                 Lens(
-                    vec![Token::KeySelector("hij")],
-                    Some(LensValue::String("test"))
+                    vec![Token::KeySelector("efg".into())],
+                    Some(LensValue::Null)
+                ),
+                Lens(
+                    vec![Token::KeySelector("hij".into())],
+                    Some(LensValue::String("test".into()))
                 ),
             ]))
         );
@@ -301,7 +297,7 @@ mod tests {
         assert_eq!(
             parse(r#""this"[9,0]"#),
             Ok(vec![
-                Token::KeySelector("this"),
+                Token::KeySelector("this".into()),
                 Token::ArrayIndexSelector(vec![Index(9), Index(0)])
             ]),
         );
@@ -315,12 +311,12 @@ mod tests {
         assert_eq!(
             parse(r#""this"[9,0]|>"some"<|"ok"..!"#),
             Ok(vec![
-                Token::KeySelector("this"),
+                Token::KeySelector("this".into()),
                 Token::ArrayIndexSelector(vec![Index(9), Index(0)]),
                 Token::PipeInOperator,
-                Token::KeySelector("some"),
+                Token::KeySelector("some".into()),
                 Token::PipeOutOperator,
-                Token::KeySelector("ok"),
+                Token::KeySelector("ok".into()),
                 Token::FlattenOperator,
                 Token::TruncateOperator
             ]),
@@ -329,9 +325,9 @@ mod tests {
             parse(r#""a"!"b""#),
             Err(JqlParserError::TruncateError(
                 [
-                    Token::KeySelector("a"),
+                    Token::KeySelector("a".into()),
                     Token::TruncateOperator,
-                    Token::KeySelector("b")
+                    Token::KeySelector("b".into())
                 ]
                 .stringify()
             ))

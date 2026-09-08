@@ -1,4 +1,5 @@
 use std::{
+    borrow::Cow,
     num::NonZeroUsize,
     string::ToString,
 };
@@ -48,7 +49,7 @@ pub(crate) fn get_object_key(key: &str, json: &Value) -> Result<Value, JqlRunner
 /// Takes a key as a string slice and a reference of a JSON `Value`.
 /// Returns a JSON `Value` or an error.
 pub(crate) fn get_object_multi_key(
-    keys: &[&str],
+    keys: &[Cow<'_, str>],
     json: &mut Value,
 ) -> Result<Value, JqlRunnerError> {
     let len = keys.len();
@@ -56,7 +57,7 @@ pub(crate) fn get_object_multi_key(
     let (mut result, found_keys) = as_object_mut(json)?.iter_mut().fold(
         (IndexMap::with_capacity(len), IndexSet::with_capacity(len)),
         |mut acc: (IndexMap<usize, Value>, IndexSet<String>), (key, value)| {
-            if let Some(index) = keys.iter().position(|s| s == key) {
+            if let Some(index) = keys.iter().position(|s| s.as_ref() == key.as_str()) {
                 acc.0.insert(index, value.clone());
                 acc.1.insert(key.to_string());
             }
@@ -67,7 +68,7 @@ pub(crate) fn get_object_multi_key(
 
     let mut keys_not_found: Vec<String> = keys
         .iter()
-        .filter(|k| !found_keys.contains(**k))
+        .filter(|k| !found_keys.contains(k.as_ref()))
         .map(|k| k.to_string())
         .collect();
 
@@ -85,7 +86,7 @@ pub(crate) fn get_object_multi_key(
     let new_map = result
         .into_iter()
         .fold(Map::with_capacity(len), |mut acc, (index, value)| {
-            acc.insert(keys[index].to_owned(), value);
+            acc.insert(keys[index].to_string(), value);
 
             acc
         });
@@ -311,15 +312,15 @@ mod tests {
     fn check_get_object_multi_key() {
         let value = json!({ "a": 1, "b": 2, "c": 3, "d": 4, "e": 5 });
         assert_eq!(
-            get_object_multi_key(&["a", "b", "c"], &mut value.clone()),
+            get_object_multi_key(&["a".into(), "b".into(), "c".into()], &mut value.clone()),
             Ok(json!({ "a": 1, "b": 2, "c": 3 }))
         );
         assert_string_eq(
-            get_object_multi_key(&["c", "a", "b"], &mut value.clone()),
+            get_object_multi_key(&["c".into(), "a".into(), "b".into()], &mut value.clone()),
             json!({"c": 3, "a": 1, "b": 2}),
         );
         assert_eq!(
-            get_object_multi_key(&["w", "a", "t"], &mut value.clone()),
+            get_object_multi_key(&["w".into(), "a".into(), "t".into()], &mut value.clone()),
             Err(JqlRunnerError::MultiKeyNotFoundError {
                 keys: vec!["t".to_string(), "w".to_string()],
                 parent: value,
@@ -328,7 +329,7 @@ mod tests {
 
         let value = json!(1);
         assert_eq!(
-            get_object_multi_key(&["a", "b", "c"], &mut value.clone()),
+            get_object_multi_key(&["a".into(), "b".into(), "c".into()], &mut value.clone()),
             Err(JqlRunnerError::InvalidObjectError(value))
         );
     }

@@ -3,3 +3,4 @@ shared-version = true
 sign-commit = true
 sign-tag = true
 tag = true
+pre-release-hook = ["sh", "-c", 'if [ "$CRATE_NAME" = jql ] && [ "$DRY_RUN" != true ]; then cd "$WORKSPACE_ROOT" && sed -i "0,/^## \[unreleased\]$/s//## [$NEW_VERSION] - $(date +%Y-%m-%d)/" CHANGELOG.md; fi']

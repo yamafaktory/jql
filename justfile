@@ -2,6 +2,10 @@
 audit:
   cargo audit
 
+# Add the unreleased entries to the changelog, before the branch is squashed.
+changelog:
+  git-cliff --unreleased --prepend CHANGELOG.md
+
 # Clippy.
 clippy:
   cargo clippy
