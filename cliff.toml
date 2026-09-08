@@ -1,0 +1,53 @@
+[changelog]
+header = """
+# Changelog
+
+All notable changes to `jql` are documented here.
+"""
+body = """
+{% if version %}\
+## [{{ version | trim_start_matches(pat="jql-v") | trim_start_matches(pat="v") }}] - {{ timestamp | date(format="%Y-%m-%d") }}
+{% else %}\
+## [unreleased]
+{% endif %}\
+{% for group, commits in commits | group_by(attribute="group") %}
+### {{ group | striptags | trim | upper_first }}
+{% for commit in commits %}
+- {% if commit.scope %}{{ commit.scope }}: {% endif %}{{ commit.message }}\
+{% endfor %}
+{% endfor %}
+"""
+footer = ""
+trim = false
+postprocessors = [
+  { pattern = '\n{3,}', replace = "\n\n" },
+  { pattern = '\n+$', replace = "\n" },
+]
+
+[git]
+conventional_commits = true
+filter_unconventional = true
+filter_commits = true
+protect_breaking_commits = true
+tag_pattern = "^(jql-)?v[0-9]"
+topo_order = false
+sort_commits = "oldest"
+
+commit_preprocessors = [
+  { pattern = ' \(#([0-9]+)\)', replace = ' ([#${1}](https://github.com/yamafaktory/jql/pull/${1}))' },
+]
+
+commit_parsers = [
+  { message = "^chore: Release", skip = true },
+  { message = "^chore\\(performance\\): update benchmarks", skip = true },
+  { message = "^[a-z]+\\(ci\\)", skip = true },
+  { message = "^ci", skip = true },
+  { message = "^[a-z]+(\\([^)]*\\))?!:", group = "<!-- 0 -->Breaking" },
+  { message = "^feat", group = "<!-- 1 -->Features" },
+  { message = "^fix", group = "<!-- 2 -->Bug fixes" },
+  { message = "^perf", group = "<!-- 3 -->Performance" },
+  { message = "^refactor", group = "<!-- 4 -->Refactor" },
+  { message = "^doc", group = "<!-- 5 -->Documentation" },
+  { message = "^test", group = "<!-- 6 -->Testing" },
+  { message = "^chore", group = "<!-- 7 -->Miscellaneous" },
+]

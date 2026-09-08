@@ -127,10 +127,25 @@ jobs:
             echo "CHECKSUM_PATH=$CHECKSUM_PATH" >> $GITHUB_ENV
           fi
 
+      - name: Extract the release notes
+        shell: bash
+        run: |
+          version=${GITHUB_REF#refs/tags/jql-v}
+          awk -v heading="## [$version]" '
+            index($0, heading) == 1 { found = 1; next }
+            found && /^## \[/ { exit }
+            found { print }
+          ' CHANGELOG.md > RELEASE_NOTES.md
+          if [ ! -s RELEASE_NOTES.md ]; then
+            echo "See the commit history for the changes in this release." > RELEASE_NOTES.md
+          fi
+          cat RELEASE_NOTES.md
+
       - name: Release
         uses: softprops/action-gh-release@v3
         if: startsWith(github.ref, 'refs/tags/')
         with:
+          body_path: RELEASE_NOTES.md
           fail_on_unmatched_files: true
           files: |
             ${{ env.ASSET_PATH }}

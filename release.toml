@@ -3,3 +3,4 @@ shared-version = true
 sign-commit = true
 sign-tag = true
 tag = true
+pre-release-hook = ["sh", "-c", 'if [ "$CRATE_NAME" = jql ] && [ "$DRY_RUN" != true ]; then git-cliff --tag "jql-v$NEW_VERSION" --output CHANGELOG.md; fi']

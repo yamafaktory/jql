@@ -2,6 +2,10 @@
 audit:
   cargo audit
 
+# Regenerate the changelog from the commit history.
+changelog:
+  git-cliff --output CHANGELOG.md
+
 # Clippy.
 clippy:
   cargo clippy

@@ -551,12 +551,13 @@ This project is composed of following crates:
 
 ## Development
 
-Some commands are available as a `justfile` at the root of the workspace (testing / fuzzing).
+Some commands are available as a `justfile` at the root of the workspace (testing / fuzzing / changelog).
 
 ### Prerequisites
 
 - [cargo-fuzz](https://rust-fuzz.github.io/book/cargo-fuzz.html) (fuzzing, needs a nightly toolchain)
 - [cargo-nextest](https://nexte.st/)
+- [git-cliff](https://git-cliff.org/) (changelog)
 - [just](https://just.systems/man/en/)
 
 ### Commands
