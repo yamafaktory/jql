@@ -23,6 +23,7 @@ jobs:
         run: ./performance.sh
 
       - name: Create pull-request
+        id: performance-pr
         uses: peter-evans/create-pull-request@v8
         with:
           author: ${{ github.actor }} <${{ github.actor }}@users.noreply.github.com>
@@ -32,9 +33,18 @@ jobs:
           committer: GitHub <noreply@github.com>
           delete-branch: true
           labels: enhancement
-          reviewers: yamafaktory
           title: "[Performance] Update benchmarks"
-          token: ${{ secrets.GITHUB_TOKEN }}
+          # A pull-request opened with GITHUB_TOKEN raises no workflow run, so
+          # its required checks would never report and auto-merge would hang.
+          token: ${{ secrets.PERFORMANCE_TOKEN }}
+
+      - name: Merge the pull-request once the checks pass
+        if: steps.performance-pr.outputs.pull-request-number
+        uses: peter-evans/enable-pull-request-automerge@v3
+        with:
+          merge-method: squash
+          pull-request-number: ${{ steps.performance-pr.outputs.pull-request-number }}
+          token: ${{ secrets.PERFORMANCE_TOKEN }}
 
   build-release:
     runs-on: ${{ matrix.os }}
