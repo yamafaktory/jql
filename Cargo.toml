@@ -18,7 +18,7 @@ license = "MIT OR Apache-2.0"
 homepage = "https://yamafaktory.github.io/jql/"
 repository = "https://github.com/yamafaktory/jql"
 rust-version = "1.88"
-version = "9.0.2"
+version = "9.0.3"
 
 [workspace.lints.rust]
 missing_debug_implementations = "warn"
