@@ -250,9 +250,11 @@ fn hazardous_numbers_inside_an_error() {
 /// The one accepted departure from exact parity: simd-json and serde_json round
 /// the last `f64` bit of some scientific-notation literals differently, and
 /// telling a number's exponent from an `e` inside a string is too expensive to
-/// scan for (see `numbers_may_diverge`). The values stay within one ULP.
+/// scan for (see `numbers_may_diverge`). The tape is the correctly rounded side
+/// of the disagreement, so the check is that the tape matches Rust's own
+/// correctly rounded parse, and that the oracle stays within two ULP of it.
 #[test]
-fn scientific_notation_stays_within_one_ulp() {
+fn scientific_notation_is_correctly_rounded_on_the_tape() {
     for literal in [
         "1222211e222",
         "1222211e30",
@@ -261,6 +263,10 @@ fn scientific_notation_stays_within_one_ulp() {
         "9.87e-40",
         "1e200",
         "1e10",
+        "9e75",
+        "1e-29",
+        "21e-45",
+        "755841178345336393e-23",
     ] {
         let json = format!(r#"{{ "n": {literal} }}"#);
         let query = r#""n""#;
@@ -269,9 +275,17 @@ fn scientific_notation_stays_within_one_ulp() {
         let lazy = lazy::raw(query, &mut json.as_bytes().to_vec()).unwrap();
 
         let (oracle, lazy) = (oracle.as_f64().unwrap(), lazy.as_f64().unwrap());
+        let truth: f64 = literal.parse().unwrap();
+
+        assert_eq!(
+            lazy.to_bits(),
+            truth.to_bits(),
+            "{literal} is not correctly rounded on the tape"
+        );
+
         let ulps = ((oracle.to_bits() as i128) - (lazy.to_bits() as i128)).abs();
 
-        assert!(ulps <= 1, "{literal} differs by {ulps} ULP");
+        assert!(ulps <= 2, "{literal} differs by {ulps} ULP");
     }
 }
 
