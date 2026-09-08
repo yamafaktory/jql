@@ -2,9 +2,9 @@
 audit:
   cargo audit
 
-# Regenerate the changelog from the commit history.
+# Add the unreleased entries to the changelog, before the branch is squashed.
 changelog:
-  git-cliff --output CHANGELOG.md
+  git-cliff --unreleased --prepend CHANGELOG.md
 
 # Clippy.
 clippy:
