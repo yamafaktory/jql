@@ -15,6 +15,7 @@ categories = ["command-line-utilities", "filesystem"]
 edition = "2024"
 keywords = ["cli", "json", "terminal", "tool", "query"]
 license = "MIT OR Apache-2.0"
+homepage = "https://yamafaktory.github.io/jql/"
 repository = "https://github.com/yamafaktory/jql"
 rust-version = "1.88"
 version = "9.0.1"

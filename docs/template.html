@@ -1,0 +1,318 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>jql — JSON Query Language</title>
+<meta name="description" content="jql is a fast, lightweight command-line tool to query JSON. A complete guide to its grammar, with runnable examples.">
+<link rel="icon" href="jql.svg">
+<style>
+:root {
+  color-scheme: light dark;
+  --sun: #ffeb9b;
+  --rose: #ff9bc7;
+  --bg: #fdfcfb;
+  --panel: #ffffff;
+  --sunk: #f6f3f0;
+  --ink: #1c1a19;
+  --muted: #6b6560;
+  --line: #e7e1db;
+  --accent: #b8447a;
+  --ok: #2f7d5a;
+  --err: #b4453a;
+  --radius: 12px;
+  --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  --sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Inter, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #17151a;
+    --panel: #201d24;
+    --sunk: #171519;
+    --ink: #eee9ef;
+    --muted: #a49bab;
+    --line: #322c39;
+    --accent: #ff9bc7;
+    --ok: #7ddba8;
+    --err: #ff9d92;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; scroll-padding-top: 1.5rem; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font: 16px/1.65 var(--sans);
+  -webkit-font-smoothing: antialiased;
+}
+a { color: var(--accent); }
+
+.hero {
+  padding: 4rem 1.5rem 3rem;
+  text-align: center;
+  background:
+    radial-gradient(60rem 22rem at 50% -8rem, color-mix(in oklab, var(--sun) 40%, transparent), transparent 70%),
+    radial-gradient(44rem 20rem at 80% 0, color-mix(in oklab, var(--rose) 26%, transparent), transparent 70%);
+  border-bottom: 1px solid var(--line);
+}
+.hero img { width: 132px; height: 132px; }
+.hero h1 {
+  margin: .6rem 0 .2rem;
+  font-size: clamp(2.6rem, 7vw, 3.6rem);
+  letter-spacing: -.03em;
+}
+.tagline { margin: 0 auto; max-width: 34rem; color: var(--muted); font-size: 1.12rem; }
+.pron { font-style: italic; }
+.hero-links { display: flex; gap: .5rem; justify-content: center; flex-wrap: wrap; margin-top: 1.4rem; }
+.hero-links a {
+  display: inline-block;
+  padding: .42rem .95rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--panel);
+  color: var(--ink);
+  text-decoration: none;
+  font-size: .92rem;
+}
+.hero-links a:hover { border-color: var(--accent); color: var(--accent); }
+.hero-links a.primary {
+  background: linear-gradient(100deg, var(--sun), var(--rose));
+  border-color: transparent;
+  color: #1c1a19;
+  font-weight: 600;
+}
+
+.layout { display: grid; grid-template-columns: 15rem minmax(0, 1fr); gap: 3rem; max-width: 74rem; margin: 0 auto; padding: 2.5rem 1.5rem 5rem; }
+nav { position: sticky; top: 1.5rem; align-self: start; max-height: calc(100vh - 3rem); overflow-y: auto; font-size: .93rem; }
+nav strong { display: block; margin: 1.15rem 0 .4rem; font-size: .74rem; letter-spacing: .09em; text-transform: uppercase; color: var(--muted); }
+nav strong:first-child { margin-top: 0; }
+nav a { display: block; padding: .2rem 0 .2rem .7rem; border-left: 2px solid var(--line); color: var(--ink); text-decoration: none; }
+nav a:hover { border-left-color: var(--accent); color: var(--accent); }
+
+main { min-width: 0; }
+section { scroll-margin-top: 1.5rem; margin-bottom: 3.5rem; }
+h2 { margin: 0 0 .35rem; font-size: 1.75rem; letter-spacing: -.02em; }
+h2 + .lede { margin: 0 0 1.6rem; color: var(--muted); max-width: 46rem; }
+h3 { margin: 0 0 .3rem; font-size: 1.05rem; }
+p { max-width: 46rem; }
+
+.card { border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel); padding: 1.1rem 1.2rem 1.2rem; margin-bottom: 1rem; }
+.card .note { margin: 0 0 .9rem; color: var(--muted); font-size: .95rem; max-width: 46rem; }
+.io { display: grid; gap: .6rem; }
+@media (min-width: 62rem) { .io.pair { grid-template-columns: 1fr 1fr; } }
+.io .slot { min-width: 0; }
+.io .label { font-size: .68rem; letter-spacing: .09em; text-transform: uppercase; color: var(--muted); margin-bottom: .3rem; }
+pre { margin: 0; padding: .7rem .85rem; background: var(--sunk); border: 1px solid var(--line); border-radius: 8px; overflow-x: auto; font: .86rem/1.55 var(--mono); }
+code { font-family: var(--mono); }
+p code, li code, td code { background: var(--sunk); border: 1px solid var(--line); border-radius: 5px; padding: .08em .34em; font-size: .88em; }
+.query { display: flex; align-items: center; gap: .6rem; background: var(--sunk); border: 1px solid var(--line); border-radius: 8px; padding: .55rem .7rem; }
+.query code { flex: 1; overflow-x: auto; white-space: pre; font-size: .93rem; color: var(--accent); font-weight: 600; }
+.query button { flex: none; border: 1px solid var(--line); background: var(--panel); color: var(--muted); border-radius: 6px; padding: .2rem .5rem; font: inherit; font-size: .76rem; cursor: pointer; }
+.query button:hover { color: var(--accent); border-color: var(--accent); }
+pre.failed { border-color: color-mix(in oklab, var(--err) 45%, var(--line)); color: var(--err); }
+
+table { border-collapse: collapse; width: 100%; max-width: 46rem; font-size: .94rem; }
+th, td { text-align: left; padding: .5rem .7rem; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-size: .74rem; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+td:first-child { white-space: nowrap; }
+
+footer { border-top: 1px solid var(--line); padding: 2rem 1.5rem 3rem; text-align: center; color: var(--muted); font-size: .9rem; }
+.built { font-size: .82rem; margin-top: .5rem; }
+
+@media (max-width: 62rem) {
+  .layout { grid-template-columns: 1fr; gap: 1.5rem; }
+  nav { position: static; max-height: none; border-bottom: 1px solid var(--line); padding-bottom: 1rem; columns: 2; }
+}
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <img src="jql.svg" alt="The jql jackal logo" width="132" height="132">
+  <h1>jql</h1>
+  <p class="tagline">A fast, lightweight command-line tool to query JSON.<br>Pronounce it <span class="pron">jackal</span>.</p>
+  <div class="hero-links">
+    <a class="primary" href="#start">Get started</a>
+    <a href="#grammar">The grammar</a>
+    <a href="https://github.com/yamafaktory/jql">GitHub</a>
+    <a href="https://crates.io/crates/jql">crates.io</a>
+  </div>
+</header>
+
+<div class="layout">
+<nav>
+  <strong>Start</strong>
+  <a href="#start">Getting started</a>
+  <a href="#install">Installation</a>
+  <strong>The grammar</strong>
+  <a href="#keys">Object keys</a>
+  <a href="#arrays">Arrays</a>
+  <a href="#objects">Objects</a>
+  <a href="#operators">Operators</a>
+  <a href="#pipes">Pipes</a>
+  <a href="#lenses">Lenses</a>
+  <a href="#groups">Groups</a>
+  <a href="#combining">Putting it together</a>
+  <strong>Using it</strong>
+  <a href="#multidoc">Many documents</a>
+  <a href="#flags">Flags</a>
+  <a href="#shell">Shell integration</a>
+  <a href="#notes">Good to know</a>
+</nav>
+
+<main>
+
+<section id="start">
+  <h2>Getting started</h2>
+  <p class="lede">A query is a sequence of tokens read left to right. Each token narrows what came before it, so a query describes a path through the document.</p>
+  <p>Keys are always double-quoted, because <a href="https://tools.ietf.org/html/rfc8259#section-13">any string is a valid JSON key</a> — including <code>.valid</code>, the empty string, and a lone quote. That means a query needs single quotes in a shell, so the double quotes survive.</p>
+  <pre>echo '{ "name": "jql" }' | jql '"name"'</pre>
+  <p>Read a file by passing it after the query, or pipe into it:</p>
+  <pre>jql '"name"' package.json
+cat package.json | jql '"name"'</pre>
+</section>
+
+<section id="install">
+  <h2>Installation</h2>
+  <p class="lede">Packaged for most platforms, or grab a prebuilt binary.</p>
+  <table>
+    <tr><th>Platform</th><th>Command</th></tr>
+    <tr><td>Cargo</td><td><code>cargo install jql</code></td></tr>
+    <tr><td>Cargo Binstall</td><td><code>cargo binstall jql</code></td></tr>
+    <tr><td>Alpine Linux</td><td><code>apk add jql</code></td></tr>
+    <tr><td>Arch Linux</td><td><code>yay -S jql</code></td></tr>
+    <tr><td>Fedora</td><td><code>dnf install jql</code></td></tr>
+    <tr><td>FreeBSD</td><td><code>pkg install jql</code></td></tr>
+    <tr><td>Homebrew</td><td><code>brew install jql</code></td></tr>
+    <tr><td>Nix</td><td><code>nix-env -i jql</code></td></tr>
+    <tr><td>openSUSE</td><td><code>zypper install jql</code></td></tr>
+  </table>
+  <p>Prebuilt binaries for Linux, macOS and Windows are attached to every <a href="https://github.com/yamafaktory/jql/releases">release</a>.</p>
+</section>
+
+<h2 id="grammar" style="margin-bottom:1.6rem">The grammar</h2>
+
+<section id="keys">
+  <h2>Object keys</h2>
+  <p class="lede">The key selector is the one you will use most. Write selectors next to each other to walk down the document.</p>
+  <!--examples:keys-->
+</section>
+
+<section id="arrays">
+  <h2>Arrays</h2>
+  <p class="lede">Arrays are addressed by index or by range. Both accept several values, in any order you like.</p>
+  <!--examples:arrays-->
+</section>
+
+<section id="objects">
+  <h2>Objects</h2>
+  <p class="lede">Objects can be addressed by name, and also by position — useful when you know the shape but not the keys.</p>
+  <!--examples:objects-->
+</section>
+
+<section id="operators">
+  <h2>Operators</h2>
+  <p class="lede">Four operators reshape what a selector returned rather than descending into it.</p>
+  <!--examples:operators-->
+</section>
+
+<section id="pipes">
+  <h2>Pipes</h2>
+  <p class="lede">A pipe applies the tokens that follow to every element of an array, then optionally collapses the result back to a single value.</p>
+  <!--examples:pipes-->
+</section>
+
+<section id="lenses">
+  <h2>Lenses</h2>
+  <p class="lede">A lens filters an array, keeping the elements that match. It is the only token that removes elements rather than selecting them.</p>
+  <!--examples:lenses-->
+</section>
+
+<section id="groups">
+  <h2>Groups</h2>
+  <p class="lede">A comma splits a query into sub-queries, each run against the same input, collected into an array.</p>
+  <!--examples:groups-->
+</section>
+
+<section id="combining">
+  <h2>Putting it together</h2>
+  <p class="lede">Real queries chain these pieces. Reading one from left to right tells you the whole pipeline.</p>
+  <!--examples:combining-->
+</section>
+
+<section id="multidoc">
+  <h2>Many documents</h2>
+  <p class="lede">Input may hold more than one JSON document. Each is evaluated on its own and produces its own result.</p>
+  <!--examples:multidoc-->
+  <p>Anything trailing that is not itself a document is an error rather than being ignored.</p>
+</section>
+
+<section id="flags">
+  <h2>Flags</h2>
+  <p class="lede">Nine flags, all short. The full list is in <code>jql --help</code>.</p>
+  <table>
+    <tr><th>Flag</th><th>What it does</th></tr>
+    <tr><td><code>-i</code>, <code>--inline</code></td><td>Print the output on one line instead of pretty-printing it.</td></tr>
+    <tr><td><code>-q</code>, <code>--query &lt;FILE&gt;</code></td><td>Read the query from a file rather than the command line.</td></tr>
+    <tr><td><code>-r</code>, <code>--raw-string</code></td><td>Print a string result without its surrounding quotes.</td></tr>
+    <tr><td><code>-S</code>, <code>--sort-keys</code></td><td>Sort the keys of every object recursively, like <code>jq -S</code>.</td></tr>
+    <tr><td><code>-s</code>, <code>--stream</code></td><td>Process input line by line as it arrives, one document per line.</td></tr>
+    <tr><td><code>-v</code>, <code>--validate</code></td><td>Ignore the query and report whether the input is valid JSON.</td></tr>
+    <tr><td><code>-h</code>, <code>--help</code></td><td>Print help, including the whole grammar.</td></tr>
+    <tr><td><code>-V</code>, <code>--version</code></td><td>Print the version.</td></tr>
+  </table>
+  <!--examples:flags-->
+</section>
+
+<section id="shell">
+  <h2>Shell integration</h2>
+  <p class="lede">jql eats JSON and writes JSON back, so it composes with everything else in a pipeline.</p>
+  <h3>Save the output</h3>
+  <pre>jql '"repos"' input.json &gt; output.json</pre>
+  <h3>Assign a value to a variable</h3>
+  <p>Combine <code>--raw-string</code> with <code>--inline</code> so the result arrives without quotes or newlines:</p>
+  <pre>name=$(jql -r -i '"name"' package.json)</pre>
+  <h3>Keep the query in a file</h3>
+  <p>Long queries are easier to read and to version when they live on disk:</p>
+  <pre>jql --query ./select-repos.jql input.json</pre>
+  <h3>Follow a stream</h3>
+  <p>Without <code>--stream</code> the whole input is read before anything is written, which is right for a file or a finished pipe. With it, each line is processed as it arrives — for output still being produced:</p>
+  <pre>docker logs --follow my-container | jql --stream '"message"'</pre>
+  <p>It expects one document per line. A document spread over several lines needs the default mode.</p>
+  <h3>Check exit codes</h3>
+  <pre>jql --validate input.json &amp;&amp; echo "valid"</pre>
+</section>
+
+<section id="notes">
+  <h2>Good to know</h2>
+  <h3>Errors say what went wrong</h3>
+  <p>A failed selection reports the token that failed and the value it was applied to, rather than returning null and leaving you to guess.</p>
+  <h3>It is not jq</h3>
+  <p>There is no plan to align jql with <a href="https://stedolan.github.io/jq/">jq</a> or any similar tool. jql selects and reshapes; it has no expression language, no arithmetic and no user-defined functions, and that is deliberate.</p>
+  <h3>Speed</h3>
+  <p>Selection queries run against a <a href="https://github.com/simd-lite/simd-json">simd-json</a> tape, so only the part of the document a query actually selects is ever built. Measurements against jq live in <a href="https://github.com/yamafaktory/jql/blob/main/PERFORMANCE.md">PERFORMANCE.md</a>.</p>
+</section>
+
+</main>
+</div>
+
+<footer>
+  <p>jql is released under the <a href="https://github.com/yamafaktory/jql/blob/main/LICENSE-MIT">MIT</a> and <a href="https://github.com/yamafaktory/jql/blob/main/LICENSE-APACHE">Apache 2.0</a> licences.</p>
+  <p class="built">Every example on this page is generated by running <!--version--> and verified in CI.</p>
+</footer>
+
+<script>
+document.querySelectorAll(".query button").forEach(function (button) {
+  button.addEventListener("click", function () {
+    navigator.clipboard.writeText(button.previousElementSibling.textContent).then(function () {
+      var previous = button.textContent;
+      button.textContent = "copied";
+      setTimeout(function () { button.textContent = previous; }, 1200);
+    });
+  });
+});
+</script>
+
+</body>
+</html>

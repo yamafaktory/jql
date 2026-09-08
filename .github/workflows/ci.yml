@@ -102,6 +102,19 @@ jobs:
           echo \"foo\" > selectors.txt
           if !echo "{\"foo\":\"bar\"}" | cargo run -- -q selectors.txt | grep -q \"bar\"; then exit 1; fi
 
+  docs:
+    name: docs
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: Rebuild the website and check that it is up to date
+        run: |
+          cargo build --release -p jql
+          python3 docs/build.py
+          git diff --exit-code docs/index.html
+
   bench:
     if: "!contains(github.ref, 'refs/heads/main')"
     name: bench

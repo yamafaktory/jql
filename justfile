@@ -10,6 +10,11 @@ changelog:
 clippy:
   cargo clippy
 
+# Rebuild the website from the template and the documented examples.
+docs:
+  cargo build --release -p jql
+  python3 docs/build.py
+
 # Format.
 fmt:
   cargo fmt --all
