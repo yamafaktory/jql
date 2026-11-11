@@ -17,7 +17,7 @@ path = "../crates/jql-parser"
 path = "../crates/jql-runner"
 
 [dependencies.serde_json]
-version = "1.0.151"
+version = "1.0.154"
 features = ["preserve_order", "unbounded_depth"]
 
 # Prevent this from interfering with workspaces.
