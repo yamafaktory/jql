@@ -30,11 +30,11 @@ debug = 1
 [[bin]]
 doc = false
 name = "fuzz-parser"
-path = "fuzz_targets/fuzz_parser.rs"
+path = "fuzz_targets/fuzz-parser.rs"
 test = false
 
 [[bin]]
 doc = false
 name = "fuzz-lazy"
-path = "fuzz_targets/fuzz_lazy.rs"
+path = "fuzz_targets/fuzz-lazy.rs"
 test = false
