@@ -8,7 +8,6 @@ All notable changes to `jql` are documented here.
 
 - deps: update dependencies
 
-
 ## [9.0.0] - 2026-09-08
 
 ### Breaking
