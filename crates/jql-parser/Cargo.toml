@@ -3,6 +3,7 @@ authors.workspace = true
 categories.workspace = true
 description = "Parser for jql - the JSON Query Language tool."
 edition.workspace = true
+homepage.workspace = true
 keywords.workspace = true
 license.workspace = true
 name = "jql-parser"
@@ -15,7 +16,7 @@ workspace = true
 
 [dependencies]
 thiserror.workspace = true
-winnow = { version = "1.0.4", features = ["simd"] }
+winnow = { version = "1.0.5", features = ["simd"] }
 
 [lib]
 path = "src/lib.rs"
