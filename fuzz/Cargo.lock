@@ -170,7 +170,7 @@ dependencies = [
 
 [[package]]
 name = "jql-parser"
-version = "9.0.3"
+version = "9.0.4"
 dependencies = [
  "thiserror",
  "winnow",
@@ -188,7 +188,7 @@ dependencies = [
 
 [[package]]
 name = "jql-runner"
-version = "9.0.3"
+version = "9.0.4"
 dependencies = [
  "indexmap",
  "jql-parser",

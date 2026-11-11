@@ -21,11 +21,11 @@ fmt:
 
 # Fuzz parser.
 fuzz:
-  cargo fuzz run fuzz_parser
+  cargo fuzz run fuzz-parser
 
 # Fuzz the lazy evaluator against the runner.
 fuzz-lazy:
-  cargo fuzz run fuzz_lazy
+  cargo fuzz run fuzz-lazy
 
 # Run all tests.
 test:
