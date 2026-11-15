@@ -4,20 +4,24 @@ on:
   push:
     tags: ["jql-v[0-9]+.[0-9]+.[0-9]+*"]
 
+permissions:
+  contents: read
+
 jobs:
   performance:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
         with:
+          persist-credentials: false
           ref: "main"
 
       - uses: dtolnay/rust-toolchain@stable
 
       - uses: Swatinem/rust-cache@v2
-      
+
       - name: Install hyperfine and jql - jq is already available!
-        run: cargo install hyperfine && cargo install jql
+        run: cargo install hyperfine --locked --version 2.0.0 && cargo install jql --locked
 
       - name: Run performance benchmarks
         run: ./performance.sh
@@ -48,6 +52,8 @@ jobs:
 
   build-release:
     runs-on: ${{ matrix.os }}
+    permissions:
+      contents: write
     strategy:
       fail-fast: false
       matrix:
@@ -96,6 +102,8 @@ jobs:
     steps:
       - name: Checkout repo
         uses: actions/checkout@v7
+        with:
+          persist-credentials: false
 
       - name: Setup Rust toolchain
         uses: dtolnay/rust-toolchain@master
@@ -108,7 +116,7 @@ jobs:
       - name: Build Linux
         if: matrix.os == 'ubuntu-latest'
         run: |
-          cargo install cross --git https://github.com/cross-rs/cross
+          cargo install cross --git https://github.com/cross-rs/cross --rev a9301e91f72bba3850460512685f6b16062015ff --locked
           cross build --release --target ${{ matrix.target }}
       
       - name: Build Darwin & Windows

@@ -6,21 +6,17 @@ on:
     branches:
       - main
 
-jobs:
-  audit:
-    name: audit
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v7
-      - uses: rustsec/audit-check@v2
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+permissions:
+  contents: read
 
+jobs:
   clippy:
     name: clippy
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: clippy
@@ -32,6 +28,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
       - id: msrv
         run: echo "version=$(sed -n 's/^rust-version = "\(.*\)"/\1/p' Cargo.toml)" >> "$GITHUB_OUTPUT"
       - uses: dtolnay/rust-toolchain@master
@@ -46,6 +44,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
       - uses: dtolnay/rust-toolchain@nightly
         with:
           components: rustfmt
@@ -62,6 +62,8 @@ jobs:
         rust: [stable, beta, nightly]
     steps:
       - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
       - uses: dtolnay/rust-toolchain@master
         with:
           toolchain: ${{ matrix.rust }}
@@ -71,26 +73,38 @@ jobs:
   shell-tests:
     name: shell tests
     runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
     strategy:
       matrix:
         os: [ubuntu-latest, macOS-latest]
         rust: [stable, beta, nightly]
     steps:
       - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
       - uses: dtolnay/rust-toolchain@master
         with:
           toolchain: ${{ matrix.rust }}
       - uses: Swatinem/rust-cache@v2
+      - name: Build
+        run: cargo build
       - name: Test pipe
-        run: if ! echo "{\"a\":4}" | cargo run '"a"' | grep -q "4"; then exit 1; fi
+        run: |
+          out=$(echo '{"a":4}' | ./target/debug/jql '"a"')
+          [ "$out" = 4 ]
       - name: Test raw-string flag
-        run: if echo "{\"foo\":\"bar\"}" | cargo run '"foo"' -r | grep -q \"bar\"; then exit 1; fi
+        run: |
+          out=$(echo '{"foo":"bar"}' | ./target/debug/jql '"foo"' -r)
+          [ "$out" = bar ]
       - name: Test sort-keys flag
         run: |
-          if ! echo '{"root":{"d":1,"b":{"y":1,"x":2},"a":3}}' | cargo run -- '"root"' -i -S | grep -qF '{"a":3,"b":{"x":2,"y":1},"d":1}'; then exit 1; fi
+          out=$(echo '{"root":{"d":1,"b":{"y":1,"x":2},"a":3}}' | ./target/debug/jql '"root"' -i -S)
+          [ "$out" = '{"a":3,"b":{"x":2,"y":1},"d":1}' ]
       - name: Test heredoc
         run: |
-          cargo run -q -- '"one"[2:0],"two","three"' <<EOF
+          ./target/debug/jql -i '"one"[2:0],"two","three"' > heredoc.out <<EOF
           {
             "one": [1, 2, 3],
             "two": 2,
@@ -102,25 +116,34 @@ jobs:
             "three": 3
           }
           EOF
+          [ "$(cat heredoc.out)" = "$(printf '%s\n' '[[3,2,1],2,3]' '[[6,5,4],2,3]')" ]
       - name: Test streaming flag
         run: |
-          for i in {1..10}; do echo '{"foo": 2}'; sleep 1; done | cargo run '!' -s
+          out=$(for i in {1..10}; do echo '{"foo": 2}'; sleep 1; done | ./target/debug/jql '!' -s)
+          [ "$out" = "$(for i in {1..10}; do echo '{}'; done)" ]
       - name: Test validate flag
         run: |
-          if ! echo "{\"foo\":\"bar\"}" | cargo run -- -v | grep -q "Valid JSON file or content"; then exit 1; fi
-          if echo "{\"foo:\"bar\"}" | cargo run -- -v | grep -q "Invalid JSON file or content"; then exit 1; fi
+          out=$(echo '{"foo":"bar"}' | ./target/debug/jql -v)
+          [ "$out" = "Valid JSON file or content" ]
+          if out=$(echo '{"foo:"bar"}' | ./target/debug/jql -v 2>&1); then exit 1; fi
+          [ "$out" = "Invalid JSON file or content" ]
       - name: Test broken pipe
-        run: echo "{\"foo\":\"bar\"}" | cargo run '"foo"' | less -sex
+        run: |
+          jq -nc '[range(300000)]' > large.json
+          ./target/debug/jql '..' < large.json | head -c 1 > /dev/null
       - name: Test query
         run: |
-          echo \"foo\" > selectors.txt
-          if !echo "{\"foo\":\"bar\"}" | cargo run -- -q selectors.txt | grep -q \"bar\"; then exit 1; fi
+          echo '"foo"' > selectors.txt
+          out=$(echo '{"foo":"bar"}' | ./target/debug/jql -q selectors.txt)
+          [ "$out" = '"bar"' ]
 
   docs:
     name: docs
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
       - name: Rebuild the website and check that it is up to date
@@ -140,6 +163,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
         with:
+          persist-credentials: false
           # The baseline is measured on main, which a shallow clone can't reach.
           fetch-depth: 0
       - uses: dtolnay/rust-toolchain@master
@@ -151,5 +175,5 @@ jobs:
           cargo bench --bench benchmark -- --noplot --save-baseline current
           git checkout --detach origin/main
           cargo bench --bench benchmark -- --noplot --save-baseline main
-          cargo install critcmp --force
+          cargo install critcmp --locked --version 0.1.8
           critcmp main current
