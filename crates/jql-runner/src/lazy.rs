@@ -711,17 +711,11 @@ fn step<'tape, 'input>(
                 return Err(JqlRunnerError::InvalidObjectError(materialize(value)));
             };
 
-            // Take the last match rather than `Object::get`'s first: serde_json
-            // keeps the last value for a repeated key.
-            let selected = object
-                .iter()
-                .filter(|(candidate, _)| candidate == key)
-                .map(|(_, child)| child)
-                .last();
-
-            Cursor::Tape(selected.ok_or_else(|| JqlRunnerError::KeyNotFoundError {
-                key: (*key).to_string(),
-                parent: materialize(value),
+            Cursor::Tape(last_match(&object, key).ok_or_else(|| {
+                JqlRunnerError::KeyNotFoundError {
+                    key: (*key).to_string(),
+                    parent: materialize(value),
+                }
             })?)
         }
 
@@ -864,29 +858,29 @@ fn step<'tape, 'input>(
                 return Err(JqlRunnerError::InvalidObjectError(materialize(value)));
             };
 
-            let mut missing: Vec<String> = keys
+            let Some(selected) = keys
                 .iter()
-                .filter(|key| object.get(key.as_ref()).is_none())
-                .map(|key| (*key).to_string())
-                .collect();
+                .map(|key| last_match(&object, key))
+                .collect::<Option<Vec<_>>>()
+            else {
+                let mut missing: Vec<String> = keys
+                    .iter()
+                    .filter(|key| last_match(&object, key).is_none())
+                    .map(|key| (*key).to_string())
+                    .collect();
 
-            if !missing.is_empty() {
                 missing.sort();
 
                 return Err(JqlRunnerError::MultiKeyNotFoundError {
                     keys: missing,
                     parent: materialize(value),
                 });
-            }
+            };
 
-            // Every key is present (checked above); any miss is simply skipped.
             Cursor::Owned(Value::Object(
                 keys.iter()
-                    .filter_map(|key| {
-                        object
-                            .get(key.as_ref())
-                            .map(|child| (key.to_string(), materialize(child)))
-                    })
+                    .zip(selected)
+                    .map(|(key, child)| (key.to_string(), materialize(child)))
                     .collect(),
             ))
         }
@@ -925,18 +919,28 @@ fn step<'tape, 'input>(
     Ok(Some(cursor))
 }
 
+/// Takes the last match rather than `Object::get`'s first: serde_json keeps the
+/// last value for a repeated key.
+fn last_match<'tape, 'input>(
+    object: &TapeObject<'tape, 'input>,
+    key: &str,
+) -> Option<TapeValue<'tape, 'input>> {
+    object
+        .iter()
+        .filter(|(candidate, _)| *candidate == key)
+        .map(|(_, child)| child)
+        .last()
+}
+
 /// Whether `token` reads an object by position or key count, and so cannot be
 /// reconciled with serde_json's collapsing of duplicate keys.
 ///
-/// `KeySelector` is absent on purpose: it resolves duplicates itself by taking
-/// the last match.
+/// `KeySelector` and `MultiKeySelector` are absent on purpose: they resolve
+/// duplicates themselves by taking the last match.
 fn operates_on_object(token: &Token) -> bool {
     matches!(
         token,
-        Token::MultiKeySelector(_)
-            | Token::ObjectIndexSelector(_)
-            | Token::ObjectRangeSelector(_)
-            | Token::KeyOperator
+        Token::ObjectIndexSelector(_) | Token::ObjectRangeSelector(_) | Token::KeyOperator
     )
 }
 
