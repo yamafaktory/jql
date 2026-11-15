@@ -2,6 +2,14 @@
 
 All notable changes to `jql` are documented here.
 
+## [unreleased]
+
+### Performance
+
+- release: optimize the binary for speed
+- runner: select multiple keys without a duplicate key scan
+- bin: write all outputs in one call
+
 ## [9.0.4] - 2026-11-11
 
 ### Miscellaneous
