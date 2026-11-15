@@ -1,0 +1,11 @@
+[target.x86_64-unknown-linux-musl]
+image = "@sha256:4043a111de4bdb21628be33eb1a9e90dcfcb07ea96ed9df43bb2e9be53b32a05"
+
+[target.aarch64-unknown-linux-musl]
+image = "@sha256:8b7fd8ef9ea82f0687baeeec281e1bc2667d84d5f4d65c8720636f1a2daf9c2f"
+
+[target.arm-unknown-linux-musleabihf]
+image = "@sha256:e30ad121efddbd1670d50966e95ff4bb0f4b73f3361571de5ec76235abaeae62"
+
+[target.loongarch64-unknown-linux-gnu]
+image = "@sha256:97ebb54b84334a5e9598fcde47a5f78eb3e788b32a0bb2554c4762dae4f332ec"
