@@ -61,11 +61,13 @@ fn read_file_bytes(path: impl AsRef<Path>) -> Result<Vec<u8>> {
 /// Renders the outputs or the error and exits.
 fn render(result: Result<Vec<String>>) {
     match result {
-        Ok(outputs) => {
-            for output in outputs {
-                println!("{output}");
-            }
-        }
+        Ok(outputs) => print!(
+            "{}",
+            outputs
+                .iter()
+                .flat_map(|output| [output.as_str(), "\n"])
+                .collect::<String>()
+        ),
         Err(error) => {
             eprintln!("{error}");
             exit(1);

@@ -303,6 +303,13 @@ fn duplicate_keys() {
     assert_parity("{2,0}", dup);
     assert_parity("{0:2}", dup);
     assert_parity(r#"{"c","a"}"#, dup);
+    assert_parity(r#"{"c","c"}"#, dup);
+    assert_parity(r#"{"c","z"}"#, dup);
+    assert_parity(
+        r#""o"|>{"x","y"}"#,
+        r#"{ "o": [{ "x": 1, "y": 0, "x": 9 }, { "y": 3, "x": 2 }] }"#,
+    );
+    assert_parity(r#""o"|>{"x","q"}"#, r#"{ "o": [{ "x": 1, "x": 9 }] }"#);
     assert_parity("@", dup);
     assert_parity("!", dup);
     assert_parity(r#""o""#, r#"{ "o": { "x": 1, "x": 9 } }"#);
