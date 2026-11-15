@@ -2,7 +2,7 @@
 
 All notable changes to `jql` are documented here.
 
-## [unreleased]
+## [9.0.5] - 2026-11-15
 
 ### Performance
 
